@@ -1,0 +1,7 @@
+devices:
+  - "router1"
+  - "router2"
+
+manifest:
+  devices:
+    - "router1"

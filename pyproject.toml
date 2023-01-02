@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "cosmo"
+version = "0.0.1"
+license = "mit"
+description = "???"
+authors = ["Ember Keske <ember.keske@wobcom.de>", "Johann Wagner <johann.wagner@wobcom.de>"]
+
+[tool.poetry.scripts]
+cosmo = "cosmo.__main__:main"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+requests = ">2.26.0"
+PyYAML = ">5.1"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.2.0"]
+build-backend = "poetry.core.masonry.api"
