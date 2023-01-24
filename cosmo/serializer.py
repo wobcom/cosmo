@@ -60,7 +60,10 @@ class DeviceSerializer:
         if "core" in tags:
             families["iso"] = {}
             if iface["mtu"]:
-                families["iso"]["mtu"] = iface["mtu"] - 3
+                families["iso"]["mtu"] = iface["mtu"] - 3 # isis has an CLNS/LLC header of 3 bytes
+            families["mpls"] = {}
+            if iface["mtu"]:
+                families["mpls"]["mtu"] = iface["mtu"] - 64 # enough space for 16 labels
 
         if len(families.keys()) > 0:
             unit_stub["families"] = families
