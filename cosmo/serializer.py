@@ -193,30 +193,44 @@ class DeviceSerializer:
                 ).compressed]
 
         for _, l2vpn in self.l2vpns.items():
-            routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
-                "bridge_domains": [
-                    {
-                        "interfaces": [
-                            {"name": i["name"]} for i in l2vpn["interfaces"]
-                        ],
-                        "vlan_id": l2vpn["vlan"]["vid"],
-                        "name": l2vpn["vlan"]["name"],
-                        "vxlan": {
-                            "ingress_node_replication": True,
-                            "vni": l2vpn["identifier"],
+            if l2vpn['type'] == "VXLAN_EVPN":
+                routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
+                    "bridge_domains": [
+                        {
+                            "interfaces": [
+                                {"name": i["name"]} for i in l2vpn["interfaces"]
+                            ],
+                            "vlan_id": l2vpn["vlan"]["vid"],
+                            "name": l2vpn["vlan"]["name"],
+                            "vxlan": {
+                                "ingress_node_replication": True,
+                                "vni": l2vpn["identifier"],
+                            },
+                        }
+                    ],
+                    "description": "Virtual Switch " + l2vpn["name"].replace("WAN: VS_", ""),
+                    "instance_type": "virtual-switch",
+                    "protocols": {
+                        "evpn": {
+                            "vni": [l2vpn["identifier"]],
                         },
-                    }
-                ],
-                "description": "Virtual Switch " + l2vpn["name"].replace("WAN: VS_", ""),
-                "instance_type": "virtual-switch",
-                "protocols": {
-                    "evpn": {
-                        "vni": [l2vpn["identifier"]],
                     },
-                },
-                "route_distinguisher": "9136:" + str(l2vpn["identifier"]),
-                "vrf_target": "target:1:" + str(l2vpn["identifier"]),
-            }
+                    "route_distinguisher": "9136:" + str(l2vpn["identifier"]),
+                    "vrf_target": "target:1:" + str(l2vpn["identifier"]),
+                }
+            elif l2vpn['type'] == "MPLS_EVPN":
+                routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
+                    "interfaces": [
+                        {"name": i["name"]} for i in l2vpn["interfaces"]
+                    ],
+                    "description": "MPLS-EVPN: " + l2vpn["name"].replace("WAN: VS_", ""),
+                    "instance_type": "evpn",
+                    "protocols": {
+                        "evpn": {},
+                    },
+                    "route_distinguisher": "9136:" + str(l2vpn["identifier"]),
+                    "vrf_target": "target:1:" + str(l2vpn["identifier"]),
+                }
 
         device_stub["junos__generated_routing_instances"] = routing_instances
 
