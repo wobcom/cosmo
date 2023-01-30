@@ -61,13 +61,10 @@ def main() -> int:
         if not l2vpn["name"].startswith("WAN: "):
             continue
         for termination in l2vpn["terminations"]:
-            if not termination["assigned_object_type"] == {
-                "app_label": "ipam",
-                "model": "vlan",
-            }:
+            if not termination["assigned_object"] or not termination['assigned_object']['__typename'] == "VLANType":
                 l.warning(f"Found unsupported L2VPN termination in {l2vpn['name']}, ignoring...")
                 continue
-            l2vpn_vlan_terminations[str(termination["assigned_object_id"])] = l2vpn
+            l2vpn_vlan_terminations[str(termination["assigned_object"]['id'])] = l2vpn
 
     for device in cosmo_data["device_list"]:
 

@@ -77,11 +77,12 @@ class GraphqlClient:
                 identifier
                 terminations {
                   id
-                  assigned_object_type {
-                    app_label
-                    model
+                  assigned_object {
+                    __typename
+                    ... on VLANType {
+                        id
+                    }
                   }
-                  assigned_object_id
                 }
               }
             }"""
