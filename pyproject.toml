@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cosmo"
-version = "0.1.0"
+version = "0.2.1"
 license = "mit"
 description = "???"
 authors = ["Ember Keske <ember.keske@wobcom.de>", "Johann Wagner <johann.wagner@wobcom.de>"]
