@@ -221,7 +221,7 @@ class DeviceSerializer:
             elif l2vpn['type'] == "MPLS_EVPN":
                 routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
                     "interfaces": [
-                        {"name": i["name"]} for i in l2vpn["interfaces"]
+                        i["name"] for i in l2vpn["interfaces"]
                     ],
                     "description": "MPLS-EVPN: " + l2vpn["name"].replace("WAN: VS_", ""),
                     "instance_type": "evpn",
