@@ -54,7 +54,6 @@ def main() -> int:
         pass
 
     yaml.emitter.Emitter.process_tag = noop
-    pathlib.Path("./generated_vars").mkdir(parents=True, exist_ok=True)
 
     l2vpn_vlan_terminations = {}
     for l2vpn in cosmo_data["l2vpn_list"]:
@@ -68,58 +67,21 @@ def main() -> int:
 
     for device in cosmo_data["device_list"]:
 
+        device_fqdn = f"{str(device['name']).lower()}.{cosmo_configuration['fqdnSuffix']}"
+
         if allowed_hosts and device['name'] not in allowed_hosts:
             continue
 
-        l.info(f"Generating {device['name']}")
+        l.info(f"Generating {device_fqdn}")
 
         serializer = DeviceSerializer(device, l2vpn_vlan_terminations)
         content = serializer.serialize()
         if not content:
             continue
 
-        with open("./generated_vars/device-" + device["name"] + ".yml", "w") as yaml_file:
+        pathlib.Path(f"./host_vars/{device_fqdn}").mkdir(parents=True, exist_ok=True)
+        with open(f"./host_vars/{device_fqdn}/generated-cosmo.yml", "w") as yaml_file:
             yaml.dump(content, yaml_file, default_flow_style=False)
-
-    # Writing manifest
-
-    device_manifest = {
-        "junos__device_manifest": {}
-    }
-    for device in cosmo_data["device_list"]:
-        if device['name'] not in cosmo_configuration['manifest']['devices']:
-            continue
-
-        loopback_interface = next(filter(lambda i: i['name'] == 'lo0.0', device["interfaces"]), None)
-        if not loopback_interface:
-            l.warning(f"{device['name']} is missing loopback interface, skipping..")
-
-        ipv4s = []
-        ipv6s = []
-
-        for ip in loopback_interface["ip_addresses"]:
-            ipa = ipaddress.ip_network(ip["address"], strict=False)
-            if ipa.version == 4:
-                ipv4s.append(ip)
-            else:
-                ipv6s.append(ip)
-
-        if len(ipv4s) != 1:
-            l.warning(f"{device['name']} should contain one IPv4 loopback address, but currently has {len(ipv4s)}")
-            continue
-
-        if len(ipv6s) != 1:
-            l.warning(f"{device['name']} should contain one IPv4 loopback address, but currently has {len(ipv6s)}")
-            continue
-
-        device_manifest["junos__device_manifest"][device['name']] = {
-            "loopbackIPv4": ipv4s[0]['address'],
-            "loopbackIPv6": ipv6s[0]['address'],
-        }
-
-    l.info(f"Generating device manifest")
-    with open("./generated_vars/device-manifest.yml", "w") as yaml_file:
-        yaml.dump(device_manifest, yaml_file, default_flow_style=False)
 
     return 0
 
