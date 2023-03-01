@@ -82,6 +82,9 @@ class GraphqlClient:
                     ... on VLANType {
                         id
                     }
+                    ... on InterfaceType {
+                        id
+                    }
                   }
                 }
               }

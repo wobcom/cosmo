@@ -56,14 +56,18 @@ def main() -> int:
     yaml.emitter.Emitter.process_tag = noop
 
     l2vpn_vlan_terminations = {}
+    l2vpn_interface_terminations = {}
     for l2vpn in cosmo_data["l2vpn_list"]:
         if not l2vpn["name"].startswith("WAN: "):
             continue
         for termination in l2vpn["terminations"]:
-            if not termination["assigned_object"] or not termination['assigned_object']['__typename'] == "VLANType":
+            if not termination["assigned_object"] or termination['assigned_object']['__typename'] not in ["VLANType", "InterfaceType"]:
                 l.warning(f"Found unsupported L2VPN termination in {l2vpn['name']}, ignoring...")
                 continue
-            l2vpn_vlan_terminations[str(termination["assigned_object"]['id'])] = l2vpn
+            if termination['assigned_object']['__typename'] == "VLANType":
+                l2vpn_vlan_terminations[str(termination["assigned_object"]['id'])] = l2vpn
+            elif termination['assigned_object']['__typename'] == "InterfaceType":
+                l2vpn_interface_terminations[str(termination["assigned_object"]['id'])] = l2vpn
 
     for device in cosmo_data["device_list"]:
 
@@ -74,7 +78,7 @@ def main() -> int:
 
         l.info(f"Generating {device_fqdn}")
 
-        serializer = DeviceSerializer(device, l2vpn_vlan_terminations)
+        serializer = DeviceSerializer(device, l2vpn_vlan_terminations, l2vpn_interface_terminations)
         content = serializer.serialize()
         if not content:
             continue
