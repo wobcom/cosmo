@@ -6,9 +6,10 @@ l = Logger("serializer.py")
 
 
 class DeviceSerializer:
-    def __init__(self, device, l2vpn_vlan_terminations):
+    def __init__(self, device, l2vpn_vlan_terminations, l2vpn_interface_terminations):
         self.device = device
         self.l2vpn_vlan_terminations = l2vpn_vlan_terminations
+        self.l2vpn_interface_terminations = l2vpn_interface_terminations
         self.l2vpns = {}
 
     def _get_subinterfaces(self, interfaces, base_name):
@@ -87,7 +88,8 @@ class DeviceSerializer:
                 return
             unit_stub["vlan"] = iface["untagged_vlan"]["vid"]
 
-            l2vpn = self.l2vpn_vlan_terminations.get(iface["untagged_vlan"]["id"])
+            l2vpn = self.l2vpn_vlan_terminations.get(iface["untagged_vlan"]["id"]) \
+                    or self.l2vpn_interface_terminations.get(iface["id"])
             if l2vpn:
                 unit_stub["encapsulation"] = "vlan-bridge"
                 if not self.l2vpns.get(l2vpn["id"]):
