@@ -60,9 +60,15 @@ def main() -> int:
     for l2vpn in cosmo_data["l2vpn_list"]:
         if not l2vpn["name"].startswith("WAN: "):
             continue
+        if l2vpn['type'] == "VPWS" and len(l2vpn['terminations']) != 2:
+            l.warning(f"VPWS circuits are only allowed to have two terminations. {l2vpn['name']} has {len(l2vpn['terminations'])} terminations, ignoring...")
+            continue
         for termination in l2vpn["terminations"]:
             if not termination["assigned_object"] or termination['assigned_object']['__typename'] not in ["VLANType", "InterfaceType"]:
                 l.warning(f"Found unsupported L2VPN termination in {l2vpn['name']}, ignoring...")
+                continue
+            if l2vpn['type'] == "VPWS" and termination['assigned_object']['__typename'] != "InterfaceType":
+                l.warning(f"Found non-interface termination in L2VPN {l2vpn['name']}, ignoring... VPWS only supports interace terminations.")
                 continue
             if termination['assigned_object']['__typename'] == "VLANType":
                 l2vpn_vlan_terminations[str(termination["assigned_object"]['id'])] = l2vpn

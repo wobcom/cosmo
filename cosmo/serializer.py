@@ -87,16 +87,25 @@ class DeviceSerializer:
                 )
                 return
             unit_stub["vlan"] = iface["untagged_vlan"]["vid"]
+            l2vpn_vlan_term = self.l2vpn_vlan_terminations.get(iface["untagged_vlan"]["id"])
+        else:
+            l2vpn_vlan_term = False
 
-            l2vpn = self.l2vpn_vlan_terminations.get(iface["untagged_vlan"]["id"]) \
-                    or self.l2vpn_interface_terminations.get(iface["id"])
-            if l2vpn:
+        l2vpn = l2vpn_vlan_term or self.l2vpn_interface_terminations.get(iface["id"])
+        if l2vpn:
+            if l2vpn['type'] == "VPWS":
+                if iface.get("untagged_vlan"):
+                    unit_stub["encapsulation"] = "vlan-ccc"
+                else:
+                    unit_stub["encapsulation"] = "ethernet-ccc"
+            elif l2vpn['type'] in ["MPLS_EVPN", "VXLAN_EVPN"]:
                 unit_stub["encapsulation"] = "vlan-bridge"
-                if not self.l2vpns.get(l2vpn["id"]):
-                    l2vpn["interfaces"] = []
-                    l2vpn["vlan"] = iface["untagged_vlan"]
-                    self.l2vpns[l2vpn["id"]] = l2vpn
-                self.l2vpns[l2vpn["id"]]["interfaces"].append(iface)
+
+            if not self.l2vpns.get(l2vpn["id"]):
+                l2vpn["interfaces"] = []
+                l2vpn["vlan"] = iface["untagged_vlan"]
+                self.l2vpns[l2vpn["id"]] = l2vpn
+            self.l2vpns[l2vpn["id"]]["interfaces"].append(iface)
 
         return unit_stub
 
@@ -229,6 +238,37 @@ class DeviceSerializer:
                     "instance_type": "evpn",
                     "protocols": {
                         "evpn": {},
+                    },
+                    "route_distinguisher": "9136:" + str(l2vpn["identifier"]),
+                    "vrf_target": "target:1:" + str(l2vpn["identifier"]),
+                }
+            elif l2vpn['type'] == "VPWS":
+                l2vpn_interfaces = {};
+                for i in l2vpn["interfaces"]:
+                    id_local = int(i['id'])
+
+                    # get remote interface id by iterating over interfaces in the circuit and using the one that is not ours
+                    for termination in l2vpn["terminations"]:
+                        if termination["assigned_object"]["id"] != id_local:
+                            id_remote = int(termination["assigned_object"]["id"])
+
+                    l2vpn_interfaces[i["name"]] = {
+                        "vpws_service_id": {
+                            "local": id_local,
+                            "remote": id_remote,
+                        }
+                    }
+
+                routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
+                    "interfaces": [
+                        i["name"] for i in l2vpn["interfaces"]
+                    ],
+                    "description": "VPWS: " + l2vpn["name"].replace("WAN: VS_", ""),
+                    "instance_type": "evpn-vpws",
+                    "protocols": {
+                        "evpn": {
+                            "interfaces": l2vpn_interfaces,
+                        },
                     },
                     "route_distinguisher": "9136:" + str(l2vpn["identifier"]),
                     "vrf_target": "target:1:" + str(l2vpn["identifier"]),
