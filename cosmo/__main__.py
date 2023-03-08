@@ -69,7 +69,7 @@ def main() -> int:
 
         device_fqdn = f"{str(device['name']).lower()}.{cosmo_configuration['fqdnSuffix']}"
 
-        if allowed_hosts and device['name'] not in allowed_hosts:
+        if allowed_hosts and device['name'] not in allowed_hosts and device_fqdn not in allowed_hosts:
             continue
 
         l.info(f"Generating {device_fqdn}")
