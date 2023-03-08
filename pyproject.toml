@@ -1,9 +1,9 @@
 [tool.poetry]
 name = "cosmo"
-version = "0.4.1"
+version = "0.5.0"
 license = "mit"
 description = "???"
-authors = ["Ember Keske <ember.keske@wobcom.de>", "Johann Wagner <johann.wagner@wobcom.de>", "Yureka <yuka@yuka.dev>"]
+authors = ["Ember Keske <ember.keske@wobcom.de>", "Johann Wagner <johann.wagner@wobcom.de>", "Yureka <yuka@yuka.dev>", "Fiona Weber <fiona.weber@wobcom.de>"]
 
 [tool.poetry.scripts]
 cosmo = "cosmo.__main__:main"
