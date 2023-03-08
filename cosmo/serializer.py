@@ -37,7 +37,7 @@ class DeviceSerializer:
 
         families = {}
         if len(ipv4s) > 0:
-            families["inet"] = {"address": ipv4s[0]["address"]}
+            families["inet"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv4s) } if len(ipv4s) > 1 else ipv4s[0]["address"]}
             if iface["mtu"]:
                 families["inet"]["mtu"] = iface["mtu"]
             if is_edge:
@@ -49,7 +49,7 @@ class DeviceSerializer:
             if "urpf_strict" in tags or "urpf_loose" in tags:
                 families["inet"]["rpf_check"] = {"mode": "loose" if "urpf_loose" in tags else "strict"}
         if len(ipv6s) > 0:
-            families["inet6"] = {"address": ipv6s[0]["address"]}
+            families["inet6"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv6s) } if len(ipv6s) > 1 else ipv6s[0]["address"]}
             if iface["mtu"]:
                 families["inet6"]["mtu"] = iface["mtu"]
             if is_edge:
