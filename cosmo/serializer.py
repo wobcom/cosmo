@@ -5,7 +5,7 @@ from cosmo.logger import Logger
 l = Logger("serializer.py")
 
 
-class DeviceSerializer:
+class RouterSerializer:
     def __init__(self, device, l2vpn_vlan_terminations, l2vpn_interface_terminations):
         self.device = device
         self.l2vpn_vlan_terminations = l2vpn_vlan_terminations
@@ -275,5 +275,61 @@ class DeviceSerializer:
                 }
 
         device_stub["junos__generated_routing_instances"] = routing_instances
+
+        return device_stub
+
+
+class SwitchSerializer:
+    def __init__(self, device):
+        self.device = device
+
+    def serialize(self):
+        device_stub = {}
+
+        interfaces = {}
+        vlans = set()
+        for interface in self.device["interfaces"]:
+            interface_stub = {
+                "bpdufilter": True,
+            }
+
+            if interface["description"]:
+                interface_stub["description"] = interface["description"]
+
+            interface_stub["mtu"] = interface["mtu"] if interface["mtu"] else 10000
+
+            if interface["type"] == "LAG":
+                interface_stub["bond_mode"] = "802.3ad"
+                interface_stub["bond_slaves"] = [i["name"] for i in self.device["interfaces"] if i["lag"] and i["lag"]["id"] == interface["id"]]
+
+            if interface["untagged_vlan"]:
+                interface_stub["untagged_vlan"] = interface["untagged_vlan"]["vid"]
+                vlans.add(interface_stub["untagged_vlan"])
+
+            if interface["tagged_vlans"]:
+                interface_stub["tagged_vlans"] = [v["vid"] for v in interface["tagged_vlans"]]
+                vlans.update(interface_stub["tagged_vlans"])
+
+            if len(interface["ip_addresses"]) == 1 and interface["name"].startswith("eth"):
+                ip = interface["ip_addresses"][0]["address"]
+                interface_stub["address"] = ip
+                interface_stub["gateway"] = next(
+                    ipaddress.ip_network(
+                        ip,
+                        strict=False,
+                    ).hosts()
+                ).compressed
+                interface_stub["vrf"] = "mgmt"
+                interface_stub.pop("bpdufilter")
+
+            interfaces[interface["name"]] = interface_stub
+
+        interfaces["bridge"] = {
+            "mtu": 10000,
+            "tagged_vlans": list(vlans),
+            "bridge_ports": [i["name"] for i in self.device["interfaces"] if i["enabled"] and not i["lag"] and (i["untagged_vlan"] or len(i["tagged_vlans"]) > 0)],
+        }
+
+        device_stub["cumulus__device_interfaces"] = interfaces
 
         return device_stub

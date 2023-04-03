@@ -24,13 +24,12 @@ class GraphqlClient:
 
         return r.json()
 
-    def get_data(self, device_list):
+    def get_data(self, device_config):
         query_template = Template(
             """
             {
               device_list(
                 name: $device_array,
-                manufacturer: "juniper"
               ) {
                 id
                 name
@@ -92,7 +91,7 @@ class GraphqlClient:
         )
 
         query = query_template.substitute(
-            device_array=json.dumps(device_list)
+            device_array=json.dumps(device_config['router'] + device_config['switch'])
         )
 
         r = self.query(query)
