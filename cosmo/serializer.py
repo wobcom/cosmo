@@ -322,6 +322,9 @@ class SwitchSerializer:
                 interface_stub["vrf"] = "mgmt"
                 interface_stub.pop("bpdufilter")
 
+            if "lldp" in [t["slug"] for t in interface["tags"]]:
+                interface_stub["lldp"] = True
+
             interfaces[interface["name"]] = interface_stub
 
         interfaces["bridge"] = {
