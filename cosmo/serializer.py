@@ -93,11 +93,8 @@ class DeviceSerializer:
 
         l2vpn = l2vpn_vlan_term or self.l2vpn_interface_terminations.get(iface["id"])
         if l2vpn:
-            if l2vpn['type'] == "VPWS":
-                if iface.get("untagged_vlan"):
-                    unit_stub["encapsulation"] = "vlan-ccc"
-                else:
-                    unit_stub["encapsulation"] = "ethernet-ccc"
+            if l2vpn['type'] == "VPWS" and iface.get("untagged_vlan"):
+                unit_stub["encapsulation"] = "vlan-ccc"
             elif l2vpn['type'] in ["MPLS_EVPN", "VXLAN_EVPN"]:
                 unit_stub["encapsulation"] = "vlan-bridge"
 
@@ -179,9 +176,11 @@ class DeviceSerializer:
                     else:
                         vid = si["untagged_vlan"]["vid"]
 
+                    l2vpn =  self.l2vpn_interface_terminations.get(si["id"])
+                    if len(sub_interfaces) == 1 and l2vpn and l2vpn['type'] == "VPWS" and not si['untagged_vlan']:
+                        interface_stub["encapsulation"] = "ethernet-ccc"
+
                     unit = self._get_unit(si)
-                    if not unit:
-                        continue
                     interface_stub["units"][int(vid)] = unit
 
             interfaces[interface["name"]] = interface_stub
