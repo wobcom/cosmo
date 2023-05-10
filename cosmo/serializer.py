@@ -249,7 +249,7 @@ class DeviceSerializer:
 
                     # get remote interface id by iterating over interfaces in the circuit and using the one that is not ours
                     for termination in l2vpn["terminations"]:
-                        if termination["assigned_object"]["id"] != id_local:
+                        if int(termination["assigned_object"]["id"]) != id_local:
                             id_remote = int(termination["assigned_object"]["id"])
 
                     l2vpn_interfaces[i["name"]] = {
