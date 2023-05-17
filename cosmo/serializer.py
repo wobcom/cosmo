@@ -294,6 +294,11 @@ class SwitchSerializer:
 
             if interface["description"]:
                 interface_stub["description"] = interface["description"]
+            elif interface['lag']:
+                for i in self.device["interfaces"]:
+                    if interface['lag']['id'] == i['id']:
+                        interface_stub["description"] = "LAG Member of "+i['name']
+                        break
 
             interface_stub["mtu"] = interface["mtu"] if interface["mtu"] else 10000
 
