@@ -319,6 +319,7 @@ class SwitchSerializer:
                     ).hosts()
                 ).compressed
                 interface_stub["vrf"] = "mgmt"
+                interface_stub["mtu"] = interface["mtu"] if interface["mtu"] else 1500
                 interface_stub.pop("bpdufilter")
 
             if "lldp" in [t["slug"] for t in interface["tags"]]:
