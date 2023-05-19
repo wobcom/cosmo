@@ -312,6 +312,10 @@ class SwitchSerializer:
 
             if interface["tagged_vlans"]:
                 interface_stub["tagged_vlans"] = [v["vid"] for v in interface["tagged_vlans"]]
+                # untagged vlans belong to the vid list as well
+                if interface["untagged_vlan"] and interface["untagged_vlan"]["vid"] not in interface_stub["tagged_vlans"]:
+                    interface_stub["tagged_vlans"].append(interface["untagged_vlan"]["vid"])
+                interface_stub["tagged_vlans"].sort()
                 vlans.update(interface_stub["tagged_vlans"])
 
             if len(interface["ip_addresses"]) == 1 and interface["name"].startswith("eth"):
