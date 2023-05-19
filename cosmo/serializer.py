@@ -304,7 +304,7 @@ class SwitchSerializer:
 
             if interface["type"] == "LAG":
                 interface_stub["bond_mode"] = "802.3ad"
-                interface_stub["bond_slaves"] = [i["name"] for i in self.device["interfaces"] if i["lag"] and i["lag"]["id"] == interface["id"]]
+                interface_stub["bond_slaves"] = sorted([i["name"] for i in self.device["interfaces"] if i["lag"] and i["lag"]["id"] == interface["id"]])
 
             if interface["untagged_vlan"]:
                 interface_stub["untagged_vlan"] = interface["untagged_vlan"]["vid"]
@@ -354,8 +354,8 @@ class SwitchSerializer:
 
         interfaces["bridge"] = {
             "mtu": 10000,
-            "tagged_vlans": list(vlans),
-            "bridge_ports": [i["name"] for i in self.device["interfaces"] if i["enabled"] and not i["lag"] and (i["untagged_vlan"] or len(i["tagged_vlans"]) > 0)],
+            "tagged_vlans": sorted(list(vlans)),
+            "bridge_ports": sorted([i["name"] for i in self.device["interfaces"] if i["enabled"] and not i["lag"] and (i["untagged_vlan"] or len(i["tagged_vlans"]) > 0)]),
         }
 
         device_stub["cumulus__device_interfaces"] = interfaces
