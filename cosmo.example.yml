@@ -1,7 +1,9 @@
-devices:
-  - "router1"
-  - "router2"
+fqdnSuffix: infra.example.com
 
-manifest:
-  devices:
+devices:
+  router:
     - "router1"
+    - "router2"
+  switch:
+    - "switch1"
+    - "switch2"

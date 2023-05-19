@@ -8,7 +8,7 @@ import argparse
 
 from cosmo.logger import Logger
 from cosmo.graphqlclient import GraphqlClient
-from cosmo.serializer import DeviceSerializer
+from cosmo.serializer import RouterSerializer, SwitchSerializer
 
 l = Logger("__main__.py")
 
@@ -84,8 +84,14 @@ def main() -> int:
 
         l.info(f"Generating {device_fqdn}")
 
-        serializer = DeviceSerializer(device, l2vpn_vlan_terminations, l2vpn_interface_terminations)
-        content = serializer.serialize()
+        content = None
+        if device['name'] in cosmo_configuration['devices']['router']:
+            serializer = RouterSerializer(device, l2vpn_vlan_terminations, l2vpn_interface_terminations)
+            content = serializer.serialize()
+        elif device['name'] in cosmo_configuration['devices']['switch']:
+            serializer = SwitchSerializer(device)
+            content = serializer.serialize()
+
         if not content:
             continue
 

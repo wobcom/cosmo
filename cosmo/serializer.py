@@ -5,7 +5,7 @@ from cosmo.logger import Logger
 l = Logger("serializer.py")
 
 
-class DeviceSerializer:
+class RouterSerializer:
     def __init__(self, device, l2vpn_vlan_terminations, l2vpn_interface_terminations):
         self.device = device
         self.l2vpn_vlan_terminations = l2vpn_vlan_terminations
@@ -274,5 +274,90 @@ class DeviceSerializer:
                 }
 
         device_stub["junos__generated_routing_instances"] = routing_instances
+
+        return device_stub
+
+
+class SwitchSerializer:
+    def __init__(self, device):
+        self.device = device
+
+    def serialize(self):
+        device_stub = {}
+
+        interfaces = {}
+        vlans = set()
+        for interface in self.device["interfaces"]:
+            interface_stub = {
+                "bpdufilter": True,
+            }
+
+            if interface["description"]:
+                interface_stub["description"] = interface["description"]
+            elif interface['lag']:
+                for i in self.device["interfaces"]:
+                    if interface['lag']['id'] == i['id']:
+                        interface_stub["description"] = "LAG Member of "+i['name']
+                        break
+
+            interface_stub["mtu"] = interface["mtu"] if interface["mtu"] else 10000
+
+            if interface["type"] == "LAG":
+                interface_stub["bond_mode"] = "802.3ad"
+                interface_stub["bond_slaves"] = sorted([i["name"] for i in self.device["interfaces"] if i["lag"] and i["lag"]["id"] == interface["id"]])
+
+            if interface["untagged_vlan"]:
+                interface_stub["untagged_vlan"] = interface["untagged_vlan"]["vid"]
+                vlans.add(interface_stub["untagged_vlan"])
+
+            if interface["tagged_vlans"]:
+                interface_stub["tagged_vlans"] = [v["vid"] for v in interface["tagged_vlans"]]
+                # untagged vlans belong to the vid list as well
+                if interface["untagged_vlan"] and interface["untagged_vlan"]["vid"] not in interface_stub["tagged_vlans"]:
+                    interface_stub["tagged_vlans"].append(interface["untagged_vlan"]["vid"])
+                interface_stub["tagged_vlans"].sort()
+                vlans.update(interface_stub["tagged_vlans"])
+
+            if len(interface["ip_addresses"]) == 1 and interface["name"].startswith("eth"):
+                ip = interface["ip_addresses"][0]["address"]
+                interface_stub["address"] = ip
+                interface_stub["gateway"] = next(
+                    ipaddress.ip_network(
+                        ip,
+                        strict=False,
+                    ).hosts()
+                ).compressed
+                interface_stub["vrf"] = "mgmt"
+                interface_stub["mtu"] = interface["mtu"] if interface["mtu"] else 1500
+                interface_stub.pop("bpdufilter")
+
+            iftags = [t["slug"] for t in interface["tags"]]
+
+            if "speed1g" in iftags:
+                interface_stub["speed"] = 1000
+            if "speed10g" in iftags:
+                interface_stub["speed"] = 10000
+            if "speed100g" in iftags:
+                interface_stub["speed"] = 100000
+
+            if "fecoff" in iftags:
+                interface_stub["fec"] = "off"
+            if "fecrs" in iftags:
+                interface_stub["fec"] = "rs"
+            if "fecbaser" in iftags:
+                interface_stub["fec"] = "baser"
+
+            if "lldp" in iftags:
+                interface_stub["lldp"] = True
+
+            interfaces[interface["name"]] = interface_stub
+
+        interfaces["bridge"] = {
+            "mtu": 10000,
+            "tagged_vlans": sorted(list(vlans)),
+            "bridge_ports": sorted([i["name"] for i in self.device["interfaces"] if i["enabled"] and not i["lag"] and (i["untagged_vlan"] or len(i["tagged_vlans"]) > 0)]),
+        }
+
+        device_stub["cumulus__device_interfaces"] = interfaces
 
         return device_stub
