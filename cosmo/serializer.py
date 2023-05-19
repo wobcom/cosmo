@@ -331,7 +331,23 @@ class SwitchSerializer:
                 interface_stub["mtu"] = interface["mtu"] if interface["mtu"] else 1500
                 interface_stub.pop("bpdufilter")
 
-            if "lldp" in [t["slug"] for t in interface["tags"]]:
+            iftags = [t["slug"] for t in interface["tags"]]
+
+            if "speed1g" in iftags:
+                interface_stub["speed"] = 1000
+            if "speed10g" in iftags:
+                interface_stub["speed"] = 10000
+            if "speed100g" in iftags:
+                interface_stub["speed"] = 100000
+
+            if "fecoff" in iftags:
+                interface_stub["fec"] = "off"
+            if "fecrs" in iftags:
+                interface_stub["fec"] = "rs"
+            if "fecbaser" in iftags:
+                interface_stub["fec"] = "baser"
+
+            if "lldp" in iftags:
                 interface_stub["lldp"] = True
 
             interfaces[interface["name"]] = interface_stub
