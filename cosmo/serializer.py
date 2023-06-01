@@ -1,9 +1,13 @@
 import ipaddress
+import re
 
 from cosmo.logger import Logger
 
 l = Logger("serializer.py")
 
+class Helper:
+    def GetTagFromPrefix(tags, prefix):
+        return [t['name'][len(prefix):] for t in tags if t['name'].startswith(prefix)]
 
 class RouterSerializer:
     def __init__(self, device, l2vpn_vlan_terminations, l2vpn_interface_terminations):
@@ -19,6 +23,7 @@ class RouterSerializer:
             if "." in interface["name"] and interface["name"].split(".")[0] == base_name
         ]
         return sub_interfaces
+
 
     def _get_unit(self, iface):
         unit_stub = {}
@@ -145,6 +150,13 @@ class RouterSerializer:
 
             if interface["mtu"]:
                 interface_stub["mtu"] = interface["mtu"]
+
+            if interface.get("tags"):
+                for speed in Helper.GetTagFromPrefix(interface['tags'], "speed:"):
+                    if re.search("[0-9]+[tgmTGM]", speed):
+                        interface_stub["speed"] = speed
+                    else:
+                        l.error(f"Interface speed {speed} on interface {interface['name']} is not known, ignoring")
 
             if interface.get("type") == "LAG":
                 interface_stub["template"] = "flexible-lacp"
@@ -331,23 +343,23 @@ class SwitchSerializer:
                 interface_stub["mtu"] = interface["mtu"] if interface["mtu"] else 1500
                 interface_stub.pop("bpdufilter")
 
-            iftags = [t["slug"] for t in interface["tags"]]
+            for speed in Helper.GetTagFromPrefix(interface['tags'], "speed:"):
+                if speed == "1g":
+                    interface_stub["speed"] = 1000
+                elif speed == "10g":
+                    interface_stub["speed"] = 10000
+                elif speed == "100g":
+                    interface_stub["speed"] = 100000
+                else:
+                    l.error(f"Interface speed {speed} on interface {interface['name']} is not known, ignoring")
 
-            if "speed1g" in iftags:
-                interface_stub["speed"] = 1000
-            if "speed10g" in iftags:
-                interface_stub["speed"] = 10000
-            if "speed100g" in iftags:
-                interface_stub["speed"] = 100000
+            for fec in Helper.GetTagFromPrefix(interface['tags'], "fec:"):
+                if fec in ["off", "rs", "baser"]:
+                    interface_stub["fec"] = fec
+                else:
+                    l.error(f"FEC mode {fec} on interface {interface['name']} is not known, ignoring")
 
-            if "fecoff" in iftags:
-                interface_stub["fec"] = "off"
-            if "fecrs" in iftags:
-                interface_stub["fec"] = "rs"
-            if "fecbaser" in iftags:
-                interface_stub["fec"] = "baser"
-
-            if "lldp" in iftags:
+            if "lldp" in [t['slug'] for t in interface['tags']]:
                 interface_stub["lldp"] = True
 
             interfaces[interface["name"]] = interface_stub
