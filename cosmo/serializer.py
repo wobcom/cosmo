@@ -179,6 +179,11 @@ class RouterSerializer:
                 else:
                     l.error(f"Interface speed {speed} on interface {interface['name']} is not known, ignoring")
 
+            if tags.has_key("autoneg"):
+                if not interface_stub.get('gigether'):
+                    interface_stub['gigether'] = {}
+                interface_stub['gigether']['autonegotiation'] = True if tags.get_from_key("autoneg")[0] == "on" else False
+
             if interface.get("type") == "LAG":
                 interface_stub["template"] = "flexible-lacp"
 
@@ -191,10 +196,10 @@ class RouterSerializer:
                         self.device["interfaces"],
                     )
                 )
-                interface_stub["gigether"] = {
-                    "type": "802.3ad",
-                    "parent": lag_interface["name"],
-                }
+                if not interface_stub.get('gigether'):
+                    interface_stub['gigether'] = {}
+                interface_stub["gigether"]["type"] = "802.3ad"
+                interface_stub["gigether"]["parent"] = lag_interface["name"]
                 interfaces[interface["name"]] = interface_stub
                 continue
 
