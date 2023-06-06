@@ -175,7 +175,9 @@ class RouterSerializer:
 
             for speed in tags.get_from_key("speed"):
                 if re.search("[0-9]+[tgmTGM]", speed):
-                    interface_stub["speed"] = speed
+                    if not interface_stub.get('gigether'):
+                        interface_stub['gigether'] = {}
+                    interface_stub['gigether']["speed"] = speed
                 else:
                     l.error(f"Interface speed {speed} on interface {interface['name']} is not known, ignoring")
 
