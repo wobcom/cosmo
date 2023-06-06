@@ -1,8 +1,32 @@
 import ipaddress
+import re
 
 from cosmo.logger import Logger
 
 l = Logger("serializer.py")
+
+class Tags:
+    def __init__(self, tags):
+        if tags is None:
+            tags = []
+        self.tags = tags
+
+    # check if tag exists
+    def has(self, item, key = None):
+        if key:
+           return item.lower() in self.get_from_key(key)
+        else:
+           return item.lower() in [t["slug"].lower() for t in self.tags]
+
+    # return all sub-tags using a key
+    def get_from_key(self, key):
+        delimiter = ":"
+        keylen = len(key) + len(delimiter)
+        return [t['name'][keylen:] for t in self.tags if t['name'].lower().startswith(key.lower()+delimiter)]
+
+    # check if there are any tags with a specified key
+    def has_key(self, key):
+        return len(self.get_from_key(key)) > 0
 
 
 class RouterSerializer:
@@ -20,13 +44,14 @@ class RouterSerializer:
         ]
         return sub_interfaces
 
+
     def _get_unit(self, iface):
         unit_stub = {}
         ipv4s = []
         ipv6s = []
-        tags = [t["slug"] for t in iface["tags"]]
-        is_edge = next(filter(lambda t: t.startswith("edge_"), tags), None) is not None
-        sample = is_edge and "edge_customer" not in tags and "disable_sampling" not in tags
+        tags = Tags(iface.get("tags"))
+        is_edge = tags.has_key("edge")
+        sample = is_edge and not tags.has("customer", "edge") and not tags.has("disable_sampling")
 
         for ip in iface["ip_addresses"]:
             ipa = ipaddress.ip_network(ip["address"], strict=False)
@@ -44,10 +69,10 @@ class RouterSerializer:
                 families["inet"]["filters"] = ["input-list [ EDGE_FILTER ]"]
             if sample:
                 families["inet"]["sampling"] = True
-            if "edge_peering-ixp" in tags:
+            if tags.has("peering-ixp", "edge"):
                 families["inet"]["policer"] = ["arp POLICER_IXP_ARP"]
-            if "urpf_strict" in tags or "urpf_loose" in tags:
-                families["inet"]["rpf_check"] = {"mode": "loose" if "urpf_loose" in tags else "strict"}
+            if tags.has_key("urpf") and not tags.has("disable", "urpf"):
+                families["inet"]["rpf_check"] = {"mode": tags.get_from_key("urpf")[0]}
         if len(ipv6s) > 0:
             families["inet6"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv6s) } if len(ipv6s) > 1 else ipv6s[0]["address"]}
             if iface["mtu"]:
@@ -56,9 +81,9 @@ class RouterSerializer:
                 families["inet6"]["filters"] = ["input-list [ EDGE_FILTER_V6 ]"]
             if sample:
                 families["inet6"]["sampling"] = True
-            if "urpf_strict" in tags or "urpf_loose" in tags:
-                families["inet6"]["rpf_check"] = {"mode": "loose" if "urpf_loose" in tags else "strict"}
-        if "core" in tags:
+            if tags.has_key("urpf") and "disable" not in tags.get_from_key("urpf"):
+                families["inet6"]["rpf_check"] = {"mode": tags.get_from_key("urpf")[0]}
+        if tags.has("core"):
             families["iso"] = {}
             if iface["mtu"]:
                 families["iso"]["mtu"] = iface["mtu"] - 3 # isis has an CLNS/LLC header of 3 bytes
@@ -71,9 +96,9 @@ class RouterSerializer:
 
         if iface["description"]:
             prefix = ""
-            if "edge_customer" in tags:
+            if tags.has("customer", "edge"):
                 prefix = "Customer: "
-            elif "edge_upstream" in tags:
+            elif tags.has("upstream", "edge"):
                 prefix = "Transit: "
             elif is_edge:
                 prefix = "Peering: "
@@ -111,6 +136,8 @@ class RouterSerializer:
         interfaces = {}
 
         for interface in self.device["interfaces"]:
+            tags = Tags(interface.get('tags'))
+
             if not interface["enabled"]:
                 interfaces[interface["name"]] = {
                     "shutdown": True
@@ -146,6 +173,17 @@ class RouterSerializer:
             if interface["mtu"]:
                 interface_stub["mtu"] = interface["mtu"]
 
+            for speed in tags.get_from_key("speed"):
+                if re.search("[0-9]+[tgmTGM]", speed):
+                    interface_stub["speed"] = speed
+                else:
+                    l.error(f"Interface speed {speed} on interface {interface['name']} is not known, ignoring")
+
+            if tags.has_key("autoneg"):
+                if not interface_stub.get('gigether'):
+                    interface_stub['gigether'] = {}
+                interface_stub['gigether']['autonegotiation'] = True if tags.get_from_key("autoneg")[0] == "on" else False
+
             if interface.get("type") == "LAG":
                 interface_stub["template"] = "flexible-lacp"
 
@@ -158,10 +196,10 @@ class RouterSerializer:
                         self.device["interfaces"],
                     )
                 )
-                interface_stub["gigether"] = {
-                    "type": "802.3ad",
-                    "parent": lag_interface["name"],
-                }
+                if not interface_stub.get('gigether'):
+                    interface_stub['gigether'] = {}
+                interface_stub["gigether"]["type"] = "802.3ad"
+                interface_stub["gigether"]["parent"] = lag_interface["name"]
                 interfaces[interface["name"]] = interface_stub
                 continue
 
@@ -287,7 +325,10 @@ class SwitchSerializer:
 
         interfaces = {}
         vlans = set()
+
         for interface in self.device["interfaces"]:
+            tags = Tags(interface.get('tags'))
+
             interface_stub = {
                 "bpdufilter": True,
             }
@@ -331,23 +372,23 @@ class SwitchSerializer:
                 interface_stub["mtu"] = interface["mtu"] if interface["mtu"] else 1500
                 interface_stub.pop("bpdufilter")
 
-            iftags = [t["slug"] for t in interface["tags"]]
+            for speed in tags.get_from_key("speed"):
+                if speed == "1g":
+                    interface_stub["speed"] = 1000
+                elif speed == "10g":
+                    interface_stub["speed"] = 10000
+                elif speed == "100g":
+                    interface_stub["speed"] = 100000
+                else:
+                    l.error(f"Interface speed {speed} on interface {interface['name']} is not known, ignoring")
 
-            if "speed1g" in iftags:
-                interface_stub["speed"] = 1000
-            if "speed10g" in iftags:
-                interface_stub["speed"] = 10000
-            if "speed100g" in iftags:
-                interface_stub["speed"] = 100000
+            for fec in tags.get_from_key("fec"):
+                if fec in ["off", "rs", "baser"]:
+                    interface_stub["fec"] = fec
+                else:
+                    l.error(f"FEC mode {fec} on interface {interface['name']} is not known, ignoring")
 
-            if "fecoff" in iftags:
-                interface_stub["fec"] = "off"
-            if "fecrs" in iftags:
-                interface_stub["fec"] = "rs"
-            if "fecbaser" in iftags:
-                interface_stub["fec"] = "baser"
-
-            if "lldp" in iftags:
+            if tags.has("lldp"):
                 interface_stub["lldp"] = True
 
             interfaces[interface["name"]] = interface_stub
