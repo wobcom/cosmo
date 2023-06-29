@@ -47,6 +47,9 @@ class GraphqlClient:
                   mode
                   mtu
                   description
+                  vrf {
+                    id
+                  }
                   lag {
                     id
                   }
@@ -67,6 +70,18 @@ class GraphqlClient:
                     name
                     slug
                   }
+                }
+              }
+              vrf_list {
+                id
+                name
+                description
+                rd
+                export_targets {
+                  name
+                }
+                import_targets {
+                  name
                 }
               }
               l2vpn_list {

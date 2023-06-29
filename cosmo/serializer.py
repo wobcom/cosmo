@@ -30,11 +30,13 @@ class Tags:
 
 
 class RouterSerializer:
-    def __init__(self, device, l2vpn_vlan_terminations, l2vpn_interface_terminations):
+    def __init__(self, device, l2vpn_vlan_terminations, l2vpn_interface_terminations, vrfs):
         self.device = device
         self.l2vpn_vlan_terminations = l2vpn_vlan_terminations
         self.l2vpn_interface_terminations = l2vpn_interface_terminations
         self.l2vpns = {}
+        self.vrfs = vrfs
+        self.l3vpns = {}
 
     def _get_subinterfaces(self, interfaces, base_name):
         sub_interfaces = [
@@ -128,6 +130,15 @@ class RouterSerializer:
                 l2vpn["vlan"] = iface["untagged_vlan"]
                 self.l2vpns[l2vpn["id"]] = l2vpn
             self.l2vpns[l2vpn["id"]]["interfaces"].append(iface)
+
+        if iface["vrf"]:
+            vrfid = iface["vrf"]["id"]
+            if vrfid not in self.l3vpns:
+                vrf_object = [vrf for vrf in self.vrfs if vrf["id"] == vrfid][0]
+                vrf_object["interfaces"] = []
+                self.l3vpns[vrfid] = vrf_object
+
+            self.l3vpns[iface["vrf"]["id"]]["interfaces"].append(iface["name"])
 
         return unit_stub
 
@@ -313,6 +324,15 @@ class RouterSerializer:
                     "vrf_target": "target:1:" + str(l2vpn["identifier"]),
                 }
 
+        for _, l3vpn in self.l3vpns.items():
+            routing_instances[l3vpn["name"]] = {
+                "interfaces": l3vpn["interfaces"],
+                "description": l3vpn["description"],
+                "instance_type": "vrf",
+                "route_distinguisher": l3vpn["rd"],
+                "import_targets": [target["name"] for target in l3vpn["import_targets"]],
+                "export_targets": [target["name"] for target in l3vpn["export_targets"]],
+            }
         device_stub["junos__generated_routing_instances"] = routing_instances
 
         return device_stub
