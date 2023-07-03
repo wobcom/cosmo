@@ -253,6 +253,9 @@ class RouterSerializer:
                     ).hosts()
                 ).compressed]
 
+        if interfaces.get("lo0", {}).get("units", {}).get(0):
+            router_id = interfaces["lo0"]["units"][0]["families"]["inet"]["address"].split("/")[0]
+
         for _, l2vpn in self.l2vpns.items():
             if l2vpn['type'] == "VXLAN_EVPN":
                 routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
@@ -325,11 +328,15 @@ class RouterSerializer:
                 }
 
         for _, l3vpn in self.l3vpns.items():
+            if l3vpn["rd"]:
+                rd = router_id+":"+l3vpn["rd"]
+            else:
+                rd = router_id+":"+l3vpn["id"]
             routing_instances[l3vpn["name"]] = {
                 "interfaces": l3vpn["interfaces"],
                 "description": l3vpn["description"],
                 "instance_type": "vrf",
-                "route_distinguisher": l3vpn["rd"],
+                "route_distinguisher": rd,
                 "import_targets": [target["name"] for target in l3vpn["import_targets"]],
                 "export_targets": [target["name"] for target in l3vpn["export_targets"]],
             }
