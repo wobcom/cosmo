@@ -51,6 +51,7 @@ class RouterSerializer:
         unit_stub = {}
         ipv4s = []
         ipv6s = []
+        policer = {}
         tags = Tags(iface.get("tags"))
         is_edge = tags.has_key("edge")
         sample = is_edge and not tags.has("customer", "edge") and not tags.has("disable_sampling")
@@ -61,6 +62,17 @@ class RouterSerializer:
                 ipv4s.append(ip)
             else:
                 ipv6s.append(ip)
+
+        if tags.has_key("policer"):
+            policer["input"] = "POLICER_"+tags.get_from_key("policer")[0]
+            policer["output"] = "POLICER_"+tags.get_from_key("policer")[0]
+        if tags.has_key("policer_in"):
+            policer["input"] = "POLICER_"+tags.get_from_key("policer_in")[0]
+        if tags.has_key("policer_out"):
+            policer["output"] = "POLICER_"+tags.get_from_key("policer_out")[0]
+
+        if policer:
+            unit_stub["policer"] = policer
 
         families = {}
         if len(ipv4s) > 0:
