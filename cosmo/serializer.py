@@ -417,7 +417,7 @@ class SwitchSerializer:
                 else:
                     l.error(f"FEC mode {fec} on interface {interface['name']} is not known, ignoring")
 
-            if tags.has("lldp"):
+            if tags.has("lldp") or tags.has("core"):
                 interface_stub["lldp"] = True
 
             interfaces[interface["name"]] = interface_stub
