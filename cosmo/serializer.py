@@ -46,6 +46,33 @@ class RouterSerializer:
         ]
         return sub_interfaces
 
+    def _get_vrf_rib(self, routes, vrf):
+        rib = {}
+        for route in routes:
+            if route["vrf"]["name"] == vrf:
+                r = {}
+                # prefer the explicit next hop over the interface
+                if route["next_hop"]:
+                    r["next_hop"] = route["next_hop"]["address"].split("/")[0]
+                elif route["interface"]:
+                    r["next_hop"] = route["interface"]["name"]
+
+                if route["metric"]:
+                    r["metric"] = route["metric"]
+
+                # assemble table name
+                if route["prefix"]["family"]["value"] == 4:
+                    table = "inet.0"
+                else:
+                    table = "inet6.0"
+                if vrf:
+                    table = vrf+"."+table
+
+                if table not in rib:
+                    rib[table] = {"static": {}}
+                rib[table]["static"][route["prefix"]["prefix"]] = r
+        return rib
+
 
     def _get_unit(self, iface):
         unit_stub = {}
@@ -250,6 +277,15 @@ class RouterSerializer:
 
         device_stub["junos__generated_interfaces"] = interfaces
 
+        routing_options = {}
+
+        rib = self._get_vrf_rib(self.device["staticroute_set"], None)
+        if len(rib) > 0:
+            routing_options["rib"] = rib
+
+        if len(routing_options) > 0:
+            device_stub["junos__generated_routing_options"] = routing_options
+
         routing_instances = {
             "mgmt_junos": {
                 "description": "MGMT-ROUTING-INSTANCE",
@@ -344,6 +380,12 @@ class RouterSerializer:
                 rd = router_id+":"+l3vpn["rd"]
             else:
                 rd = router_id+":"+l3vpn["id"]
+
+            routing_options = {}
+            rib = self._get_vrf_rib(self.device["staticroute_set"], l3vpn["name"])
+            if len(rib) > 0:
+                routing_options["rib"] = rib
+
             routing_instances[l3vpn["name"]] = {
                 "interfaces": l3vpn["interfaces"],
                 "description": l3vpn["description"],
@@ -351,6 +393,7 @@ class RouterSerializer:
                 "route_distinguisher": rd,
                 "import_targets": [target["name"] for target in l3vpn["import_targets"]],
                 "export_targets": [target["name"] for target in l3vpn["export_targets"]],
+                "routing_options": routing_options,
             }
         device_stub["junos__generated_routing_instances"] = routing_instances
 
