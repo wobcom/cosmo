@@ -1,4 +1,5 @@
 import ipaddress
+import json
 import os
 import sys
 import pathlib
@@ -8,7 +9,7 @@ import argparse
 
 from cosmo.logger import Logger
 from cosmo.graphqlclient import GraphqlClient
-from cosmo.serializer import RouterSerializer, SwitchSerializer
+from cosmo.serializer import RouterSerializer, SwitchSerializer, RtBrickSerializer, JunosSerializer
 
 l = Logger("__main__.py")
 
@@ -90,8 +91,11 @@ def main() -> int:
         l.info(f"Generating {device_fqdn}")
 
         content = None
-        if device['name'] in cosmo_configuration['devices']['router']:
-            serializer = RouterSerializer(device, l2vpn_vlan_terminations, l2vpn_interface_terminations, cosmo_data["vrf_list"])
+        if device['name'] in cosmo_configuration['devices']['junos_router']:
+            serializer = JunosSerializer(device, l2vpn_vlan_terminations, l2vpn_interface_terminations, cosmo_data["vrf_list"])
+            content = serializer.serialize()
+        if device['name'] in cosmo_configuration['devices']['rtbrick_router']:
+            serializer = RtBrickSerializer(device, l2vpn_vlan_terminations, l2vpn_interface_terminations, cosmo_data["vrf_list"])
             content = serializer.serialize()
         elif device['name'] in cosmo_configuration['devices']['switch']:
             serializer = SwitchSerializer(device)
@@ -101,8 +105,14 @@ def main() -> int:
             continue
 
         pathlib.Path(f"./host_vars/{device_fqdn}").mkdir(parents=True, exist_ok=True)
-        with open(f"./host_vars/{device_fqdn}/generated-cosmo.yml", "w") as yaml_file:
-            yaml.dump(content, yaml_file, default_flow_style=False)
+
+
+        if device['name'] in cosmo_configuration['devices']['rtbrick_router']:
+            with open(f"./host_vars/{device_fqdn}/generated-cosmo.json", "w") as json_file:
+                json.dump(content, json_file, indent=4)
+        else:
+            with open(f"./host_vars/{device_fqdn}/generated-cosmo.yml", "w") as yaml_file:
+                yaml.dump(content, yaml_file, default_flow_style=False)
 
     return 0
 
