@@ -83,7 +83,10 @@ def main() -> int:
 
     for device in cosmo_data["device_list"]:
 
-        device_fqdn = f"{str(device['name']).lower()}.{cosmo_configuration['fqdnSuffix']}"
+        if 'fqdnSuffix' in cosmo_configuration:
+            device_fqdn = f"{str(device['name']).lower()}.{cosmo_configuration['fqdnSuffix']}"
+        else:
+            device_fqdn = f"{str(device['name']).lower()}"
 
         if allowed_hosts and device['name'] not in allowed_hosts and device_fqdn not in allowed_hosts:
             continue
