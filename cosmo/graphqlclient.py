@@ -33,7 +33,12 @@ class GraphqlClient:
               ) {
                 id
                 name
+                serial
+                
                 device_type {
+                  slug
+                }
+                platform {
                   slug
                 }
                 primary_ip4 {
@@ -46,6 +51,7 @@ class GraphqlClient:
                   type
                   mode
                   mtu
+                  mac_address
                   description
                   vrf {
                     id

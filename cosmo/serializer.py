@@ -104,6 +104,9 @@ class RouterSerializer:
 
         if policer:
             unit_stub["policer"] = policer
+        if iface["mac_address"]:
+            unit_stub["mac_address"] = iface["mac_address"]
+
 
         families = {}
         if len(ipv4s) > 0:
@@ -186,7 +189,11 @@ class RouterSerializer:
         return unit_stub
 
     def serialize(self):
-        device_stub = {f"{self.vendor_prefix}__device_model": self.device["device_type"]["slug"]}
+        device_stub = {
+            f"{self.vendor_prefix}__device_model": self.device["device_type"]["slug"],
+            f"{self.vendor_prefix}__platform": self.device["platform"]["slug"],
+            f"{self.vendor_prefix}__serial": self.device["serial"],
+        }
         interfaces = {}
 
         for interface in self.device["interfaces"]:
