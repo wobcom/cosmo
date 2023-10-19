@@ -110,7 +110,7 @@ class RouterSerializer:
 
         families = {}
         if len(ipv4s) > 0:
-            families["inet"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv4s) } if len(ipv4s) > 1 else ipv4s[0]["address"]}
+            families["inet"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv4s) }}
             if iface["mtu"]:
                 families["inet"]["mtu"] = iface["mtu"]
             if is_edge:
@@ -122,7 +122,7 @@ class RouterSerializer:
             if tags.has_key("urpf") and not tags.has("disable", "urpf"):
                 families["inet"]["rpf_check"] = {"mode": tags.get_from_key("urpf")[0]}
         if len(ipv6s) > 0:
-            families["inet6"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv6s) } if len(ipv6s) > 1 else ipv6s[0]["address"]}
+            families["inet6"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv6s) }}
             if iface["mtu"]:
                 families["inet6"]["mtu"] = iface["mtu"]
             if is_edge:
@@ -307,13 +307,13 @@ class RouterSerializer:
             routing_instances[f"mgmt_{self.vendor_prefix}"]["static_routes"] = [
                 "0.0.0.0/0 next-hop " + next(
                     ipaddress.ip_network(
-                        interfaces[self.mgmt_interface]["units"][0]["families"]["inet"]["address"],
+                        next(iter(interfaces[self.mgmt_interface]["units"][0]["families"]["inet"]["address"].keys())),
                         strict=False,
                     ).hosts()
                 ).compressed]
 
         if interfaces.get("lo0", {}).get("units", {}).get(0):
-            router_id = interfaces["lo0"]["units"][0]["families"]["inet"]["address"].split("/")[0]
+            router_id = next(iter(interfaces["lo0"]["units"][0]["families"]["inet"]["address"].keys())).split("/")[0]
 
         for _, l2vpn in self.l2vpns.items():
             if l2vpn['type'] == "VXLAN_EVPN":
