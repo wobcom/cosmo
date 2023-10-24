@@ -199,13 +199,6 @@ class RouterSerializer:
         for interface in self.device["interfaces"]:
             tags = Tags(interface.get('tags'))
 
-            if not interface["enabled"]:
-                interfaces[interface["name"]] = {
-                    "shutdown": True
-                }
-                if interface["description"]:
-                    interfaces[interface["name"]]["description"] = interface["description"]
-                continue
             # Sub Interfaces contains . in names, we render them within the parent, so we ignore those if the parent exists
             if "." in interface["name"]:
                 if not next(
@@ -222,11 +215,15 @@ class RouterSerializer:
                             "description": None,
                             "mtu": None,
                             "lag": None,
+                            "type": interface["type"],
                         }
                     )
                 continue
 
             interface_stub = {}
+
+            if not interface["enabled"]:
+                interface_stub["shutdown"] = True
 
             if interface["description"]:
                 interface_stub["description"] = interface["description"]
@@ -248,7 +245,11 @@ class RouterSerializer:
                 interface_stub['gigether']['autonegotiation'] = True if tags.get_from_key("autoneg")[0] == "on" else False
 
             if interface.get("type") == "LAG":
-                interface_stub["template"] = "flexible-lacp"
+                interface_stub["type"] = "lag"
+            elif interface.get("type") == "LOOPBACK":
+                interface_stub["type"] = "loopback"
+            elif "BASE" in interface.get("type", ""):
+                interface_stub["type"] = "physical"
 
             # If this interface is just part of a lag, we just connect those together and leave
             # the interface alone. Heavy configuration is done on the LAG interface afterwards.
@@ -259,14 +260,11 @@ class RouterSerializer:
                         self.device["interfaces"],
                     )
                 )
-                if not interface_stub.get('gigether'):
-                    interface_stub['gigether'] = {}
-                interface_stub["gigether"]["type"] = "802.3ad"
-                interface_stub["gigether"]["parent"] = lag_interface["name"]
+                interface_stub["type"] = "lag_member"
+                interface_stub["lag_parent"] = lag_interface["name"]
                 interfaces[interface["name"]] = interface_stub
                 continue
 
-            interface_stub["units"] = {}
             sub_interfaces = self._get_subinterfaces(
                 self.device["interfaces"], interface["name"]
             )
@@ -282,6 +280,8 @@ class RouterSerializer:
                         interface_stub["encapsulation"] = "ethernet-ccc"
 
                     unit = self._get_unit(si)
+                    if not interface_stub.get("units"):
+                        interface_stub["units"] = {}
                     interface_stub["units"][int(vid)] = unit
 
             interfaces[interface["name"]] = interface_stub
