@@ -107,14 +107,14 @@ def main() -> int:
         if not content:
             continue
 
-        pathlib.Path(f"./host_vars/{device_fqdn}").mkdir(parents=True, exist_ok=True)
+        pathlib.Path(f"./machines/{device_fqdn}").mkdir(parents=True, exist_ok=True)
 
 
         if device['name'] in cosmo_configuration['devices']['rtbrick_router']:
-            with open(f"./host_vars/{device_fqdn}/generated-cosmo.json", "w") as json_file:
+            with open(f"./machines/{device_fqdn}/generated-cosmo.json", "w") as json_file:
                 json.dump(content, json_file, indent=4)
         else:
-            with open(f"./host_vars/{device_fqdn}/generated-cosmo.yml", "w") as yaml_file:
+            with open(f"./machines/{device_fqdn}/generated-cosmo.yml", "w") as yaml_file:
                 yaml.dump(content, yaml_file, default_flow_style=False)
 
     return 0
