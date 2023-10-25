@@ -33,6 +33,7 @@ class RouterSerializer:
 
     vendor_prefix = ""
     mgmt_interface = ""
+    lo_interface = ""
 
     def __init__(self, device, l2vpn_vlan_terminations, l2vpn_interface_terminations, vrfs):
         self.device = device
@@ -133,8 +134,6 @@ class RouterSerializer:
                 families["inet6"]["rpf_check"] = {"mode": tags.get_from_key("urpf")[0]}
         if tags.has("core"):
             families["iso"] = {}
-            if iface["mtu"]:
-                families["iso"]["mtu"] = iface["mtu"] - 3 # isis has an CLNS/LLC header of 3 bytes
             families["mpls"] = {}
             if iface["mtu"]:
                 families["mpls"]["mtu"] = iface["mtu"] - 64 # enough space for 16 labels
@@ -312,8 +311,8 @@ class RouterSerializer:
                     ).hosts()
                 ).compressed]
 
-        if interfaces.get("lo0", {}).get("units", {}).get(0):
-            router_id = next(iter(interfaces["lo0"]["units"][0]["families"]["inet"]["address"].keys())).split("/")[0]
+        if interfaces.get(self.lo_interface, {}).get("units", {}).get(0):
+            router_id = next(iter(interfaces[self.lo_interface]["units"][0]["families"]["inet"]["address"].keys())).split("/")[0]
 
         for _, l2vpn in self.l2vpns.items():
             if l2vpn['type'] == "VXLAN_EVPN":
@@ -414,11 +413,13 @@ class RouterSerializer:
 class JunosSerializer(RouterSerializer):
     vendor_prefix = "junos"
     mgmt_interface = "fxp0"
+    lo_interface = "lo0"
 
 
 class RtBrickSerializer(RouterSerializer):
     vendor_prefix = "rtbrick"
     mgmt_interface = "ma1"
+    lo_interface = "lo-0/0/0"
 
 class SwitchSerializer:
     def __init__(self, device):
