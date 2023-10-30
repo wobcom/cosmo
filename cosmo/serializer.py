@@ -303,13 +303,22 @@ class RouterSerializer:
         }
 
         if interfaces.get(self.mgmt_interface, {}).get("units", {}).get(0):
-            routing_instances[f"mgmt_{self.vendor_prefix}"]["static_routes"] = [
-                "0.0.0.0/0 next-hop " + next(
-                    ipaddress.ip_network(
-                        next(iter(interfaces[self.mgmt_interface]["units"][0]["families"]["inet"]["address"].keys())),
-                        strict=False,
-                    ).hosts()
-                ).compressed]
+            routing_instances[f"mgmt_{self.vendor_prefix}"]["routing_options"] = {
+                "rib": {
+                    "inet.0": {
+                        "static": {
+                            "0.0.0.0/0": {
+                                "next_hop": next(
+                                    ipaddress.ip_network(
+                                        interfaces[self.mgmt_interface]["units"][0]["families"]["inet"]["address"],
+                                        strict=False,
+                                    ).hosts()
+                                ).compressed
+                            }
+                        }
+                    }
+                }
+            }
 
         if interfaces.get(self.lo_interface, {}).get("units", {}).get(0):
             router_id = next(iter(interfaces[self.lo_interface]["units"][0]["families"]["inet"]["address"].keys())).split("/")[0]
