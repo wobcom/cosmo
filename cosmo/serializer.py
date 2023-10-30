@@ -310,7 +310,7 @@ class RouterSerializer:
                             "0.0.0.0/0": {
                                 "next_hop": next(
                                     ipaddress.ip_network(
-                                        interfaces[self.mgmt_interface]["units"][0]["families"]["inet"]["address"],
+                                        interfaces[self.mgmt_interface]["units"][0]["families"]["inet"]["address"].keys(),
                                         strict=False,
                                     ).hosts()
                                 ).compressed
