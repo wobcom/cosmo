@@ -293,13 +293,22 @@ class RouterSerializer:
         }
 
         if interfaces.get("fxp0", {}).get("units", {}).get(0):
-            routing_instances["mgmt_junos"]["static_routes"] = [
-                "0.0.0.0/0 next-hop " + next(
-                    ipaddress.ip_network(
-                        interfaces["fxp0"]["units"][0]["families"]["inet"]["address"],
-                        strict=False,
-                    ).hosts()
-                ).compressed]
+            routing_instances["mgmt_junos"]["routing_options"] = {
+                "rib": {
+                    "inet.0": {
+                        "static": {
+                            "0.0.0.0/0": {
+                                "next_hop": next(
+                                    ipaddress.ip_network(
+                                        interfaces["fxp0"]["units"][0]["families"]["inet"]["address"],
+                                        strict=False,
+                                    ).hosts()
+                                ).compressed
+                            }
+                        }
+                    }
+                }
+            }
 
         if interfaces.get("lo0", {}).get("units", {}).get(0):
             router_id = interfaces["lo0"]["units"][0]["families"]["inet"]["address"].split("/")[0]
