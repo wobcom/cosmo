@@ -3,4 +3,5 @@ __pycache__
 cosmo.yml
 .idea
 
+.direnv
 leaf*.json
