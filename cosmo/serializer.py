@@ -247,8 +247,13 @@ class RouterSerializer:
                 interface_stub["type"] = "lag"
             elif interface.get("type") == "LOOPBACK":
                 interface_stub["type"] = "loopback"
+            elif tags.has_key("access"):
+                interface_stub["type"] = "access"
             elif "BASE" in interface.get("type", ""):
                 interface_stub["type"] = "physical"
+
+            if tags.has_key("access"):
+                interface_stub["port_profile"] = tags.get_from_key("access")
 
             # If this interface is just part of a lag, we just connect those together and leave
             # the interface alone. Heavy configuration is done on the LAG interface afterwards.
