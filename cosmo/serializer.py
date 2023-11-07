@@ -295,7 +295,7 @@ class RouterSerializer:
         if interfaces.get("fxp0", {}).get("units", {}).get(0):
             routing_instances["mgmt_junos"]["routing_options"] = {
                 "rib": {
-                    "inet.0": {
+                    "mgmt_junos.inet.0": {
                         "static": {
                             "0.0.0.0/0": {
                                 "next_hop": next(
