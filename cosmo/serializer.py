@@ -310,7 +310,7 @@ class RouterSerializer:
         if interfaces.get(self.mgmt_interface, {}).get("units", {}).get(0):
             routing_instances[f"mgmt_{self.vendor_prefix}"]["routing_options"] = {
                 "rib": {
-                    "mgmt_junos.inet.0": {
+                    f"mgmt_{self.vendor_prefix}.inet.0": {
                         "static": {
                             "0.0.0.0/0": {
                                 "next_hop": next(
