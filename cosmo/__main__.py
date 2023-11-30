@@ -114,7 +114,7 @@ def main() -> int:
             with open(f"./machines/{device_fqdn}/generated-cosmo.json", "w") as json_file:
                 json.dump(content, json_file, indent=4)
         else:
-            with open(f"./machines/{device_fqdn}/generated-cosmo.yml", "w") as yaml_file:
+            with open(f"./host_vars/{device_fqdn}/generated-cosmo.yml", "w") as yaml_file:
                 yaml.dump(content, yaml_file, default_flow_style=False)
 
     return 0
