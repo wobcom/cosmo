@@ -118,10 +118,21 @@ class GraphqlClient:
                   assigned_object {
                     __typename
                     ... on VLANType {
-                        id
+                      id
                     }
                     ... on InterfaceType {
-                        id
+                      id
+                      device {
+                        name
+                        interfaces (type: "virtual", vrf: null) {
+                          ip_addresses {
+                            address
+                          }
+                          parent {
+                            type
+                          }
+                        }
+                      }
                     }
                   }
                 }

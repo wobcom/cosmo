@@ -165,7 +165,7 @@ class RouterSerializer:
 
         l2vpn = l2vpn_vlan_term or self.l2vpn_interface_terminations.get(iface["id"])
         if l2vpn:
-            if l2vpn['type'] == "VPWS" and iface.get("untagged_vlan"):
+            if l2vpn['type'] in ["VPWS", "EVPL"] and iface.get("untagged_vlan"):
                 unit_stub["encapsulation"] = "vlan-ccc"
             elif l2vpn['type'] in ["MPLS_EVPN", "VXLAN_EVPN"]:
                 unit_stub["encapsulation"] = "vlan-bridge"
@@ -280,7 +280,7 @@ class RouterSerializer:
                         vid = si["untagged_vlan"]["vid"]
 
                     l2vpn =  self.l2vpn_interface_terminations.get(si["id"])
-                    if len(sub_interfaces) == 1 and l2vpn and l2vpn['type'] == "VPWS" and not si['untagged_vlan']:
+                    if len(sub_interfaces) == 1 and l2vpn and l2vpn['type'] in ["VPWS", "EPL"] and not si['untagged_vlan']:
                         interface_stub["encapsulation"] = "ethernet-ccc"
 
                     unit = self._get_unit(si)
@@ -301,6 +301,7 @@ class RouterSerializer:
         if len(routing_options) > 0:
             device_stub[f"{self.vendor_prefix}__generated_routing_options"] = routing_options
 
+        l2circuits = {}
         routing_instances = {
             f"mgmt_{self.vendor_prefix}": {
                 "description": "MGMT-ROUTING-INSTANCE",
@@ -398,6 +399,45 @@ class RouterSerializer:
                     "route_distinguisher": "9136:" + str(l2vpn["identifier"]),
                     "vrf_target": "target:1:" + str(l2vpn["identifier"]),
                 }
+            elif l2vpn['type'] == "EPL" or l2vpn['type'] == "EVPL":
+                l2vpn_interfaces = {};
+                for i in l2vpn["interfaces"]:
+                    id_local = int(i['id']) + 1000000
+
+                    # get remote interface id by iterating over interfaces in the circuit and using the one that is not ours
+                    for termination in l2vpn["terminations"]:
+                        if int(termination["assigned_object"]["id"]) != id_local:
+                            id_remote = int(termination["assigned_object"]["id"]) + 1000000
+                            remote_device = termination["assigned_object"]["device"]["name"]
+                            remote_interfaces = termination["assigned_object"]["device"]["interfaces"]
+                            break
+
+                    # [TODO]: Refactor this.
+                    # We need the Loopback IP of the peer device.
+                    # We potentially need data for a device that's not listed in `cosmo.yml`
+                    # So we fetch all interfaces of the peer device and use some
+                    # dirty heuristics to assume the correct loxopback IP
+                    # I wanted to implement this in GraphQL, but Netbox lacks the needed filters.
+                    # We pick a `virtual` interface which is not in a VRF and which parent is a `loopback`
+                    # Then we pick the first IPv4 address.
+                    for a in remote_interfaces:
+                        if a["parent"] and a["parent"]["type"] == "LOOPBACK":
+                            for ip in a['ip_addresses']:
+                                ipa = ipaddress.ip_network(ip["address"], strict=False)
+                                if ipa.version == 4:
+                                    remote_ip = str(ipa[0])
+                                    break
+
+                    l2vpn_interfaces[i["name"]] = {
+                        "local_label": id_local,
+                        "remote_label": id_remote,
+                        "remote_ip": remote_ip,
+                    }
+
+                l2circuits[l2vpn["name"].replace("WAN: ", "")] = {
+                    "interfaces": l2vpn_interfaces,
+                    "description": "EPL: " + l2vpn["name"].replace("WAN: ", "") + " to remote " + remote_device,
+                }
 
         for _, l3vpn in self.l3vpns.items():
             if l3vpn["rd"]:
@@ -420,6 +460,7 @@ class RouterSerializer:
                 "routing_options": routing_options,
             }
         device_stub[f"{self.vendor_prefix}__generated_routing_instances"] = routing_instances
+        device_stub[f"{self.vendor_prefix}__generated_l2circuits"] = l2circuits
 
         return device_stub
 
