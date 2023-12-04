@@ -39,6 +39,9 @@ class GraphqlClient:
                   slug
                 }
                 platform {
+                  manufacturer {
+                    slug
+                  }
                   slug
                 }
                 primary_ip4 {
@@ -141,7 +144,7 @@ class GraphqlClient:
         )
 
         query = query_template.substitute(
-            device_array=json.dumps(device_config['rtbrick_router'] + device_config['junos_router'] + device_config['switch'])
+            device_array=json.dumps(device_config['router'] + device_config['switch'])
         )
 
         r = self.query(query)
