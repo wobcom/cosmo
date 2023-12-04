@@ -1,5 +1,6 @@
 import ipaddress
 import re
+import json
 
 from cosmo.logger import Logger
 
@@ -31,11 +32,20 @@ class Tags:
 
 class RouterSerializer:
 
-    vendor_prefix = ""
-    mgmt_interface = ""
-    lo_interface = ""
-
     def __init__(self, device, l2vpn_vlan_terminations, l2vpn_interface_terminations, vrfs):
+
+        match device["platform"]["manufacturer"]["slug"]:
+            case 'juniper':
+                self.generate_mgmt_routing_instance = True
+                self.mgmt_interface = "fxp0"
+                self.lo_interface = "lo0"
+            case 'rtbrick':
+                self.generate_mgmt_routing_instance = False
+                self.lo_interface = "lo-0/0/0"
+            case other:
+                l.error(f"unsupported platform vendor: {other}")
+                return
+
         self.device = device
         self.l2vpn_vlan_terminations = l2vpn_vlan_terminations
         self.l2vpn_interface_terminations = l2vpn_interface_terminations
@@ -191,9 +201,9 @@ class RouterSerializer:
 
     def serialize(self):
         device_stub = {
-            f"{self.vendor_prefix}__device_model": self.device["device_type"]["slug"],
-            f"{self.vendor_prefix}__platform": self.device["platform"]["slug"],
-            f"{self.vendor_prefix}__serial": self.device["serial"],
+            f"device_model": self.device["device_type"]["slug"],
+            f"platform": self.device["platform"]["slug"],
+            f"serial": self.device["serial"],
         }
         interfaces = {}
 
@@ -292,7 +302,7 @@ class RouterSerializer:
 
             interfaces[interface["name"]] = interface_stub
 
-        device_stub[f"{self.vendor_prefix}__generated_interfaces"] = interfaces
+        device_stub[f"interfaces"] = interfaces
 
         routing_options = {}
 
@@ -301,32 +311,33 @@ class RouterSerializer:
             routing_options["rib"] = rib
 
         if len(routing_options) > 0:
-            device_stub[f"{self.vendor_prefix}__generated_routing_options"] = routing_options
+            device_stub[f"routing_options"] = routing_options
 
         l2circuits = {}
-        routing_instances = {
-            f"mgmt_{self.vendor_prefix}": {
+        routing_instances = {}
+
+        if self.generate_mgmt_routing_instance:
+            routing_instances[f"mgmt_junos"] = {
                 "description": "MGMT-ROUTING-INSTANCE",
             }
-        }
 
-        if interfaces.get(self.mgmt_interface, {}).get("units", {}).get(0):
-            routing_instances[f"mgmt_{self.vendor_prefix}"]["routing_options"] = {
-                "rib": {
-                    f"mgmt_{self.vendor_prefix}.inet.0": {
-                        "static": {
-                            "0.0.0.0/0": {
-                                "next_hop": next(
-                                    ipaddress.ip_network(
-                                        next(iter(interfaces[self.mgmt_interface]["units"][0]["families"]["inet"]["address"].keys())),
-                                        strict=False,
-                                    ).hosts()
-                                ).compressed
+            if interfaces.get(self.mgmt_interface, {}).get("units", {}).get(0):
+                routing_instances[f"mgmt_junos"]["routing_options"] = {
+                    "rib": {
+                        f"mgmt_junos.inet.0": {
+                            "static": {
+                                "0.0.0.0/0": {
+                                    "next_hop": next(
+                                        ipaddress.ip_network(
+                                            next(iter(interfaces[self.mgmt_interface]["units"][0]["families"]["inet"]["address"].keys())),
+                                            strict=False,
+                                        ).hosts()
+                                    ).compressed
+                                }
                             }
                         }
                     }
                 }
-            }
 
         if interfaces.get(self.lo_interface, {}).get("units", {}).get(0):
             router_id = next(iter(interfaces[self.lo_interface]["units"][0]["families"]["inet"]["address"].keys())).split("/")[0]
@@ -461,22 +472,11 @@ class RouterSerializer:
                 "export_targets": [target["name"] for target in l3vpn["export_targets"]],
                 "routing_options": routing_options,
             }
-        device_stub[f"{self.vendor_prefix}__generated_routing_instances"] = routing_instances
-        device_stub[f"{self.vendor_prefix}__generated_l2circuits"] = l2circuits
+        device_stub[f"routing_instances"] = routing_instances
+        device_stub[f"l2circuits"] = l2circuits
 
         return device_stub
 
-
-class JunosSerializer(RouterSerializer):
-    vendor_prefix = "junos"
-    mgmt_interface = "fxp0"
-    lo_interface = "lo0"
-
-
-class RtBrickSerializer(RouterSerializer):
-    vendor_prefix = "rtbrick"
-    mgmt_interface = "ma1"
-    lo_interface = "lo-0/0/0"
 
 class SwitchSerializer:
     def __init__(self, device):
