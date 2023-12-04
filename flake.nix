@@ -2,9 +2,9 @@
   description = "cosmo - ???";
 
   inputs.flake-utils.url = "github:numtide/flake-utils";
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
   inputs.poetry2nix = {
-    url = "github:nix-community/poetry2nix/2023.10.21.49529";
+    url = "github:nix-community/poetry2nix";
     inputs.nixpkgs.follows = "nixpkgs";
   };
 
@@ -12,7 +12,7 @@
     {
       # Nixpkgs overlay providing the application
       overlay = nixpkgs.lib.composeManyExtensions [
-        poetry2nix.overlay
+        poetry2nix.overlays.default
         (final: prev: {
           # The application
           cosmo = prev.poetry2nix.mkPoetryApplication {
