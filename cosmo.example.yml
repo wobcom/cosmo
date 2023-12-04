@@ -1,9 +1,12 @@
 fqdnSuffix: infra.example.com
 
 devices:
-  router:
+  junos_router:
     - "router1"
     - "router2"
+  rtbrick_router:
+    - "router3"
+    - "router4"
   switch:
     - "switch1"
     - "switch2"

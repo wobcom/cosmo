@@ -30,6 +30,11 @@ class Tags:
 
 
 class RouterSerializer:
+
+    vendor_prefix = ""
+    mgmt_interface = ""
+    lo_interface = ""
+
     def __init__(self, device, l2vpn_vlan_terminations, l2vpn_interface_terminations, vrfs):
         self.device = device
         self.l2vpn_vlan_terminations = l2vpn_vlan_terminations
@@ -100,10 +105,13 @@ class RouterSerializer:
 
         if policer:
             unit_stub["policer"] = policer
+        if iface["mac_address"]:
+            unit_stub["mac_address"] = iface["mac_address"]
+
 
         families = {}
         if len(ipv4s) > 0:
-            families["inet"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv4s) } if len(ipv4s) > 1 else ipv4s[0]["address"]}
+            families["inet"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv4s) }}
             if iface["mtu"]:
                 families["inet"]["mtu"] = iface["mtu"]
             if is_edge:
@@ -115,7 +123,7 @@ class RouterSerializer:
             if tags.has_key("urpf") and not tags.has("disable", "urpf"):
                 families["inet"]["rpf_check"] = {"mode": tags.get_from_key("urpf")[0]}
         if len(ipv6s) > 0:
-            families["inet6"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv6s) } if len(ipv6s) > 1 else ipv6s[0]["address"]}
+            families["inet6"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv6s) }}
             if iface["mtu"]:
                 families["inet6"]["mtu"] = iface["mtu"]
             if is_edge:
@@ -159,7 +167,7 @@ class RouterSerializer:
 
         l2vpn = l2vpn_vlan_term or self.l2vpn_interface_terminations.get(iface["id"])
         if l2vpn:
-            if l2vpn['type'] == "VPWS" and iface.get("untagged_vlan"):
+            if l2vpn['type'] in ["VPWS", "EVPL"] and iface.get("untagged_vlan"):
                 unit_stub["encapsulation"] = "vlan-ccc"
             elif l2vpn['type'] in ["MPLS_EVPN", "VXLAN_EVPN"]:
                 unit_stub["encapsulation"] = "vlan-bridge"
@@ -182,19 +190,16 @@ class RouterSerializer:
         return unit_stub
 
     def serialize(self):
-        device_stub = {"junos__device_model": self.device["device_type"]["slug"]}
+        device_stub = {
+            f"{self.vendor_prefix}__device_model": self.device["device_type"]["slug"],
+            f"{self.vendor_prefix}__platform": self.device["platform"]["slug"],
+            f"{self.vendor_prefix}__serial": self.device["serial"],
+        }
         interfaces = {}
 
         for interface in self.device["interfaces"]:
             tags = Tags(interface.get('tags'))
 
-            if not interface["enabled"]:
-                interfaces[interface["name"]] = {
-                    "shutdown": True
-                }
-                if interface["description"]:
-                    interfaces[interface["name"]]["description"] = interface["description"]
-                continue
             # Sub Interfaces contains . in names, we render them within the parent, so we ignore those if the parent exists
             if "." in interface["name"]:
                 if not next(
@@ -211,11 +216,15 @@ class RouterSerializer:
                             "description": None,
                             "mtu": None,
                             "lag": None,
+                            "type": interface["type"],
                         }
                     )
                 continue
 
             interface_stub = {}
+
+            if not interface["enabled"]:
+                interface_stub["shutdown"] = True
 
             if interface["description"]:
                 interface_stub["description"] = interface["description"]
@@ -237,7 +246,16 @@ class RouterSerializer:
                 interface_stub['gigether']['autonegotiation'] = True if tags.get_from_key("autoneg")[0] == "on" else False
 
             if interface.get("type") == "LAG":
-                interface_stub["template"] = "flexible-lacp"
+                interface_stub["type"] = "lag"
+            elif interface.get("type") == "LOOPBACK":
+                interface_stub["type"] = "loopback"
+            elif tags.has_key("access"):
+                interface_stub["type"] = "access"
+            elif "BASE" in interface.get("type", ""):
+                interface_stub["type"] = "physical"
+
+            if tags.has_key("access"):
+                interface_stub["port_profile"] = tags.get_from_key("access")
 
             # If this interface is just part of a lag, we just connect those together and leave
             # the interface alone. Heavy configuration is done on the LAG interface afterwards.
@@ -248,14 +266,11 @@ class RouterSerializer:
                         self.device["interfaces"],
                     )
                 )
-                if not interface_stub.get('gigether'):
-                    interface_stub['gigether'] = {}
-                interface_stub["gigether"]["type"] = "802.3ad"
-                interface_stub["gigether"]["parent"] = lag_interface["name"]
+                interface_stub["type"] = "lag_member"
+                interface_stub["lag_parent"] = lag_interface["name"]
                 interfaces[interface["name"]] = interface_stub
                 continue
 
-            interface_stub["units"] = {}
             sub_interfaces = self._get_subinterfaces(
                 self.device["interfaces"], interface["name"]
             )
@@ -267,15 +282,17 @@ class RouterSerializer:
                         vid = si["untagged_vlan"]["vid"]
 
                     l2vpn =  self.l2vpn_interface_terminations.get(si["id"])
-                    if len(sub_interfaces) == 1 and l2vpn and l2vpn['type'] == "VPWS" and not si['untagged_vlan']:
+                    if len(sub_interfaces) == 1 and l2vpn and l2vpn['type'] in ["VPWS", "EPL"] and not si['untagged_vlan']:
                         interface_stub["encapsulation"] = "ethernet-ccc"
 
                     unit = self._get_unit(si)
+                    if not interface_stub.get("units"):
+                        interface_stub["units"] = {}
                     interface_stub["units"][int(vid)] = unit
 
             interfaces[interface["name"]] = interface_stub
 
-        device_stub["junos__generated_interfaces"] = interfaces
+        device_stub[f"{self.vendor_prefix}__generated_interfaces"] = interfaces
 
         routing_options = {}
 
@@ -284,23 +301,24 @@ class RouterSerializer:
             routing_options["rib"] = rib
 
         if len(routing_options) > 0:
-            device_stub["junos__generated_routing_options"] = routing_options
+            device_stub[f"{self.vendor_prefix}__generated_routing_options"] = routing_options
 
+        l2circuits = {}
         routing_instances = {
-            "mgmt_junos": {
+            f"mgmt_{self.vendor_prefix}": {
                 "description": "MGMT-ROUTING-INSTANCE",
             }
         }
 
-        if interfaces.get("fxp0", {}).get("units", {}).get(0):
-            routing_instances["mgmt_junos"]["routing_options"] = {
+        if interfaces.get(self.mgmt_interface, {}).get("units", {}).get(0):
+            routing_instances[f"mgmt_{self.vendor_prefix}"]["routing_options"] = {
                 "rib": {
-                    "mgmt_junos.inet.0": {
+                    f"mgmt_{self.vendor_prefix}.inet.0": {
                         "static": {
                             "0.0.0.0/0": {
                                 "next_hop": next(
                                     ipaddress.ip_network(
-                                        interfaces["fxp0"]["units"][0]["families"]["inet"]["address"],
+                                        next(iter(interfaces[self.mgmt_interface]["units"][0]["families"]["inet"]["address"].keys())),
                                         strict=False,
                                     ).hosts()
                                 ).compressed
@@ -310,8 +328,8 @@ class RouterSerializer:
                 }
             }
 
-        if interfaces.get("lo0", {}).get("units", {}).get(0):
-            router_id = interfaces["lo0"]["units"][0]["families"]["inet"]["address"].split("/")[0]
+        if interfaces.get(self.lo_interface, {}).get("units", {}).get(0):
+            router_id = next(iter(interfaces[self.lo_interface]["units"][0]["families"]["inet"]["address"].keys())).split("/")[0]
 
         for _, l2vpn in self.l2vpns.items():
             if l2vpn['type'] == "VXLAN_EVPN":
@@ -383,6 +401,45 @@ class RouterSerializer:
                     "route_distinguisher": "9136:" + str(l2vpn["identifier"]),
                     "vrf_target": "target:1:" + str(l2vpn["identifier"]),
                 }
+            elif l2vpn['type'] == "EPL" or l2vpn['type'] == "EVPL":
+                l2vpn_interfaces = {};
+                for i in l2vpn["interfaces"]:
+                    id_local = int(i['id']) + 1000000
+
+                    # get remote interface id by iterating over interfaces in the circuit and using the one that is not ours
+                    for termination in l2vpn["terminations"]:
+                        if int(termination["assigned_object"]["id"]) != id_local:
+                            id_remote = int(termination["assigned_object"]["id"]) + 1000000
+                            remote_device = termination["assigned_object"]["device"]["name"]
+                            remote_interfaces = termination["assigned_object"]["device"]["interfaces"]
+                            break
+
+                    # [TODO]: Refactor this.
+                    # We need the Loopback IP of the peer device.
+                    # We potentially need data for a device that's not listed in `cosmo.yml`
+                    # So we fetch all interfaces of the peer device and use some
+                    # dirty heuristics to assume the correct loxopback IP
+                    # I wanted to implement this in GraphQL, but Netbox lacks the needed filters.
+                    # We pick a `virtual` interface which is not in a VRF and which parent is a `loopback`
+                    # Then we pick the first IPv4 address.
+                    for a in remote_interfaces:
+                        if a["parent"] and a["parent"]["type"] == "LOOPBACK":
+                            for ip in a['ip_addresses']:
+                                ipa = ipaddress.ip_network(ip["address"], strict=False)
+                                if ipa.version == 4:
+                                    remote_ip = str(ipa[0])
+                                    break
+
+                    l2vpn_interfaces[i["name"]] = {
+                        "local_label": id_local,
+                        "remote_label": id_remote,
+                        "remote_ip": remote_ip,
+                    }
+
+                l2circuits[l2vpn["name"].replace("WAN: ", "")] = {
+                    "interfaces": l2vpn_interfaces,
+                    "description": "EPL: " + l2vpn["name"].replace("WAN: ", "") + " to remote " + remote_device,
+                }
 
         for _, l3vpn in self.l3vpns.items():
             if l3vpn["rd"]:
@@ -404,10 +461,22 @@ class RouterSerializer:
                 "export_targets": [target["name"] for target in l3vpn["export_targets"]],
                 "routing_options": routing_options,
             }
-        device_stub["junos__generated_routing_instances"] = routing_instances
+        device_stub[f"{self.vendor_prefix}__generated_routing_instances"] = routing_instances
+        device_stub[f"{self.vendor_prefix}__generated_l2circuits"] = l2circuits
 
         return device_stub
 
+
+class JunosSerializer(RouterSerializer):
+    vendor_prefix = "junos"
+    mgmt_interface = "fxp0"
+    lo_interface = "lo0"
+
+
+class RtBrickSerializer(RouterSerializer):
+    vendor_prefix = "rtbrick"
+    mgmt_interface = "ma1"
+    lo_interface = "lo-0/0/0"
 
 class SwitchSerializer:
     def __init__(self, device):

@@ -2,3 +2,6 @@ host_vars
 __pycache__
 cosmo.yml
 .idea
+
+.direnv
+leaf*.json

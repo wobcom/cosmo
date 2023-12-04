@@ -33,7 +33,12 @@ class GraphqlClient:
               ) {
                 id
                 name
+                serial
+                
                 device_type {
+                  slug
+                }
+                platform {
                   slug
                 }
                 primary_ip4 {
@@ -46,6 +51,7 @@ class GraphqlClient:
                   type
                   mode
                   mtu
+                  mac_address
                   description
                   vrf {
                     id
@@ -112,10 +118,21 @@ class GraphqlClient:
                   assigned_object {
                     __typename
                     ... on VLANType {
-                        id
+                      id
                     }
                     ... on InterfaceType {
-                        id
+                      id
+                      device {
+                        name
+                        interfaces (type: "virtual", vrf: null) {
+                          ip_addresses {
+                            address
+                          }
+                          parent {
+                            type
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -124,7 +141,7 @@ class GraphqlClient:
         )
 
         query = query_template.substitute(
-            device_array=json.dumps(device_config['router'] + device_config['switch'])
+            device_array=json.dumps(device_config['rtbrick_router'] + device_config['junos_router'] + device_config['switch'])
         )
 
         r = self.query(query)
