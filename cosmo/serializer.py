@@ -134,6 +134,8 @@ class RouterSerializer:
                 families["inet6"]["rpf_check"] = {"mode": tags.get_from_key("urpf")[0]}
         if tags.has("core"):
             families["iso"] = {}
+            if iface["mtu"]:
+                families["iso"]["mtu"] = iface["mtu"] - 3 # isis has an CLNS/LLC header of 3 bytes
             families["mpls"] = {}
             if iface["mtu"]:
                 families["mpls"]["mtu"] = iface["mtu"] - 64 # enough space for 16 labels
