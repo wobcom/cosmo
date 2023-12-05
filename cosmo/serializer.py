@@ -255,6 +255,19 @@ class RouterSerializer:
                     interface_stub['gigether'] = {}
                 interface_stub['gigether']['autonegotiation'] = True if tags.get_from_key("autoneg")[0] == "on" else False
 
+            for fec in tags.get_from_key("fec"):
+                if not interface_stub.get("gigether"):
+                    interface_stub["gigether"] = {}
+                match fec:
+                    case "off":
+                        interface_stub["gigether"]["fec"] = "none"
+                    case "baser":
+                        interface_stub["gigether"]["fec"] = "fec74"
+                    case "rs":
+                        interface_stub["gigether"]["fec"] = "fec91"
+                    case _:
+                        l.error(f"FEC mode {fec} on interface {interface['name']} is not known, ignoring")
+
             if interface.get("type") == "LAG":
                 interface_stub["type"] = "lag"
             elif interface.get("type") == "LOOPBACK":
