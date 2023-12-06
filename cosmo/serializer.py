@@ -122,8 +122,6 @@ class RouterSerializer:
         families = {}
         if len(ipv4s) > 0:
             families["inet"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv4s) }}
-            if iface["mtu"]:
-                families["inet"]["mtu"] = iface["mtu"]
             if is_edge:
                 families["inet"]["filters"] = ["input-list [ EDGE_FILTER ]"]
             if sample:
@@ -134,8 +132,6 @@ class RouterSerializer:
                 families["inet"]["rpf_check"] = {"mode": tags.get_from_key("urpf")[0]}
         if len(ipv6s) > 0:
             families["inet6"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv6s) }}
-            if iface["mtu"]:
-                families["inet6"]["mtu"] = iface["mtu"]
             if is_edge:
                 families["inet6"]["filters"] = ["input-list [ EDGE_FILTER_V6 ]"]
             if sample:
@@ -144,11 +140,7 @@ class RouterSerializer:
                 families["inet6"]["rpf_check"] = {"mode": tags.get_from_key("urpf")[0]}
         if tags.has("core"):
             families["iso"] = {}
-            if iface["mtu"]:
-                families["iso"]["mtu"] = iface["mtu"] - 3 # isis has an CLNS/LLC header of 3 bytes
             families["mpls"] = {}
-            if iface["mtu"]:
-                families["mpls"]["mtu"] = iface["mtu"] - 64 # enough space for 16 labels
 
         if len(families.keys()) > 0:
             unit_stub["families"] = families
@@ -163,6 +155,9 @@ class RouterSerializer:
                 prefix = "Peering: "
 
             unit_stub["description"] = prefix + iface["description"]
+
+        if iface["mtu"]:
+            unit_stub["mtu"] = iface["mtu"]
 
         if iface["mode"] == "ACCESS":
             if not iface.get("untagged_vlan"):
