@@ -127,12 +127,15 @@ class GraphqlClient:
                       id
                       device {
                         name
-                        interfaces (type: "virtual", vrf: null) {
+                        interfaces (type: "virtual") {
                           ip_addresses {
                             address
                           }
                           parent {
                             type
+                          }
+                          vrf {
+                            id
                           }
                         }
                       }
