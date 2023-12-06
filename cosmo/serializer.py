@@ -423,16 +423,13 @@ class RouterSerializer:
             elif l2vpn['type'] == "EPL" or l2vpn['type'] == "EVPL":
                 l2vpn_interfaces = {};
                 for i in l2vpn["interfaces"]:
-                    id_local = int(i['id']) + 1000000
-
-                    # get remote interface id by iterating over interfaces in the circuit and using the one that is not ours
                     for termination in l2vpn["terminations"]:
-                        t_remote_id = int(termination["assigned_object"]["id"]) + 1000000
-                        if t_remote_id != id_local:
-                            id_remote = t_remote_id
+                        if termination["assigned_object"]["id"] == i["id"]:
+                            id_local = int(termination["id"]) + 1000000
+                        else:
+                            id_remote = int(termination["id"]) + 1000000
                             remote_device = termination["assigned_object"]["device"]["name"]
                             remote_interfaces = termination["assigned_object"]["device"]["interfaces"]
-                            break
 
                     # [TODO]: Refactor this.
                     # We need the Loopback IP of the peer device.
@@ -458,7 +455,7 @@ class RouterSerializer:
 
                 l2circuits[l2vpn["name"].replace("WAN: ", "")] = {
                     "interfaces": l2vpn_interfaces,
-                    "description": "EPL: " + l2vpn["name"].replace("WAN: ", "") + " to remote " + remote_device,
+                    "description": "EPL: " + l2vpn["name"].replace("WAN: ", "") + " via " + remote_device,
                 }
 
         for _, l3vpn in self.l3vpns.items():
