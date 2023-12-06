@@ -432,8 +432,9 @@ class RouterSerializer:
 
                     # get remote interface id by iterating over interfaces in the circuit and using the one that is not ours
                     for termination in l2vpn["terminations"]:
-                        if int(termination["assigned_object"]["id"]) != id_local:
-                            id_remote = int(termination["assigned_object"]["id"]) + 1000000
+                        t_remote_id = int(termination["assigned_object"]["id"]) + 1000000
+                        if t_remote_id != id_local:
+                            id_remote = t_remote_id
                             remote_device = termination["assigned_object"]["device"]["name"]
                             remote_interfaces = termination["assigned_object"]["device"]["interfaces"]
                             break
