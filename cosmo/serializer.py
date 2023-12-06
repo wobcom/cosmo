@@ -200,8 +200,6 @@ class RouterSerializer:
         return unit_stub
 
     def serialize(self):
-        l.error(json.dumps(self.l2vpn_vlan_terminations, indent=4, default = vars))
-        l.error(json.dumps(self.l2vpn_interface_terminations, indent=4, default = vars))
         device_stub = {
             f"device_model": self.device["device_type"]["slug"],
             f"platform": self.device["platform"]["slug"],
