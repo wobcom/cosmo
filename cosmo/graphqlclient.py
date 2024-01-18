@@ -79,6 +79,7 @@ class GraphqlClient:
                     name
                     slug
                   }
+                  custom_fields
                 }
                 staticroute_set {
                   interface {

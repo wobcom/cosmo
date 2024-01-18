@@ -29,7 +29,6 @@ class Tags:
     def has_key(self, key):
         return len(self.get_from_key(key)) > 0
 
-
 class RouterSerializer:
 
     def __init__(self, device, l2vpn_vlan_terminations, l2vpn_interface_terminations, vrfs):
@@ -91,6 +90,8 @@ class RouterSerializer:
 
     def _get_unit(self, iface):
         unit_stub = {}
+        name = iface['name'].split(".")[1]
+
         ipv4s = []
         ipv6s = []
         policer = {}
@@ -166,25 +167,32 @@ class RouterSerializer:
                 )
                 return
             unit_stub["vlan"] = iface["untagged_vlan"]["vid"]
-            l2vpn_vlan_term = self.l2vpn_vlan_terminations.get(iface["untagged_vlan"]["id"])
-        else:
-            l2vpn_vlan_term = False
 
-        l2vpn = l2vpn_vlan_term or self.l2vpn_interface_terminations.get(iface["id"])
+        if outer_tag := iface.get('custom_fields', {}).get("outer_tag", None):
+                unit_stub["vlan"] = int(outer_tag)
+
+        l2vpn_vlan_attached = unit_stub.get("vlan", None) and self.l2vpn_vlan_terminations.get(unit_stub.get("vlan"))
+        l2vpn_interface_attached = self.l2vpn_interface_terminations.get(iface["id"])
+
+        l2vpn = l2vpn_vlan_attached or l2vpn_interface_attached
         if l2vpn:
-            if l2vpn['type'] in ["VPWS", "EVPL"] and iface.get("untagged_vlan"):
+            if l2vpn['type'] in ["VPWS", "EVPL"] and l2vpn_vlan_attached:
                 unit_stub["encapsulation"] = "vlan-ccc"
             elif l2vpn['type'] in ["MPLS_EVPN", "VXLAN_EVPN"]:
                 unit_stub["encapsulation"] = "vlan-bridge"
 
+            # We need to collect the used L2VPNs for rendering those afterwards in other places within the configuration.
             if not self.l2vpns.get(l2vpn["id"]):
                 l2vpn["interfaces"] = []
-                l2vpn["vlan"] = iface["untagged_vlan"]
+                l2vpn["vlan"] = unit_stub.get("vlan", None)
                 self.l2vpns[l2vpn["id"]] = l2vpn
+
             self.l2vpns[l2vpn["id"]]["interfaces"].append(iface)
 
         if iface["vrf"]:
             vrfid = iface["vrf"]["id"]
+
+            # We need to collect the used L3VPNs for rendering those afterwards in other places within the configuration.
             if vrfid not in self.l3vpns:
                 vrf_object = [vrf for vrf in self.vrfs if vrf["id"] == vrfid][0]
                 vrf_object["interfaces"] = []
@@ -192,7 +200,7 @@ class RouterSerializer:
 
             self.l3vpns[iface["vrf"]["id"]]["interfaces"].append(iface["name"])
 
-        return unit_stub
+        return name, unit_stub
 
     def serialize(self):
         device_stub = {
@@ -207,16 +215,17 @@ class RouterSerializer:
 
             # Sub Interfaces contains . in names, we render them within the parent, so we ignore those if the parent exists
             if "." in interface["name"]:
+                base_name = interface["name"].split(".")[0]
                 if not next(
                         filter(
-                            lambda i: i["name"] == interface["name"].split(".")[0],
+                            lambda i: i["name"] == base_name,
                             self.device["interfaces"],
                         ),
                         None,
                 ):
                     self.device["interfaces"].append(
                         {
-                            "name": interface["name"].split(".")[0],
+                            "name": base_name,
                             "enabled": True,
                             "description": None,
                             "mtu": None,
@@ -293,20 +302,22 @@ class RouterSerializer:
                 self.device["interfaces"], interface["name"]
             )
             if len(sub_interfaces) > 0:
+                is_loopback = interface_stub["type"] == "loopback"
                 for si in sub_interfaces:
-                    if not si["untagged_vlan"]:
-                        vid = si["name"].split(".")[1]
-                    else:
-                        vid = si["untagged_vlan"]["vid"]
+                    name, unit = self._get_unit(si)
+                    sub_num = int(name or '0')
+                    if not is_loopback and sub_num != 0 and not unit.get("vlan", None):
+                        l.error(f"Sub interface {si['name']} does not have a access VLAN configured, skipping...")
+                        continue
 
-                    l2vpn =  self.l2vpn_interface_terminations.get(si["id"])
-                    if len(sub_interfaces) == 1 and l2vpn and l2vpn['type'] in ["VPWS", "EPL"] and not si['untagged_vlan']:
+                    l2vpn = self.l2vpn_interface_terminations.get(si["id"])
+                    if len(sub_interfaces) == 1 and l2vpn and l2vpn['type'] in ["VPWS", "EPL"] and not si.get('vlan'):
                         interface_stub["encapsulation"] = "ethernet-ccc"
 
-                    unit = self._get_unit(si)
                     if not interface_stub.get("units"):
                         interface_stub["units"] = {}
-                    interface_stub["units"][int(vid)] = unit
+
+                    interface_stub["units"][sub_num] = unit
 
             interfaces[interface["name"]] = interface_stub
 
@@ -431,6 +442,10 @@ class RouterSerializer:
                             remote_device = termination["assigned_object"]["device"]["name"]
                             remote_interfaces = termination["assigned_object"]["device"]["interfaces"]
 
+                    if not remote_interfaces:
+                        l.error("Found no remote interface, skipping...")
+                        continue
+
                     # [TODO]: Refactor this.
                     # We need the Loopback IP of the peer device.
                     # We potentially need data for a device that's not listed in `cosmo.yml`
@@ -455,7 +470,7 @@ class RouterSerializer:
 
                 l2circuits[l2vpn["name"].replace("WAN: ", "")] = {
                     "interfaces": l2vpn_interfaces,
-                    "description": "EPL: " + l2vpn["name"].replace("WAN: ", "") + " via " + remote_device,
+                    "description": f"{l2vpn['type']}: " + l2vpn["name"].replace("WAN: ", "") + " via " + remote_device,
                 }
 
         for _, l3vpn in self.l3vpns.items():
