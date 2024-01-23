@@ -35,11 +35,12 @@ class RouterSerializer:
 
         match device["platform"]["manufacturer"]["slug"]:
             case 'juniper':
-                self.generate_mgmt_routing_instance = True
+                self.mgmt_routing_instance = "junos_mgmt"
                 self.mgmt_interface = "fxp0"
                 self.lo_interface = "lo0"
             case 'rtbrick':
-                self.generate_mgmt_routing_instance = False
+                self.mgmt_routing_instance = "mgmt"
+                self.mgmt_interface = "ma1"
                 self.lo_interface = "lo-0/0/0"
             case other:
                 l.error(f"unsupported platform vendor: {other}")
@@ -335,28 +336,27 @@ class RouterSerializer:
         l2circuits = {}
         routing_instances = {}
 
-        if self.generate_mgmt_routing_instance:
-            routing_instances[f"mgmt_junos"] = {
-                "description": "MGMT-ROUTING-INSTANCE",
-            }
+        routing_instances[self.mgmt_routing_instance] = {
+            "description": "MGMT-ROUTING-INSTANCE",
+        }
 
-            if interfaces.get(self.mgmt_interface, {}).get("units", {}).get(0):
-                routing_instances[f"mgmt_junos"]["routing_options"] = {
-                    "rib": {
-                        f"mgmt_junos.inet.0": {
-                            "static": {
-                                "0.0.0.0/0": {
-                                    "next_hop": next(
-                                        ipaddress.ip_network(
-                                            next(iter(interfaces[self.mgmt_interface]["units"][0]["families"]["inet"]["address"].keys())),
-                                            strict=False,
-                                        ).hosts()
-                                    ).compressed
-                                }
+        if interfaces.get(self.mgmt_interface, {}).get("units", {}).get(0):
+            routing_instances[self.mgmt_routing_instance]["routing_options"] = {
+                "rib": {
+                    f"{self.mgmt_routing_instance}.inet.0": {
+                        "static": {
+                            "0.0.0.0/0": {
+                                "next_hop": next(
+                                    ipaddress.ip_network(
+                                        next(iter(interfaces[self.mgmt_interface]["units"][0]["families"]["inet"]["address"].keys())),
+                                        strict=False,
+                                    ).hosts()
+                                ).compressed
                             }
                         }
                     }
                 }
+            }
 
         if interfaces.get(self.lo_interface, {}).get("units", {}).get(0):
             router_id = next(iter(interfaces[self.lo_interface]["units"][0]["families"]["inet"]["address"].keys())).split("/")[0]
