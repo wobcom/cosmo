@@ -190,6 +190,12 @@ class RouterSerializer:
 
             self.l2vpns[l2vpn["id"]]["interfaces"].append(iface)
 
+        if tags.has_key("dhcp"):
+            unit_stub["dhcp_profile"] = tags.get_from_key("dhcp")
+
+        if tags.has("unnumbered"):
+            unit_stub["unnumbered"] = True
+
         if iface["vrf"]:
             vrfid = iface["vrf"]["id"]
 
