@@ -35,7 +35,7 @@ class RouterSerializer:
 
         match device["platform"]["manufacturer"]["slug"]:
             case 'juniper':
-                self.mgmt_routing_instance = "junos_mgmt"
+                self.mgmt_routing_instance = "mgmt_junos"
                 self.mgmt_interface = "fxp0"
                 self.lo_interface = "lo0"
             case 'rtbrick':
