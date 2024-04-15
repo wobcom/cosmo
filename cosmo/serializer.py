@@ -461,7 +461,7 @@ class RouterSerializer:
                     # We pick a `virtual` interface which is not in a VRF and which parent is a `loopback`
                     # Then we pick the first IPv4 address.
                     for a in remote_interfaces:
-                        if a["vrf"] == None and a["parent"] and a["parent"]["type"] == "LOOPBACK":
+                        if a["vrf"] == None and a["parent"] and a["parent"]["type"] == "LOOPBACK" and a["parent"]["name"].startswith("lo"):
                             for ip in a['ip_addresses']:
                                 ipa = ipaddress.ip_network(ip["address"], strict=False)
                                 if ipa.version == 4:

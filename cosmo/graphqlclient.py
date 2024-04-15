@@ -133,6 +133,7 @@ class GraphqlClient:
                             address
                           }
                           parent {
+                            name
                             type
                           }
                           vrf {
