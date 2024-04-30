@@ -230,6 +230,10 @@ class RouterSerializer:
                         ),
                         None,
                 ):
+                    # Note: We can add an interface at this point, but we are not able to
+                    # infer anything. Therefore, we cannot infer the type of this interface and only use this interface
+                    # for rendering, not for generating additional configuration.
+                    # If your configuration needs for example an explicit loopback interface, you can create this manually.
                     self.device["interfaces"].append(
                         {
                             "name": base_name,
@@ -237,7 +241,6 @@ class RouterSerializer:
                             "description": None,
                             "mtu": None,
                             "lag": None,
-                            "type": interface["type"],
                         }
                     )
                 continue
@@ -311,7 +314,7 @@ class RouterSerializer:
                 self.device["interfaces"], interface["name"]
             )
             if len(sub_interfaces) > 0:
-                is_loopback = interface_stub["type"] == "loopback"
+                is_loopback = interface_stub.get("type") == "loopback"
                 for si in sub_interfaces:
                     name, unit = self._get_unit(si)
                     sub_num = int(name or '0')
