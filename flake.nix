@@ -36,6 +36,7 @@
         devShell = pkgs.mkShell {
           buildInputs = with pkgs; [
             black
+            poetry
             (pkgs.poetry2nix.mkPoetryEnv {
               projectDir = ./.;
               editablePackageSources = {

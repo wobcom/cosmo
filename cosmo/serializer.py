@@ -283,6 +283,8 @@ class RouterSerializer:
                 interface_stub["type"] = "lag"
             elif interface.get("type") == "LOOPBACK":
                 interface_stub["type"] = "loopback"
+            elif interface.get("type") == "VIRTUAL":
+                interface_stub["type"] = "virtual"
             elif tags.has_key("access"):
                 interface_stub["type"] = "access"
             elif "BASE" in interface.get("type", ""):
