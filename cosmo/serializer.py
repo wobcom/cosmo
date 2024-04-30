@@ -179,7 +179,7 @@ class RouterSerializer:
 
         l2vpn = l2vpn_vlan_attached or l2vpn_interface_attached
         if l2vpn:
-            if l2vpn['type'] in ["VPWS", "EVPL"] and l2vpn_vlan_attached:
+            if l2vpn['type'] in ["VPWS", "EVPL"] and unit_stub.get('vlan'):
                 unit_stub["encapsulation"] = "vlan-ccc"
             elif l2vpn['type'] in ["MPLS_EVPN", "VXLAN_EVPN"]:
                 unit_stub["encapsulation"] = "vlan-bridge"
