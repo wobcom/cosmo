@@ -168,11 +168,12 @@ class RouterSerializer:
                 )
                 return
             unit_stub["vlan"] = iface["untagged_vlan"]["vid"]
+            unit_stub["vlan_id"] = iface["untagged_vlan"]["id"]
 
         if outer_tag := iface.get('custom_fields', {}).get("outer_tag", None):
                 unit_stub["vlan"] = int(outer_tag)
 
-        l2vpn_vlan_attached = unit_stub.get("vlan", None) and self.l2vpn_vlan_terminations.get(unit_stub.get("vlan"))
+        l2vpn_vlan_attached = unit_stub.get("vlan_id", None) and self.l2vpn_vlan_terminations.get(unit_stub.get("vlan_id"))
         l2vpn_interface_attached = self.l2vpn_interface_terminations.get(iface["id"])
 
         l2vpn = l2vpn_vlan_attached or l2vpn_interface_attached
