@@ -1,0 +1,211 @@
+device_list:
+- device_type:
+    slug: mx204
+  id: '1886'
+  interfaces:
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '32373'
+    ip_addresses: []
+    lag:
+      id: '32570'
+    mac_address: null
+    mode: null
+    mtu: null
+    name: et-0/0/0
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '32374'
+    ip_addresses: []
+    lag:
+      id: '32570'
+    mac_address: null
+    mode: null
+    mtu: null
+    name: et-0/0/1
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: null
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '32570'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: 10000
+    name: ae0
+    tagged_vlans: []
+    tags: []
+    type: LAG
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: MPLS-EVPN-TRANSFER
+    enabled: true
+    id: '183167'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: ACCESS
+    mtu: null
+    name: ae0.338
+    tagged_vlans: []
+    tags: []
+    type: VIRTUAL
+    untagged_vlan:
+      id: '1074'
+      name: MPLS-EVPN-TRANSFER
+      vid: 338
+    vrf: null
+  name: TEST0001
+  platform:
+    manufacturer:
+      slug: juniper
+    slug: junos-21-4r3-s5-4
+  primary_ip4:
+    address: 198.51.100.11/24
+  serial: CT702
+  staticroute_set: []
+- device_type:
+    slug: mx204
+  id: '2194'
+  interfaces:
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '37617'
+    ip_addresses: []
+    lag:
+      id: '37630'
+    mac_address: null
+    mode: null
+    mtu: null
+    name: et-0/0/0
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '37618'
+    ip_addresses: []
+    lag:
+      id: '37630'
+    mac_address: null
+    mode: null
+    mtu: null
+    name: et-0/0/1
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '37630'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: 9216
+    name: ae0
+    tagged_vlans: []
+    tags: []
+    type: LAG
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: MPLS-EVPN-TRANSFER
+    enabled: true
+    id: '183191'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: ACCESS
+    mtu: null
+    name: ae0.338
+    tagged_vlans: []
+    tags: []
+    type: VIRTUAL
+    untagged_vlan:
+      id: '1074'
+      name: MPLS-EVPN-TRANSFER
+      vid: 338
+    vrf: null
+  name: TEST0002
+  platform:
+    manufacturer:
+      slug: juniper
+    slug: junos-21-4r3-s5-4
+  primary_ip4:
+    address: 198.51.100.10/24
+  serial: ''
+  staticroute_set: []
+l2vpn_list:
+- id: '34'
+  identifier: 338
+  name: 'WAN: VS_MPLS_EVPN'
+  terminations:
+  - assigned_object:
+      __typename: InterfaceType
+      device:
+        interfaces: []
+        name: TEST0002
+      id: '183191'
+    id: '849'
+  - assigned_object:
+      __typename: InterfaceType
+      device:
+        interfaces: []
+        name: TEST0001
+      id: '183167'
+    id: '850'
+  type: MPLS_EVPN
+
+vrf_list: []

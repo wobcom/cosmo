@@ -512,9 +512,9 @@ class RouterSerializer:
                     for a in remote_interfaces:
                         if a["vrf"] == None and a["parent"] and a["parent"]["type"] == "LOOPBACK" and a["parent"]["name"].startswith("lo"):
                             for ip in a['ip_addresses']:
-                                ipa = ipaddress.ip_network(ip["address"], strict=False)
+                                ipa = ipaddress.ip_interface(ip["address"])
                                 if ipa.version == 4:
-                                    remote_ip = str(ipa[0])
+                                    remote_ip = str(ipa.ip)
                                     break
 
                     l2vpn_interfaces[i["name"]] = {
