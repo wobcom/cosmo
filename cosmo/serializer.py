@@ -37,10 +37,12 @@ class RouterSerializer:
             case 'juniper':
                 self.mgmt_routing_instance = "mgmt_junos"
                 self.mgmt_interface = "fxp0"
+                self.bmc_interface = None
                 self.lo_interface = "lo0"
             case 'rtbrick':
                 self.mgmt_routing_instance = "mgmt"
                 self.mgmt_interface = "ma1"
+                self.bmc_interface = "bmc0"
                 self.lo_interface = "lo-0/0/0"
             case other:
                 l.error(f"unsupported platform vendor: {other}")
@@ -98,10 +100,18 @@ class RouterSerializer:
         policer = {}
         tags = Tags(iface.get("tags"))
         is_edge = tags.has_key("edge")
+        is_mgmt = iface['name'].startswith(self.mgmt_interface) or (self.bmc_interface and iface['name'].startswith(self.bmc_interface))
         sample = is_edge and not tags.has("customer", "edge") and not tags.has("disable_sampling")
 
         for ip in iface["ip_addresses"]:
             ipa = ipaddress.ip_network(ip["address"], strict=False)
+
+            # abort if a private IP is used on a unit without a VRF
+            # we use !is_global instead of is_private since the latter ignores 100.64/10
+            if not iface["vrf"] and not ipa.is_global and not is_mgmt:
+                l.error(f"Private IP {ipa} used on interface {iface['name']} in default VRF. Did you forget to configure a VRF?")
+                exit(f"Error while serializing device {self.device['name']}, aborting.")
+
             if ipa.version == 4:
                 ipv4s.append(ip)
             else:
