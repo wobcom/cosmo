@@ -499,8 +499,10 @@ class RouterSerializer:
         for _, l3vpn in self.l3vpns.items():
             if l3vpn["rd"]:
                 rd = router_id+":"+l3vpn["rd"]
-            else:
+            elif len(l3vpn["export_targets"]) > 0:
                 rd = router_id+":"+l3vpn["id"]
+            else:
+                rd = None
 
             routing_options = {}
             rib = self._get_vrf_rib(self.device["staticroute_set"], l3vpn["name"])
