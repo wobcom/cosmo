@@ -20,6 +20,8 @@ def main() -> int:
     )
     parser.add_argument('--limit', default=[], metavar="STRING", action="append",
                         help='List of hosts to generate configurations')
+    parser.add_argument('--config', '-c', default='cosmo.yml', metavar="CFGFILE",
+                        help='Path of the yaml config file to use')
 
     args = parser.parse_args()
 
@@ -30,12 +32,12 @@ def main() -> int:
     else:
         allowed_hosts = None
 
-    if not os.path.isfile('cosmo.yml'):
-        l.error("Missing cosmo.yml, please provide a configuration.")
+    if not os.path.isfile(args.config):
+        l.error("Missing {}, please provide a configuration.".format(args.config))
         return 1
 
     cosmo_configuration = {}
-    with open('cosmo.yml', 'r') as cfg_file:
+    with open(args.config, 'r') as cfg_file:
         cosmo_configuration = yaml.safe_load(cfg_file)
 
     l.hint(f"Fetching information from Netbox, make sure VPN is enabled on your system.")
