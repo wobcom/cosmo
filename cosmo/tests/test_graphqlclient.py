@@ -1,5 +1,6 @@
 import pytest
 
+from cosmo.tests.utils import requestPatchTool
 from cosmo.graphqlclient import GraphqlClient
 
 TEST_URL = 'https://netbox.example.com'
@@ -13,12 +14,6 @@ TEST_DEVICE_CFG = {
         'switch1',
         'switch2'
     ]}
-
-def requestPatchTool(mocker, returnData=
-                     {'status_code': 200, 'text': '{}'}):
-    rMock = mocker.PropertyMock(**returnData)
-    postMock = mocker.patch('requests.post', return_value=rMock)
-    return postMock
 
 def test_case_query_ok(mocker):
     requestPatchTool(mocker)
