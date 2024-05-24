@@ -158,8 +158,8 @@ def test_case_local_l2x():
     assert l2c['interfaces']['ifp-0/0/4.7']['local_label'] == l2c['interfaces']['ifp-0/0/5.7']['remote_label']
     assert l2c['interfaces']['ifp-0/0/5.7']['local_label'] == l2c['interfaces']['ifp-0/0/4.7']['remote_label']
 
-    assert l2c['interfaces']['ifp-0/0/4.7']['remote_ip'] == '198.51.100.10'
-    assert l2c['interfaces']['ifp-0/0/5.7']['remote_ip'] == '198.51.100.10'
+    assert l2c['interfaces']['ifp-0/0/4.7']['remote_ip'] == '45.139.136.10'
+    assert l2c['interfaces']['ifp-0/0/5.7']['remote_ip'] == '45.139.136.10'
 
 
 
@@ -180,7 +180,7 @@ def test_case_local_l3vpn():
     assert ri['interfaces'][0] == "ifp-0/1/2.100"
     assert ri['instance_type'] == "vrf"
 
-    assert ri['route_distinguisher'] == '198.51.100.10:407'
+    assert ri['route_distinguisher'] == '45.139.136.10:407'
     assert len(ri['import_targets']) == 1
     assert ri['import_targets'][0] == "target:9136:407"
     assert len(ri['export_targets']) == 1

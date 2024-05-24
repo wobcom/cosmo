@@ -51,7 +51,7 @@ device_list:
       slug: juniper
     slug: junos-21-4r3-s5-4
   primary_ip4:
-    address: 198.51.100.11/24
+    address: 45.139.136.11/24
   serial: ''
   staticroute_set: []
 - device_type:
@@ -106,7 +106,7 @@ device_list:
       slug: juniper
     slug: junos-21-4r3-s5-4
   primary_ip4:
-    address: 198.51.100.10/24
+    address: 45.139.136.10/24
   serial: ''
   staticroute_set: []
 l2vpn_list:
