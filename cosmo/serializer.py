@@ -338,6 +338,9 @@ class RouterSerializer:
                     if len(sub_interfaces) == 1 and l2vpn and l2vpn['type'] in ["VPWS", "EPL"] and not si.get('vlan'):
                         interface_stub["encapsulation"] = "ethernet-ccc"
 
+                    if sub_num == 0 and "vlan" in unit:
+                        interface_stub["native_vlan"] = unit["vlan"]
+
                     if not interface_stub.get("units"):
                         interface_stub["units"] = {}
 
