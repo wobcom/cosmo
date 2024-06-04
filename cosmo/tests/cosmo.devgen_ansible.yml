@@ -1,0 +1,6 @@
+output_format: "ansible"
+
+devices:
+  router:
+    - "TEST0001"
+  switch: []
