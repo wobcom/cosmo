@@ -1,6 +1,6 @@
 import pytest
 
-from cosmo.tests.utils import requestPatchTool
+import cosmo.tests.utils as utils
 from cosmo.graphqlclient import GraphqlClient
 
 TEST_URL = 'https://netbox.example.com'
@@ -16,21 +16,21 @@ TEST_DEVICE_CFG = {
     ]}
 
 def test_case_query_ok(mocker):
-    requestPatchTool(mocker)
+    utils.RequestResponseMock.patchTool(mocker)
     gql = GraphqlClient(TEST_URL, TEST_TOKEN)
     gql.query('check')
 
 def test_case_query_nok(mocker):
     with pytest.raises(Exception):
-        requestPatchTool(mocker, returnData=
-                         {'status_code': 403, 'text': 'unauthorized'})
+        utils.RequestResponseMock.patchTool(
+            mocker, returnData={'status_code': 403, 'text': 'unauthorized'})
         gql = GraphqlClient(TEST_URL, TEST_TOKEN)
         gql.query('check')
 
 def test_case_get_data(mocker):
     mockAnswer = []
-    postMock = requestPatchTool(
-        mocker,returnData={'status_code': 200, 'json': lambda: {'data': mockAnswer}})
+    postMock = utils.RequestResponseMock.patchTool(
+        mocker,returnData={'status_code': 200, 'text': '{"data":' + str(mockAnswer) + '}'})
     gql = GraphqlClient(TEST_URL, TEST_TOKEN)
     responseData = gql.get_data(TEST_DEVICE_CFG)
     assert responseData == mockAnswer
