@@ -11,14 +11,20 @@ class CommonSetup:
             self, mocker, environ=DEFAULT_ENVIRON,
             cfgFile=DEFAULT_CFGFILE, args=[PROGNAME]):
         self.mocker = mocker
+        self.patches = []
         # we need to setup correct test environ before running
-        self.environPatch = self.mocker.patch.dict('os.environ', environ)
+        self.patches.append(self.mocker.patch.dict('os.environ', environ))
         # patch args, since current ones are from pytest call
-        self.argsPatch = self.mocker.patch('sys.argv', args)
+        self.patches.append(self.mocker.patch('sys.argv', args))
         # patch configuration file lookup if requested
-        self.cfgFilePatch = None
         if cfgFile:
-            self.cfgFilePatch = PatchIoFilePath(self.mocker, 'cosmo.__main__', 'cosmo.yml', cfgFile)
+            p = PatchIoFilePath(self.mocker, 'cosmo.__main__', 'cosmo.yml', cfgFile)
+            self.patches += p.getPatches()
+
+    def stop(self):
+        for patch in self.patches:
+            self.mocker.stop(patch)
+
 
 class RequestResponseMock:
     def __init__(self, **kwargs):
@@ -42,6 +48,7 @@ class PatchIoFilePath:
         self.pathToRealData = pathToRealData
         self.namespace = patchInNamespace
         self.mocker = mocker
+        self.patches = []
         self._patch()
 
     def _openReplacement(self, file, *args, **kwargs):
@@ -51,7 +58,8 @@ class PatchIoFilePath:
             return open(file, *args, **kwargs)
 
     def _patch(self):
-        self.mocker.patch(self.namespace + '.open', self._openReplacement)
-        self.mocker.patch(self.namespace + '.os.path.isfile',
-                          lambda f: True if f == self.requestedPath else False)
-
+        self.patches.append(self.mocker.patch(self.namespace + '.open', self._openReplacement))
+        self.patches.append(self.mocker.patch(self.namespace + '.os.path.isfile',
+                                              lambda f: True if f == self.requestedPath else False))
+    def getPatches(self):
+        return self.patches
