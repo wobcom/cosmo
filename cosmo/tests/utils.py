@@ -26,7 +26,7 @@ class RequestResponseMock:
         self.text = kwargs['text']
 
     @staticmethod
-    def patchTool(mocker, returnData={'status_code': 200, 'text': '{}'}):
+    def patchTool(mocker, returnData={'status_code': 200, 'text': '{"data": {"vrf_list": [], "device_list": []}}'}):
         postMock = mocker.patch('requests.post', return_value=RequestResponseMock(**returnData))
         return postMock
 
