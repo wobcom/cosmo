@@ -1,10 +1,10 @@
 import yaml
 from coverage.html import os
 
-from cosmo.serializer import RouterSerializer
+from cosmo.serializer import RouterSerializer, SwitchSerializer
 
 
-def get_sd_from_path(path):
+def get_router_sd_from_path(path):
     dirname = os.path.dirname(__file__)
     test_case_name = os.path.join(dirname, path)
 
@@ -13,9 +13,17 @@ def get_sd_from_path(path):
 
     return [RouterSerializer(device=device, l2vpn_list=test_data['l2vpn_list'], vrfs=test_data['vrf_list']).serialize() for device in test_data['device_list']]
 
+def get_switch_sd_from_path(path):
+    dirname = os.path.dirname(__file__)
+    test_case_name = os.path.join(dirname, path)
 
-def test_physical_interface():
-    [sd] = get_sd_from_path("./test_case_1.yaml")
+    test_case = open(test_case_name, 'r')
+    test_data = yaml.safe_load(test_case)
+
+    return [SwitchSerializer(device=device).serialize() for device in test_data['device_list']]
+
+def test_router_physical_interface():
+    [sd] = get_router_sd_from_path("./test_case_1.yaml")
 
     assert 'et-0/0/0' in sd['interfaces']
     assert 'physical' == sd['interfaces']['et-0/0/0']['type']
@@ -29,8 +37,8 @@ def test_physical_interface():
     assert sd['interfaces']['et-0/0/3']['gigether']['speed'] == '10g'
 
 
-def test_logical_interface():
-    [sd] = get_sd_from_path("./test_case_2.yaml")
+def test_router_logical_interface():
+    [sd] = get_router_sd_from_path("./test_case_2.yaml")
 
     assert 139 in sd['interfaces']['et-0/0/0']['units']
 
@@ -40,9 +48,9 @@ def test_logical_interface():
     assert 139 == unit['vlan']
 
 
-def test_lag():
+def test_router_lag():
 
-    [sd] = get_sd_from_path("./test_case_lag.yaml")
+    [sd] = get_router_sd_from_path("./test_case_lag.yaml")
 
     assert 'et-0/0/0' in sd['interfaces']
     assert 'et-0/0/1' in sd['interfaces']
@@ -53,9 +61,9 @@ def test_lag():
     assert 'lag' == sd['interfaces']['ae0']['type']
 
 
-def test_fec():
+def test_router_fec():
 
-    [sd] = get_sd_from_path("./test_case_fec.yaml")
+    [sd] = get_router_sd_from_path("./test_case_fec.yaml")
 
     assert 'et-0/0/0' in sd['interfaces']
     assert 'et-0/0/1' in sd['interfaces']
@@ -66,9 +74,9 @@ def test_fec():
     assert sd['interfaces']['et-0/0/2']['gigether']['fec'] == 'none'
 
 
-def test_case_mpls_evpn():
+def test_router_case_mpls_evpn():
 
-    sd = get_sd_from_path("./test_case_mpls_evpn.yaml")
+    sd = get_router_sd_from_path("./test_case_mpls_evpn.yaml")
 
     for d in sd:
         assert 'ae0' in d['interfaces']
@@ -97,9 +105,9 @@ def test_case_mpls_evpn():
         assert ri['vrf_target'] == 'target:1:338'
 
 
-def test_case_vpws():
+def test_router_case_vpws():
 
-    sd = get_sd_from_path("./test_case_vpws.yaml")
+    sd = get_router_sd_from_path("./test_case_vpws.yaml")
 
     for index, d in enumerate(sd):
         assert 'et-0/0/0' in d['interfaces']
@@ -129,9 +137,9 @@ def test_case_vpws():
         assert ri['vrf_target'] == 'target:1:2708'
 
 
-def test_case_local_l2x():
+def test_router_case_local_l2x():
 
-    [d] = get_sd_from_path("./test_case_local_l2x.yaml")
+    [d] = get_router_sd_from_path("./test_case_local_l2x.yaml")
 
     assert 'ifp-0/0/4' in d['interfaces']
     assert 'ifp-0/0/5' in d['interfaces']
@@ -163,9 +171,9 @@ def test_case_local_l2x():
 
 
 
-def test_case_local_l3vpn():
+def test_router_case_local_l3vpn():
 
-    [d] = get_sd_from_path("./test_case_l3vpn.yml")
+    [d] = get_router_sd_from_path("./test_case_l3vpn.yml")
 
     # We do not need to check the interfaces further, there is no configuration to be found there.
     assert 'ifp-0/1/2' in d['interfaces']
