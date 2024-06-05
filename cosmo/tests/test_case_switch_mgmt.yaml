@@ -1,0 +1,50 @@
+device_list:
+- device_type:
+    slug: sn3420
+  id: '1718'
+  interfaces:
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '30317'
+    ip_addresses:
+    - address: 10.120.142.11/24
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: eth0
+    tagged_vlans: []
+    tags: []
+    type: A_1000BASE_T
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '30318'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: eth1
+    tagged_vlans: []
+    tags: []
+    type: A_1000BASE_T
+    untagged_vlan: null
+    vrf: null
+  name: TEST0001
+  platform:
+    manufacturer: null
+    slug: cumulus-linux-4-3
+  primary_ip4:
+    address: 10.120.142.11/24
+  serial: 4242
+  staticroute_set: []
+l2vpn_list: []
+vrf_list: []

@@ -196,7 +196,28 @@ def test_router_case_local_l3vpn():
 
     assert ri['routing_options'] == {}
 
+def test_switch_mgmt_interface():
+    [sd] = get_switch_sd_from_path('./test_case_switch_mgmt.yaml')
 
+    # mgmt port is present
+    assert 'eth0' in sd['cumulus__device_interfaces']
+    assert 'address' in sd['cumulus__device_interfaces']['eth0']
+    # ipv4 parameters are set
+    assert '10.120.142.11/24' == sd['cumulus__device_interfaces']['eth0']['address']
+    assert '10.120.142.1' == sd['cumulus__device_interfaces']['eth0']['gateway']
+    # vrf is set
+    assert 'mgmt' == sd['cumulus__device_interfaces']['eth0']['vrf']
 
+def test_switch_case_lag():
+    [sd] = get_switch_sd_from_path('./test_case_switch_lag.yaml')
 
-
+    # check that the switchports are present
+    assert 'swp17' in sd['cumulus__device_interfaces']
+    assert 'swp18' in sd['cumulus__device_interfaces']
+    # check lag construction
+    assert 'lag_42' in sd['cumulus__device_interfaces']
+    assert 'bond_mode' in sd['cumulus__device_interfaces']['lag_42']
+    assert '802.3ad' == sd['cumulus__device_interfaces']['lag_42']['bond_mode']
+    # check that the interfaces are registered as lag members
+    assert 'swp18' in sd['cumulus__device_interfaces']['lag_42']['bond_slaves']
+    assert 'swp17' in sd['cumulus__device_interfaces']['lag_42']['bond_slaves']
