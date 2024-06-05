@@ -17,9 +17,17 @@ class CommonSetup:
         # patch args, since current ones are from pytest call
         self.patches.append(self.mocker.patch('sys.argv', args))
         # patch configuration file lookup if requested
+
+        # Note: If there is no configuration file given, we still need to patch this.
+        # The user can have a cosmo.yml in their folder, which still gets loaded without a mock.
+        # Afterward the test would run with an unknown cosmo.yml.
         if cfgFile:
             p = PatchIoFilePath(self.mocker, 'cosmo.__main__', 'cosmo.yml', cfgFile)
-            self.patches += p.getPatches()
+        else:
+            p = PatchIoFilePath(self.mocker, 'cosmo.__main__', 'f5175f8c-dd7c-4b3b-904f-ece63c45ea49.yml', cfgFile)
+
+        self.patches += p.getPatches()
+
 
     def stop(self):
         for patch in self.patches:
