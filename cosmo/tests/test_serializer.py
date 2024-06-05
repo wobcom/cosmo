@@ -207,6 +207,8 @@ def test_switch_mgmt_interface():
     assert '10.120.142.1' == sd['cumulus__device_interfaces']['eth0']['gateway']
     # vrf is set
     assert 'mgmt' == sd['cumulus__device_interfaces']['eth0']['vrf']
+    # description is set (optional)
+    assert 'management interface' == sd['cumulus__device_interfaces']['eth0']['description']
 
 def test_switch_case_lag():
     [sd] = get_switch_sd_from_path('./test_case_switch_lag.yaml')

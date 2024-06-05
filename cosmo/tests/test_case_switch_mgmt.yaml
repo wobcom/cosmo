@@ -6,7 +6,7 @@ device_list:
   - custom_fields:
       inner_tag: null
       outer_tag: null
-    description: ''
+    description: 'management interface'
     enabled: true
     id: '30317'
     ip_addresses:
