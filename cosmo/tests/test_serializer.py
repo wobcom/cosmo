@@ -196,6 +196,21 @@ def test_router_case_local_l3vpn():
 
     assert ri['routing_options'] == {}
 
+def test_switch_vlans():
+    [sd] = get_switch_sd_from_path('./test_case_switch_vlan.yaml')
+
+    # check that access port gets their vid added
+    assert 'swp1' in sd['cumulus__device_interfaces']
+    assert 42 == sd['cumulus__device_interfaces']['swp1']['untagged_vlan']
+    # check that it was added to bridge tagged vlans
+    assert 42 in sd['cumulus__device_interfaces']['bridge']['tagged_vlans']
+    # hybrid port should be taken into account, and VIDs are in order
+    assert 'tagged_vlans' in sd['cumulus__device_interfaces']['lag_2000']
+    assert 'untagged_vlan' in sd['cumulus__device_interfaces']['lag_2000']
+    assert 103 == sd['cumulus__device_interfaces']['lag_2000']['untagged_vlan']
+    # untagged vlans belong to vid list as well
+    assert [101, 102, 103] == sd['cumulus__device_interfaces']['lag_2000']['tagged_vlans']
+
 def test_switch_mgmt_interface():
     [sd] = get_switch_sd_from_path('./test_case_switch_mgmt.yaml')
 
