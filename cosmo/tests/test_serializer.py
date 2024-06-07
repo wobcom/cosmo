@@ -210,6 +210,9 @@ def test_switch_vlans():
     assert 103 == sd['cumulus__device_interfaces']['lag_2000']['untagged_vlan']
     # untagged vlans belong to vid list as well
     assert [101, 102, 103] == sd['cumulus__device_interfaces']['lag_2000']['tagged_vlans']
+    # check bridge attrs
+    assert 10000 == sd['cumulus__device_interfaces']['bridge']['mtu']
+    assert sorted(['swp1', 'lag_2000']) == sd['cumulus__device_interfaces']['bridge']['bridge_ports']
 
 def test_switch_mgmt_interface():
     [sd] = get_switch_sd_from_path('./test_case_switch_mgmt.yaml')
