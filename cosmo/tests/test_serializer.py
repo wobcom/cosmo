@@ -196,6 +196,13 @@ def test_router_case_local_l3vpn():
 
     assert ri['routing_options'] == {}
 
+def test_switch_lldp():
+    [sd] = get_switch_sd_from_path('./test_case_switch_lldp.yaml')
+
+    assert 'swp52' in sd['cumulus__device_interfaces']
+    assert 'lldp' in sd['cumulus__device_interfaces']['swp52']
+    assert True == sd['cumulus__device_interfaces']['swp52']['lldp']
+
 def test_switch_vlans():
     [sd] = get_switch_sd_from_path('./test_case_switch_vlan.yaml')
 

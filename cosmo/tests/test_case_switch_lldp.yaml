@@ -1,0 +1,35 @@
+device_list:
+- device_type:
+    slug: sn3420
+  id: '1718'
+  interfaces:
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '30370'
+    ip_addresses: []
+    lag:
+      id: '31062'
+    mac_address: null
+    mode: null
+    mtu: null
+    name: swp52
+    tagged_vlans: []
+    tags:
+    - name: lldp
+      slug: lldp
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  name: TEST0001
+  platform:
+    manufacturer: null
+    slug: cumulus-linux-4-3
+  primary_ip4:
+    address: 10.120.142.11/24
+  serial: 4242
+  staticroute_set: []
+l2vpn_list: []
+vrf_list: []
