@@ -1,0 +1,6 @@
+output_format: "nix"
+
+devices:
+  router:
+    - "TEST0001"
+  switch: []

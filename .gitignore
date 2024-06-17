@@ -5,3 +5,8 @@ cosmo.yml
 
 .direnv
 leaf*.json
+
+cosmo_data.yaml
+machines/test0001/*
+
+.coverage

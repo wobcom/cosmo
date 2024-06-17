@@ -1,0 +1,57 @@
+device_list:
+- device_type:
+    slug: mx204
+  id: '1746'
+  interfaces:
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: 'Customer: Test-Port'
+    enabled: true
+    id: '30747'
+    ip_addresses: []
+    lag: null
+    mac_address: 94:BF:41:41:41:F3
+    mode: null
+    mtu: null
+    name: et-0/0/0
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: 'Customer: Test-VLAN'
+    enabled: true
+    id: '183188'
+    ip_addresses: [ ]
+    lag: null
+    mac_address: null
+    mode: ACCESS
+    mtu: null
+    name: et-0/0/0.139
+    tagged_vlans: [ ]
+    tags: [ ]
+    type: VIRTUAL
+    untagged_vlan:
+      id: '1153'
+      name: TEST-VLAN
+      vid: 139
+    vrf: null
+  name: TEST0001
+  platform:
+    manufacturer:
+      slug: juniper
+    slug: junos-21-4r3-s5-4
+  primary_ip4:
+    address: 45.139.136.10/24
+  serial: 4242
+  staticroute_set: []
+l2vpn_list: []
+vrf_list: []

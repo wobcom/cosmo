@@ -1,0 +1,132 @@
+device_list:
+- device_type:
+    slug: mx204_te_3
+  id: '2548'
+  interfaces:
+  - custom_fields:
+      bpdufilter: null
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '38384'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: 9000
+    name: et-0/0/0
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '184384'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: et-0/0/0.0
+    tagged_vlans: []
+    tags: []
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+  name: TEST0001
+  platform:
+    manufacturer:
+      slug: juniper
+    slug: junos-21-4r3-s5-4
+  primary_ip4:
+    address: 45.139.136.11/24
+  serial: ''
+  staticroute_set: []
+- device_type:
+    slug: mx204_te
+  id: '2549'
+  interfaces:
+  - custom_fields:
+      bpdufilter: null
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '38398'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: 9000
+    name: et-0/0/0
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '184383'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: et-0/0/0.0
+    tagged_vlans: []
+    tags: []
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+  name: TEST0002
+  platform:
+    manufacturer:
+      slug: juniper
+    slug: junos-21-4r3-s5-4
+  primary_ip4:
+    address: 45.139.136.10/24
+  serial: ''
+  staticroute_set: []
+l2vpn_list:
+- id: '39'
+  identifier: 2708
+  name: 'WAN: VS_VPWS'
+  terminations:
+  - assigned_object:
+      __typename: InterfaceType
+      device:
+        interfaces: []
+        name: TEST0001
+      id: '184384'
+    id: '865'
+  - assigned_object:
+      __typename: InterfaceType
+      device:
+        interfaces: []
+        name: TEST0002
+      id: '184383'
+    id: '866'
+  type: VPWS
+vrf_list: []

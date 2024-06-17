@@ -58,25 +58,10 @@ def main() -> int:
 
     yaml.emitter.Emitter.process_tag = noop
 
-    l2vpn_vlan_terminations = {}
-    l2vpn_interface_terminations = {}
-    for l2vpn in cosmo_data["l2vpn_list"]:
-        if not l2vpn["name"].startswith("WAN: "):
-            continue
-        if l2vpn['type'] == "VPWS" and len(l2vpn['terminations']) != 2:
-            l.warning(f"VPWS circuits are only allowed to have two terminations. {l2vpn['name']} has {len(l2vpn['terminations'])} terminations, ignoring...")
-            continue
-        for termination in l2vpn["terminations"]:
-            if not termination["assigned_object"] or termination['assigned_object']['__typename'] not in ["VLANType", "InterfaceType"]:
-                l.warning(f"Found unsupported L2VPN termination in {l2vpn['name']}, ignoring...")
-                continue
-            if l2vpn['type'] == "VPWS" and termination['assigned_object']['__typename'] != "InterfaceType":
-                l.warning(f"Found non-interface termination in L2VPN {l2vpn['name']}, ignoring... VPWS only supports interace terminations.")
-                continue
-            if termination['assigned_object']['__typename'] == "VLANType":
-                l2vpn_vlan_terminations[str(termination["assigned_object"]['id'])] = l2vpn
-            elif termination['assigned_object']['__typename'] == "InterfaceType":
-                l2vpn_interface_terminations[str(termination["assigned_object"]['id'])] = l2vpn
+    with open(f"./cosmo_data.yaml", "w") as yaml_file:
+        yaml.dump(cosmo_data, yaml_file, default_flow_style=False)
+
+
 
     for vrf in cosmo_data["vrf_list"]:
         if len(vrf["export_targets"]) > 1 or len(vrf["import_targets"]) > 1:
@@ -97,7 +82,7 @@ def main() -> int:
 
         content = None
         if device['name'] in cosmo_configuration['devices']['router']:
-            serializer = RouterSerializer(device, l2vpn_vlan_terminations, l2vpn_interface_terminations, cosmo_data["vrf_list"])
+            serializer = RouterSerializer(device, cosmo_data['l2vpn_list'], cosmo_data["vrf_list"])
             content = serializer.serialize()
         elif device['name'] in cosmo_configuration['devices']['switch']:
             serializer = SwitchSerializer(device)

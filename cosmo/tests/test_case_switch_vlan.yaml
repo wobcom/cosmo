@@ -1,0 +1,69 @@
+device_list:
+- device_type:
+    slug: sn3420
+  id: '1718'
+  interfaces:
+  - custom_fields:
+      bpdufilter: null
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '31062'
+    ip_addresses: []
+    lag: null
+    mac_address: AA:AA:AA:AA:AA:DC
+    mode: TAGGED
+    mtu: null
+    name: lag_2000
+    tagged_vlans:
+    - id: '862'
+      name: vlan 101
+      vid: 101
+    - id: '863'
+      name: vlan 102
+      vid: 102
+    tags: []
+    type: LAG
+    untagged_vlan:
+      id: '28'
+      name: test vlan 2
+      vid: 103
+    vrf: null
+  - custom_fields:
+      bpdufilter: null
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: 'access port'
+    enabled: true
+    id: '30319'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: ACCESS
+    mtu: null
+    name: swp1
+    tagged_vlans: []
+    tags: []
+    type: A_32GFC_SFP28
+    untagged_vlan:
+      id: '24'
+      name: test vlan
+      vid: 42
+    vrf: null
+  name: TEST0001
+  platform:
+    manufacturer: null
+    slug: cumulus-linux-4-3
+  primary_ip4:
+    address: 10.120.142.11/24
+  serial: 4242
+  staticroute_set: []
+l2vpn_list: []
+vrf_list: []

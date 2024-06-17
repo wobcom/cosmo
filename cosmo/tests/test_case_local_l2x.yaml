@@ -1,0 +1,123 @@
+device_list:
+- device_type:
+    slug: S9510-28DC-BN0B
+  id: '17649'
+  interfaces:
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '190385'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: ifp-0/0/4
+    tagged_vlans: []
+    tags: []
+    type: A_25GBASE_X_SFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: 7
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '191150'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: ifp-0/0/4.7
+    tagged_vlans: []
+    tags: []
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '190386'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: ifp-0/0/5
+    tagged_vlans: []
+    tags: []
+    type: A_25GBASE_X_SFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: 7
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '191151'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: ifp-0/0/5.7
+    tagged_vlans: []
+    tags: []
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+  name: TEST0001
+  platform:
+    manufacturer:
+      slug: rtbrick
+    slug: rtbrick-consolidated-bng-q2a-24-1-1-1
+  primary_ip4:
+    address: 198.51.100.15/24
+  serial: ''
+  staticroute_set: []
+l2vpn_list:
+- id: '53'
+  identifier: null
+  name: 'WAN: L2X'
+  terminations:
+  - assigned_object:
+      __typename: InterfaceType
+      device:
+        interfaces:
+        - ip_addresses:
+          - address: 45.139.136.10/24
+          parent:
+            name: lo-0/0/0
+            type: LOOPBACK
+          vrf: null
+        name: TEST0001
+      id: '191150'
+    id: '944'
+  - assigned_object:
+      __typename: InterfaceType
+      device:
+        interfaces:
+        - ip_addresses:
+          - address: 45.139.136.10/24
+          parent:
+            name: lo-0/0/0
+            type: LOOPBACK
+          vrf: null
+        name: TEST0001
+      id: '191151'
+    id: '945'
+  type: EVPL
+vrf_list: []

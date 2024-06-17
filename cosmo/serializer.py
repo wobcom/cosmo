@@ -31,7 +31,7 @@ class Tags:
 
 class RouterSerializer:
 
-    def __init__(self, device, l2vpn_vlan_terminations, l2vpn_interface_terminations, vrfs):
+    def __init__(self, device, l2vpn_list, vrfs):
 
         match device["platform"]["manufacturer"]["slug"]:
             case 'juniper':
@@ -49,11 +49,38 @@ class RouterSerializer:
                 return
 
         self.device = device
-        self.l2vpn_vlan_terminations = l2vpn_vlan_terminations
-        self.l2vpn_interface_terminations = l2vpn_interface_terminations
-        self.l2vpns = {}
+        self.l2vpn_vlan_terminations, self.l2vpn_interface_terminations = RouterSerializer.process_l2vpn_terminations(l2vpn_list)
         self.vrfs = vrfs
+
+        self.l2vpns = {}
         self.l3vpns = {}
+
+    @staticmethod
+    def process_l2vpn_terminations(l2vpn_list):
+        l2vpn_vlan_terminations = {}
+        l2vpn_interface_terminations = {}
+        for l2vpn in l2vpn_list:
+            if not l2vpn["name"].startswith("WAN: "):
+                continue
+            if l2vpn['type'] == "VPWS" and len(l2vpn['terminations']) != 2:
+                l.warning(
+                    f"VPWS circuits are only allowed to have two terminations. {l2vpn['name']} has {len(l2vpn['terminations'])} terminations, ignoring...")
+                continue
+            for termination in l2vpn["terminations"]:
+                if not termination["assigned_object"] or termination['assigned_object']['__typename'] not in [
+                    "VLANType", "InterfaceType"]:
+                    l.warning(f"Found unsupported L2VPN termination in {l2vpn['name']}, ignoring...")
+                    continue
+                if l2vpn['type'] == "VPWS" and termination['assigned_object']['__typename'] != "InterfaceType":
+                    l.warning(
+                        f"Found non-interface termination in L2VPN {l2vpn['name']}, ignoring... VPWS only supports interace terminations.")
+                    continue
+                if termination['assigned_object']['__typename'] == "VLANType":
+                    l2vpn_vlan_terminations[str(termination["assigned_object"]['id'])] = l2vpn
+                elif termination['assigned_object']['__typename'] == "InterfaceType":
+                    l2vpn_interface_terminations[str(termination["assigned_object"]['id'])] = l2vpn
+
+        return l2vpn_vlan_terminations, l2vpn_interface_terminations
 
     def _get_subinterfaces(self, interfaces, base_name):
         sub_interfaces = [
@@ -183,6 +210,8 @@ class RouterSerializer:
 
         if outer_tag := iface.get('custom_fields', {}).get("outer_tag", None):
                 unit_stub["vlan"] = int(outer_tag)
+
+
 
         l2vpn_vlan_attached = interface_vlan_id and self.l2vpn_vlan_terminations.get(interface_vlan_id)
         l2vpn_interface_attached = self.l2vpn_interface_terminations.get(iface["id"])
@@ -483,9 +512,9 @@ class RouterSerializer:
                     for a in remote_interfaces:
                         if a["vrf"] == None and a["parent"] and a["parent"]["type"] == "LOOPBACK" and a["parent"]["name"].startswith("lo"):
                             for ip in a['ip_addresses']:
-                                ipa = ipaddress.ip_network(ip["address"], strict=False)
+                                ipa = ipaddress.ip_interface(ip["address"])
                                 if ipa.version == 4:
-                                    remote_ip = str(ipa[0])
+                                    remote_ip = str(ipa.ip)
                                     break
 
                     l2vpn_interfaces[i["name"]] = {
