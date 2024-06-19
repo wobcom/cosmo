@@ -58,11 +58,6 @@ def main() -> int:
 
     yaml.emitter.Emitter.process_tag = noop
 
-    with open(f"./cosmo_data.yaml", "w") as yaml_file:
-        yaml.dump(cosmo_data, yaml_file, default_flow_style=False)
-
-
-
     for vrf in cosmo_data["vrf_list"]:
         if len(vrf["export_targets"]) > 1 or len(vrf["import_targets"]) > 1:
             l.warning(f"Currently we only support one import/export target per VRF. {vrf['name']} has {len(vrf['import_targets'])} import targets and {len(vrf['export_targets'])} export targets")
