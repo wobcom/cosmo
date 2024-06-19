@@ -27,6 +27,30 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    description: 'Customer: Test-VLAN2'
+    enabled: false
+    id: '183189'
+    ip_addresses: [ ]
+    lag: null
+    mac_address: null
+    mode: ACCESS
+    mtu: null
+    name: et-0/0/0.150
+    tagged_vlans: [ ]
+    tags: [ ]
+    type: VIRTUAL
+    untagged_vlan:
+      id: '1159'
+      name: TEST-VLAN2
+      vid: 150
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
     description: 'Customer: Test-VLAN'
     enabled: true
     id: '183188'

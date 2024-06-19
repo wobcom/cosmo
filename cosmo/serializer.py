@@ -357,6 +357,9 @@ class RouterSerializer:
             if len(sub_interfaces) > 0:
                 is_loopback = interface_stub.get("type") == "loopback"
                 for si in sub_interfaces:
+                    if not si['enabled']:
+                        continue
+
                     name, unit = self._get_unit(si)
                     sub_num = int(name or '0')
                     if not is_loopback and sub_num != 0 and not unit.get("vlan", None):
