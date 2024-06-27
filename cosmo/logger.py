@@ -1,3 +1,4 @@
+import sys
 
 class bcolors:
     HEADER = '\033[95m'
@@ -16,13 +17,13 @@ class Logger:
         self.name = name
 
     def warning(self, text):
-        print(bcolors.FAIL + f"Warning: {text}" + bcolors.ENDC)
+        print(bcolors.FAIL + f"Warning: {text}" + bcolors.ENDC, file=sys.stderr)
 
     def error(self, text):
-        print(bcolors.FAIL + f"Error: {text}" + bcolors.ENDC)
+        print(bcolors.FAIL + f"Error: {text}" + bcolors.ENDC, file=sys.stderr)
 
     def info(self, text):
-        print(bcolors.OKGREEN + f"Info: {text}" + bcolors.ENDC)
+        print(bcolors.OKGREEN + f"Info: {text}" + bcolors.ENDC, file=sys.stdout)
 
     def hint(self, text):
-        print(bcolors.OKCYAN + f"{text}" + bcolors.ENDC)
+        print(bcolors.OKCYAN + f"{text}" + bcolors.ENDC, file=sys.stdout)
