@@ -8,10 +8,10 @@ def test_colors(capsys):
     l = Logger(TSTNAME)
 
     l.warning(TSTTEXT)
-    assert bcolors.FAIL in capsys.readouterr().out
+    assert bcolors.FAIL in capsys.readouterr().err
 
     l.error(TSTTEXT)
-    assert bcolors.FAIL in capsys.readouterr().out
+    assert bcolors.FAIL in capsys.readouterr().err
 
     l.info(TSTTEXT)
     assert bcolors.OKGREEN in capsys.readouterr().out
