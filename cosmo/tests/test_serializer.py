@@ -230,6 +230,11 @@ def test_switch_mgmt_interface():
     # mgmt port is present
     assert 'eth0' in sd['cumulus__device_interfaces']
     assert 'address' in sd['cumulus__device_interfaces']['eth0']
+    # also check bpdufilter is removed
+    assert 'bpdufilter' not in sd['cumulus__device_interfaces']['eth0'].keys()
+    # check that bpdufilter is present on eth1 (no ip address assigned)
+    assert 'bpdufilter' in sd['cumulus__device_interfaces']['eth1'].keys()
+    assert sd['cumulus__device_interfaces']['eth1']['bpdufilter'] == True
     # ipv4 parameters are set
     assert '10.120.142.11/24' == sd['cumulus__device_interfaces']['eth0']['address']
     assert '10.120.142.1' == sd['cumulus__device_interfaces']['eth0']['gateway']
