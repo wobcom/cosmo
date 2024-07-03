@@ -251,3 +251,20 @@ def test_switch_case_lag():
     # check that the interfaces are registered as lag members
     assert 'swp18' in sd['cumulus__device_interfaces']['lag_42']['bond_slaves']
     assert 'swp17' in sd['cumulus__device_interfaces']['lag_42']['bond_slaves']
+
+def test_switch_interface_speed(capsys):
+    [sd] = get_switch_sd_from_path('./test_case_switch_interface_speed.yaml')
+
+    # check all switchports are present
+    assert 'swp1' in sd['cumulus__device_interfaces']
+    assert 'swp2' in sd['cumulus__device_interfaces']
+    assert 'swp3' in sd['cumulus__device_interfaces']
+    assert 'swp4' in sd['cumulus__device_interfaces']
+
+    # check that interface speeds are okay
+    assert sd['cumulus__device_interfaces']['swp1']['speed'] == 1000
+    assert sd['cumulus__device_interfaces']['swp2']['speed'] == 10000
+    assert sd['cumulus__device_interfaces']['swp3']['speed'] == 100000
+
+    # check that we have had the error from parsing
+    assert "Error: Interface speed 100m on interface swp4 is not known" in capsys.readouterr().err

@@ -1,0 +1,91 @@
+device_list:
+- device_type:
+    slug: sn3420
+  id: '1718'
+  interfaces:
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: 'speed test 1g'
+    enabled: true
+    id: '30317'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: swp1
+    tagged_vlans: []
+    tags:
+     - name: speed:1g
+       slug: speed:1g
+    type: A_1000BASE_T
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: 'speed test 10g'
+    enabled: true
+    id: '30318'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: swp2
+    tagged_vlans: []
+    tags:
+     - name: speed:10g
+       slug: speed:10g
+    type: A_10GBASE_CX1
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: 'speed test 100g'
+    enabled: true
+    id: '30319'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: swp3
+    tagged_vlans: []
+    tags:
+     - name: speed:100g
+       slug: speed:100g
+    type: A_100GBASE_CR1
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: 'speed test invalid'
+    enabled: true
+    id: '30319'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: swp4
+    tagged_vlans: []
+    tags:
+     - name: speed:100m
+       slug: speed:100m
+    type: A_100BASE_T
+    untagged_vlan: null
+    vrf: null
+  name: TEST0001
+  platform:
+    manufacturer: null
+    slug: cumulus-linux-4-3
+  primary_ip4:
+    address: 10.120.142.11/24
+  serial: 4242
+  staticroute_set: []
+l2vpn_list: []
+vrf_list: []
