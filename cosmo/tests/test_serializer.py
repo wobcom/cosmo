@@ -273,3 +273,22 @@ def test_switch_interface_speed(capsys):
 
     # check that we have had the error from parsing
     assert "Error: Interface speed 100m on interface swp4 is not known" in capsys.readouterr().err
+
+def test_switch_interface_fec(capsys):
+    [sd] = get_switch_sd_from_path("./test_case_switch_fec.yaml")
+
+    assert 'swp1' in sd['cumulus__device_interfaces']
+    assert 'swp2' in sd['cumulus__device_interfaces']
+    assert 'swp3' in sd['cumulus__device_interfaces']
+    assert 'swp4' in sd['cumulus__device_interfaces']
+
+    assert sd['cumulus__device_interfaces']['swp1']['fec'] == 'rs'
+    assert sd['cumulus__device_interfaces']['swp2']['fec'] == 'baser'
+    assert sd['cumulus__device_interfaces']['swp3']['fec'] == 'off'
+
+    # check that invalid fec was detected
+    assert "Error: FEC mode undefined on interface swp4 is not known" in capsys.readouterr().err
+
+    
+
+    
