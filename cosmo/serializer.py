@@ -384,9 +384,9 @@ class RouterSerializer:
 
         routing_options = {}
 
-        rib = self._get_vrf_rib(self.device["staticroute_set"], None)
-        if len(rib) > 0:
-            routing_options["rib"] = rib
+        #rib = self._get_vrf_rib(self.device["staticroute_set"], None)
+        #if len(rib) > 0:
+        #    routing_options["rib"] = rib
 
         if len(routing_options) > 0:
             device_stub[f"routing_options"] = routing_options
@@ -540,9 +540,9 @@ class RouterSerializer:
                 rd = None
 
             routing_options = {}
-            rib = self._get_vrf_rib(self.device["staticroute_set"], l3vpn["name"])
-            if len(rib) > 0:
-                routing_options["rib"] = rib
+            #rib = self._get_vrf_rib(self.device["staticroute_set"], l3vpn["name"])
+            #if len(rib) > 0:
+            #    routing_options["rib"] = rib
 
             routing_instances[l3vpn["name"]] = {
                 "interfaces": l3vpn["interfaces"],
