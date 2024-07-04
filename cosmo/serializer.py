@@ -135,9 +135,9 @@ class RouterSerializer:
 
             # abort if a private IP is used on a unit without a VRF
             # we use !is_global instead of is_private since the latter ignores 100.64/10
-            if not iface["vrf"] and not ipa.is_global and not is_mgmt:
-                l.error(f"Private IP {ipa} used on interface {iface['name']} in default VRF. Did you forget to configure a VRF?")
-                exit(f"Error while serializing device {self.device['name']}, aborting.")
+            #if not iface["vrf"] and not ipa.is_global and not is_mgmt:
+            #    l.error(f"Private IP {ipa} used on interface {iface['name']} in default VRF. Did you forget to configure a VRF?")
+            #    exit(f"Error while serializing device {self.device['name']}, aborting.")
 
             if ipa.version == 4:
                 ipv4s.append(ip)
