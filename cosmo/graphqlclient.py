@@ -81,24 +81,6 @@ class GraphqlClient:
                   }
                   custom_fields
                 }
-                staticroute_set {
-                  interface {
-                    name
-                  }
-                  vrf {
-                    name
-                  }
-                  prefix {
-                    prefix
-                    family {
-                      value
-                    }
-                 }
-                 next_hop {
-                   address
-                 }
-                 metric
-                }
               }
               vrf_list {
                 id
