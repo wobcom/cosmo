@@ -52,6 +52,27 @@ def test_router_platforms(capsys):
     assert "unsupported platform vendor: ACME" in capsys.readouterr().err
 
 
+def test_l2vpn_errors(capsys):
+    template = _yaml_load("./test_case_l2x_err_template.yaml")
+
+    vpws_incorrect_terminations = template
+    vpws_incorrect_terminations['l2vpn_list'].append({
+        'id': '53',
+        'identifier': None,
+        'name': 'WAN: incorrect VPWS',
+        'type': 'VPWS',
+        'terminations': [
+            {}, {}, {}
+        ]
+    })
+
+    RouterSerializer(device=vpws_incorrect_terminations['device_list'][0],
+                     l2vpn_list=vpws_incorrect_terminations['l2vpn_list'],
+                     vrfs=vpws_incorrect_terminations['vrf_list'])
+
+    assert "VPWS circuits are only allowed to have two terminations"\
+        in capsys.readouterr().err
+
 def test_router_physical_interface():
     [sd] = get_router_sd_from_path("./test_case_1.yaml")
 
