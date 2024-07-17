@@ -4,23 +4,36 @@ from coverage.html import os
 from cosmo.serializer import RouterSerializer, SwitchSerializer
 
 
-def get_router_sd_from_path(path):
+def _yaml_load(path):
     dirname = os.path.dirname(__file__)
     test_case_name = os.path.join(dirname, path)
-
     test_case = open(test_case_name, 'r')
     test_data = yaml.safe_load(test_case)
+    return test_data
 
-    return [RouterSerializer(device=device, l2vpn_list=test_data['l2vpn_list'], vrfs=test_data['vrf_list']).serialize() for device in test_data['device_list']]
+
+def get_router_s_from_path(path):
+    test_data = _yaml_load(path)
+    return [
+        RouterSerializer(
+            device=device,
+            l2vpn_list=test_data['l2vpn_list'],
+            vrfs=test_data['vrf_list'])
+        for device in test_data['device_list']]
+
+
+def get_switch_s_from_path(path):
+    test_data = _yaml_load(path)
+    return [SwitchSerializer(device=device) for device in test_data['device_list']]
+
+
+def get_router_sd_from_path(path):
+    return list(map(lambda s: s.serialize(), get_router_s_from_path(path)))
+
 
 def get_switch_sd_from_path(path):
-    dirname = os.path.dirname(__file__)
-    test_case_name = os.path.join(dirname, path)
+    return list(map(lambda s: s.serialize(), get_switch_s_from_path(path)))
 
-    test_case = open(test_case_name, 'r')
-    test_data = yaml.safe_load(test_case)
-
-    return [SwitchSerializer(device=device).serialize() for device in test_data['device_list']]
 
 def test_router_physical_interface():
     [sd] = get_router_sd_from_path("./test_case_1.yaml")
