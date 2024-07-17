@@ -35,6 +35,23 @@ def get_switch_sd_from_path(path):
     return list(map(lambda s: s.serialize(), get_switch_s_from_path(path)))
 
 
+def test_router_platforms(capsys):
+    [juniper_s] = get_router_s_from_path("./test_case_2.yaml")
+    assert juniper_s.mgmt_routing_instance == "mgmt_junos"
+    assert juniper_s.mgmt_interface == "fxp0"
+    assert juniper_s.bmc_interface == None
+    assert juniper_s.lo_interface == "lo0"
+    
+    [rtbrick_s] = get_router_s_from_path("./test_case_l3vpn.yml")
+    assert rtbrick_s.mgmt_routing_instance == "mgmt"
+    assert rtbrick_s.mgmt_interface == "ma1"
+    assert rtbrick_s.bmc_interface == "bmc0"
+    assert rtbrick_s.lo_interface == "lo-0/0/0"
+    
+    get_router_s_from_path("./test_case_vendor_unknown.yaml")
+    assert "unsupported platform vendor: ACME" in capsys.readouterr().err
+
+
 def test_router_physical_interface():
     [sd] = get_router_sd_from_path("./test_case_1.yaml")
 
