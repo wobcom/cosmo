@@ -177,6 +177,9 @@ class RouterSerializer:
                 families["inet6"]["sampling"] = True
             if tags.has_key("urpf") and "disable" not in tags.get_from_key("urpf"):
                 families["inet6"]["rpf_check"] = {"mode": tags.get_from_key("urpf")[0]}
+            if iface.get("custom_fields", {}).get("ipv6_ra", False):
+                families["inet6"]["ipv6_ra"] = True
+
         if tags.has("core"):
             families["iso"] = {}
             families["mpls"] = {}
@@ -210,7 +213,6 @@ class RouterSerializer:
 
         if outer_tag := iface.get('custom_fields', {}).get("outer_tag", None):
                 unit_stub["vlan"] = int(outer_tag)
-
 
 
         l2vpn_vlan_attached = interface_vlan_id and self.l2vpn_vlan_terminations.get(interface_vlan_id)
