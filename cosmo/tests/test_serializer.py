@@ -53,6 +53,11 @@ def test_router_platforms(capsys):
 
 
 def test_l2vpn_errors(capsys):
+    serialize = lambda y: \
+        RouterSerializer(device=y['device_list'][0],
+                         l2vpn_list=y['l2vpn_list'],
+                         vrfs=y['vrf_list'])
+
     template = _yaml_load("./test_case_l2x_err_template.yaml")
 
     vpws_incorrect_terminations = template
@@ -62,16 +67,39 @@ def test_l2vpn_errors(capsys):
         'name': 'WAN: incorrect VPWS',
         'type': 'VPWS',
         'terminations': [
-            {}, {}, {}
-        ]
-    })
-
-    RouterSerializer(device=vpws_incorrect_terminations['device_list'][0],
-                     l2vpn_list=vpws_incorrect_terminations['l2vpn_list'],
-                     vrfs=vpws_incorrect_terminations['vrf_list'])
-
+            {}, {}, {}]})
+    serialize(vpws_incorrect_terminations)
     assert "VPWS circuits are only allowed to have two terminations"\
         in capsys.readouterr().err
+
+    unsupported_type_terminations = template
+    unsupported_type_terminations['l2vpn_list'].append({
+        'id': '54',
+        'identifier': None,
+        'name': 'WAN: unsupported termination types 1',
+        'type': 'VPWS',
+        'terminations': [
+            { 'assigned_object': None },
+            { 'assigned_object': { '__typename': None }}]})
+    serialize(unsupported_type_terminations)
+    assert "Found unsupported L2VPN termination in" in capsys.readouterr().err
+
+    vpws_non_interface_term = template
+    vpws_non_interface_term['l2vpn_list'].append({
+        'id': '54',
+        'identifier': None,
+        'name': 'WAN: WAN: unsupported termination types 2',
+        'type': 'VPWS',
+        'terminations': [
+            {'assigned_object': {
+                '__typename': "VLANType"
+            }},
+            {'assigned_object': {
+                '__typename': "VLANType"
+            }}]})
+    serialize(vpws_non_interface_term)
+    assert "Found non-interface termination in L2VPN" in capsys.readouterr().err
+
 
 def test_router_physical_interface():
     [sd] = get_router_sd_from_path("./test_case_1.yaml")
