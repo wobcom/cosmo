@@ -156,6 +156,28 @@ def test_router_fec():
     assert sd['interfaces']['et-0/0/2']['gigether']['fec'] == 'none'
 
 
+def test_router_vrf_rib():
+    [sd] = get_router_sd_from_path("./test_case_vrf_staticroute.yaml")
+
+    assert 'routing_instances' in sd
+    assert 'L3VPN-TEST' in sd['routing_instances']
+    assert 'routing_options' in sd['routing_instances']['L3VPN-TEST']
+    assert 'rib' in sd['routing_instances']['L3VPN-TEST']['routing_options']
+    assert 'L3VPN-TEST.inet.0' in sd['routing_instances']['L3VPN-TEST']['routing_options']['rib']
+    assert 'L3VPN-TEST.inet.0' in sd['routing_instances']['L3VPN-TEST']['routing_options']['rib']
+    rib = sd['routing_instances']['L3VPN-TEST']['routing_options']['rib']
+    assert 'L3VPN-TEST.inet.0' in rib
+    assert 'L3VPN-TEST.inet6.0' in rib
+    assert 'static' in rib['L3VPN-TEST.inet.0']
+    assert 'static' in rib['L3VPN-TEST.inet6.0']
+    assert '10.114.23.36/32' in rib['L3VPN-TEST.inet.0']['static']
+    assert 'fd98::1/128' in rib['L3VPN-TEST.inet6.0']['static']
+    assert 'next_hop' in rib['L3VPN-TEST.inet.0']['static']['10.114.23.36/32']
+    assert 'next_hop' in rib['L3VPN-TEST.inet6.0']['static']['fd98::1/128']
+    assert rib['L3VPN-TEST.inet.0']['static']['10.114.23.36/32']['next_hop'] == '10.30.0.154'
+    assert rib['L3VPN-TEST.inet6.0']['static']['fd98::1/128']['next_hop'] == 'et-0/0/2.0'
+
+
 def test_router_case_mpls_evpn():
 
     sd = get_router_sd_from_path("./test_case_mpls_evpn.yaml")

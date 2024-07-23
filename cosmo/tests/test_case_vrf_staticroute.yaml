@@ -1,0 +1,139 @@
+device_list:
+- device_type:
+    slug: mx204
+  id: '1999'
+  interfaces:
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      ipv6_ra: false
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '192862'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: lo0
+    tagged_vlans: []
+    tags: []
+    type: LOOPBACK
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: null
+      inner_tag: null
+      ipv6_ra: false
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '32402'
+    ip_addresses:
+    - address: 62.176.224.243/32
+    - address: 2a01:580:6000::23/128
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: lo0.0
+    tagged_vlans: []
+    tags: []
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: null
+      inner_tag: null
+      ipv6_ra: false
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: 'test iface'
+    enabled: true
+    id: '2000'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: 9600
+    name: et-0/0/2
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      ipv6_ra: false
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '2004'
+    ip_addresses:
+    - address: 62.176.251.48/31
+    - address: 2a01:581:1:a::20/127
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: et-0/0/2.0
+    tagged_vlans: []
+    tags:
+    - name: core
+      slug: core
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf:
+      id: '399'
+  name: TEST0001
+  platform:
+    manufacturer:
+      slug: juniper
+    slug: junos-21-4r3-s5-4
+  primary_ip4:
+    address: 10.120.130.10/24
+  serial: 4242
+  staticroute_set:
+  - interface: null
+    metric: null
+    next_hop:
+      address: 10.30.0.154/30
+    prefix:
+      family:
+        value: 4
+      prefix: 10.114.23.36/32
+    vrf:
+      name: L3VPN-TEST
+  - interface:
+      name: et-0/0/2.0
+    next_hop: null
+    metric: null
+    prefix:
+      family:
+        value: 6
+      prefix: fd98::1/128
+    vrf:
+      name: L3VPN-TEST
+l2vpn_list: []
+vrf_list:
+- description: Test VRF
+  export_targets:
+  - name: target:9136:111000000
+  id: '399'
+  import_targets:
+  - name: target:9136:111000000
+  name: L3VPN-TEST
+  rd: null
