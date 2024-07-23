@@ -1,0 +1,16 @@
+device_list:
+- device_type:
+    slug: S9510-28DC-BN0B
+  id: '17649'
+  interfaces: []
+  name: TEST0001
+  platform:
+    manufacturer:
+      slug: rtbrick
+    slug: rtbrick-consolidated-bng-q2a-24-1-1-1
+  primary_ip4:
+    address: 198.51.100.15/24
+  serial: ''
+  staticroute_set: []
+l2vpn_list: []
+vrf_list: []

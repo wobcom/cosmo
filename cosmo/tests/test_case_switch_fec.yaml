@@ -1,0 +1,91 @@
+device_list:
+- device_type:
+    slug: sn3420
+  id: '1718'
+  interfaces:
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '30317'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: swp1
+    tagged_vlans: []
+    tags:
+     - name: fec:rs
+       slug: fec:rs
+    type: A_1000BASE_T
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '30318'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: swp2
+    tagged_vlans: []
+    tags:
+     - name: fec:baser
+       slug: fec:baser
+    type: A_1000BASE_T
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '30319'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: swp3
+    tagged_vlans: []
+    tags:
+     - name: fec:off
+       slug: fec:off
+    type: A_1000BASE_T
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '30320'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: swp4
+    tagged_vlans: []
+    tags:
+     - name: fec:undefined
+       slug: fec:undefined
+    type: A_100BASE_T
+    untagged_vlan: null
+    vrf: null
+  name: TEST0001
+  platform:
+    manufacturer: null
+    slug: cumulus-linux-4-3
+  primary_ip4:
+    address: 10.120.142.11/24
+  serial: 4242
+  staticroute_set: []
+l2vpn_list: []
+vrf_list: []
