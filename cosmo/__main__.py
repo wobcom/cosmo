@@ -45,6 +45,8 @@ def main() -> int:
     netbox_url = os.environ.get("NETBOX_URL")
     netbox_api_token = os.environ.get("NETBOX_API_TOKEN")
 
+    isDebug = bool(os.environ.get("DEBUG"))
+
     if netbox_url is None:
         raise Exception("NETBOX_URL is empty.")
     if netbox_api_token is None:
@@ -52,6 +54,11 @@ def main() -> int:
 
     gql = GraphqlClient(url=netbox_url, token=netbox_api_token)
     cosmo_data = gql.get_data(cosmo_configuration['devices'])
+
+    if isDebug:
+        with open(f"./cosmo_data.yaml", "w") as yaml_file:
+            yaml.dump(cosmo_data, yaml_file, default_flow_style=False)
+
 
     def noop(*args, **kwargs):
         pass

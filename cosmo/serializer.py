@@ -1,10 +1,11 @@
 import ipaddress
 import re
-import json
+from collections import defaultdict
 
 from cosmo.logger import Logger
 
 l = Logger("serializer.py")
+
 
 class Tags:
     def __init__(self, tags):
@@ -13,21 +14,49 @@ class Tags:
         self.tags = tags
 
     # check if tag exists
-    def has(self, item, key = None):
+    def has(self, item, key=None):
         if key:
-           return item.lower() in self.get_from_key(key)
+            return item.lower() in self.get_from_key(key)
         else:
-           return item.lower() in [t["slug"].lower() for t in self.tags]
+            return item.lower() in [t["slug"].lower() for t in self.tags]
 
     # return all sub-tags using a key
     def get_from_key(self, key):
         delimiter = ":"
         keylen = len(key) + len(delimiter)
-        return [t['name'][keylen:] for t in self.tags if t['name'].lower().startswith(key.lower()+delimiter)]
+        return [t['name'][keylen:] for t in self.tags if t['name'].lower().startswith(key.lower() + delimiter)]
 
     # check if there are any tags with a specified key
     def has_key(self, key):
         return len(self.get_from_key(key)) > 0
+
+
+class IPHierarchyNetwork:
+    primaryIP = None
+    secondaryIPs = None
+
+    def __init__(self):
+        self.primaryIP = None
+        self.secondaryIPs = list()
+
+    def add_ip(self, ipa, is_secondary=False):
+        if is_secondary:
+            self.secondaryIPs.append(ipa)
+        elif self.primaryIP is None:
+            self.primaryIP = ipa
+        else:
+            # Note: This should be an error later on.
+            l.warning(
+                f"Ignoring {ipa}, because its marked as a primary IP and an primary IP was already given with {self.primaryIP}")
+
+    def render_addresses(self):
+        retVal = {}
+        primaryMarker = {"primary": True} if len(self.secondaryIPs) > 0 else {}
+        retVal[self.primaryIP.with_prefixlen] = primaryMarker
+        secondaryIPs = {x.with_prefixlen: {} for x in self.secondaryIPs}
+        retVal.update(secondaryIPs)
+        return retVal
+
 
 class RouterSerializer:
 
@@ -49,7 +78,8 @@ class RouterSerializer:
                 return
 
         self.device = device
-        self.l2vpn_vlan_terminations, self.l2vpn_interface_terminations = RouterSerializer.process_l2vpn_terminations(l2vpn_list)
+        self.l2vpn_vlan_terminations, self.l2vpn_interface_terminations \
+            = RouterSerializer.process_l2vpn_terminations(l2vpn_list)
         self.vrfs = vrfs
 
         self.l2vpns = {}
@@ -67,11 +97,12 @@ class RouterSerializer:
                     f"VPWS circuits are only allowed to have two terminations. {l2vpn['name']} has {len(l2vpn['terminations'])} terminations, ignoring...")
                 continue
             for termination in l2vpn["terminations"]:
-                if not termination["assigned_object"] or termination['assigned_object']['__typename'] not in [
-                    "VLANType", "InterfaceType"]:
+                if not termination["assigned_object"] or \
+                        termination['assigned_object']['__typename'] not in ["VLANType", "InterfaceType"]:
                     l.warning(f"Found unsupported L2VPN termination in {l2vpn['name']}, ignoring...")
                     continue
-                if l2vpn['type'] == "VPWS" and termination['assigned_object']['__typename'] != "InterfaceType":
+                if l2vpn['type'] == "VPWS" and \
+                        termination['assigned_object']['__typename'] != "InterfaceType":
                     l.warning(
                         f"Found non-interface termination in L2VPN {l2vpn['name']}, ignoring... VPWS only supports interace terminations.")
                     continue
@@ -110,57 +141,65 @@ class RouterSerializer:
                 else:
                     table = "inet6.0"
                 if vrf:
-                    table = vrf+"."+table
+                    table = vrf + "." + table
 
                 if table not in rib:
                     rib[table] = {"static": {}}
                 rib[table]["static"][route["prefix"]["prefix"]] = r
         return rib
 
-
     def _get_unit(self, iface):
         unit_stub = {}
         name = iface['name'].split(".")[1]
 
-        ipv4s = []
-        ipv6s = []
+        ipv4Family = defaultdict(lambda: IPHierarchyNetwork())
+        ipv6Family = defaultdict(lambda: IPHierarchyNetwork())
+
         policer = {}
         tags = Tags(iface.get("tags"))
         is_edge = tags.has_key("edge")
-        is_mgmt = iface['name'].startswith(self.mgmt_interface) or (self.bmc_interface and iface['name'].startswith(self.bmc_interface))
+        is_mgmt = iface['name'].startswith(self.mgmt_interface) or (
+                self.bmc_interface and iface['name'].startswith(self.bmc_interface))
         sample = is_edge and not tags.has("customer", "edge") and not tags.has("disable_sampling")
 
         for ip in iface["ip_addresses"]:
-            ipa = ipaddress.ip_network(ip["address"], strict=False)
+            ipa = ipaddress.ip_interface(ip["address"])
+            is_secondary = ip.get("role", None) == "SECONDARY"
 
             # abort if a private IP is used on a unit without a VRF
             # we use !is_global instead of is_private since the latter ignores 100.64/10
             if not iface["vrf"] and not ipa.is_global and not is_mgmt:
-                l.error(f"Private IP {ipa} used on interface {iface['name']} in default VRF. Did you forget to configure a VRF?")
+                l.error(
+                    f"Private IP {ipa} used on interface {iface['name']} in default VRF. Did you forget to configure a VRF?")
                 exit(f"Error while serializing device {self.device['name']}, aborting.")
 
             if ipa.version == 4:
-                ipv4s.append(ip)
-            else:
-                ipv6s.append(ip)
+                ipv4Family[ipa.network].add_ip(ipa, is_secondary)
+            elif ipa.version == 6:
+                ipv6Family[ipa.network].add_ip(ipa, is_secondary)
 
         if tags.has_key("policer"):
-            policer["input"] = "POLICER_"+tags.get_from_key("policer")[0]
-            policer["output"] = "POLICER_"+tags.get_from_key("policer")[0]
+            policer["input"] = "POLICER_" + tags.get_from_key("policer")[0]
+            policer["output"] = "POLICER_" + tags.get_from_key("policer")[0]
         if tags.has_key("policer_in"):
-            policer["input"] = "POLICER_"+tags.get_from_key("policer_in")[0]
+            policer["input"] = "POLICER_" + tags.get_from_key("policer_in")[0]
         if tags.has_key("policer_out"):
-            policer["output"] = "POLICER_"+tags.get_from_key("policer_out")[0]
+            policer["output"] = "POLICER_" + tags.get_from_key("policer_out")[0]
 
         if policer:
             unit_stub["policer"] = policer
         if iface["mac_address"]:
             unit_stub["mac_address"] = iface["mac_address"]
 
-
         families = {}
-        if len(ipv4s) > 0:
-            families["inet"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv4s) }}
+        if len(ipv4Family) > 0:
+
+            families["inet"] = {
+                'address': {}
+            }
+            for network, ipHierarchyNetwork in ipv4Family.items():
+                families["inet"]["address"].update(ipHierarchyNetwork.render_addresses())
+
             if is_edge:
                 families["inet"]["filters"] = ["input-list [ EDGE_FILTER ]"]
             if sample:
@@ -169,8 +208,14 @@ class RouterSerializer:
                 families["inet"]["policer"] = ["arp POLICER_IXP_ARP"]
             if tags.has_key("urpf") and not tags.has("disable", "urpf"):
                 families["inet"]["rpf_check"] = {"mode": tags.get_from_key("urpf")[0]}
-        if len(ipv6s) > 0:
-            families["inet6"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv6s) }}
+
+        if len(ipv6Family) > 0:
+            families["inet6"] = {
+                'address': {}
+            }
+            for network, ipHierarchyNetwork in ipv6Family.items():
+                families["inet6"]["address"].update(ipHierarchyNetwork.render_addresses())
+
             if is_edge:
                 families["inet6"]["filters"] = ["input-list [ EDGE_FILTER_V6 ]"]
             if sample:
@@ -212,8 +257,7 @@ class RouterSerializer:
             interface_vlan_id = iface["untagged_vlan"]["id"]
 
         if outer_tag := iface.get('custom_fields', {}).get("outer_tag", None):
-                unit_stub["vlan"] = int(outer_tag)
-
+            unit_stub["vlan"] = int(outer_tag)
 
         l2vpn_vlan_attached = interface_vlan_id and self.l2vpn_vlan_terminations.get(interface_vlan_id)
         l2vpn_interface_attached = self.l2vpn_interface_terminations.get(iface["id"])
@@ -310,7 +354,7 @@ class RouterSerializer:
             if tags.has_key("autoneg"):
                 if not interface_stub.get('gigether'):
                     interface_stub['gigether'] = {}
-                interface_stub['gigether']['autonegotiation'] = True if tags.get_from_key("autoneg")[0] == "on" else False
+                interface_stub['gigether']['autonegotiation'] = tags.get_from_key("autoneg")[0] == "on"
 
             for fec in tags.get_from_key("fec"):
                 if not interface_stub.get("gigether"):
@@ -401,17 +445,20 @@ class RouterSerializer:
         }
 
         if interfaces.get(self.mgmt_interface, {}).get("units", {}).get(0):
+            default_route_next_hop = next(
+                ipaddress.ip_network(
+                    next(
+                        iter(interfaces[self.mgmt_interface]["units"][0]["families"]["inet"]["address"].keys())
+                    ),
+                    strict=False,
+                ).hosts()
+            )
             routing_instances[self.mgmt_routing_instance]["routing_options"] = {
                 "rib": {
                     f"{self.mgmt_routing_instance}.inet.0": {
                         "static": {
                             "0.0.0.0/0": {
-                                "next_hop": next(
-                                    ipaddress.ip_network(
-                                        next(iter(interfaces[self.mgmt_interface]["units"][0]["families"]["inet"]["address"].keys())),
-                                        strict=False,
-                                    ).hosts()
-                                ).compressed
+                                "next_hop": default_route_next_hop.compressed
                             }
                         }
                     }
@@ -419,7 +466,9 @@ class RouterSerializer:
             }
 
         if interfaces.get(self.lo_interface, {}).get("units", {}).get(0):
-            router_id = next(iter(interfaces[self.lo_interface]["units"][0]["families"]["inet"]["address"].keys())).split("/")[0]
+            router_id = \
+                next(iter(interfaces[self.lo_interface]["units"][0]["families"]["inet"]["address"].keys())).split("/")[
+                    0]
 
         for _, l2vpn in self.l2vpns.items():
             if l2vpn['type'] == "VXLAN_EVPN":
@@ -515,7 +564,10 @@ class RouterSerializer:
                     # We pick a `virtual` interface which is not in a VRF and which parent is a `loopback`
                     # Then we pick the first IPv4 address.
                     for a in remote_interfaces:
-                        if a["vrf"] == None and a["parent"] and a["parent"]["type"] == "LOOPBACK" and a["parent"]["name"].startswith("lo"):
+                        if a["vrf"] is None and \
+                                a["parent"] and \
+                                a["parent"]["type"] == "LOOPBACK" and \
+                                a["parent"]["name"].startswith("lo"):
                             for ip in a['ip_addresses']:
                                 ipa = ipaddress.ip_interface(ip["address"])
                                 if ipa.version == 4:
@@ -535,9 +587,9 @@ class RouterSerializer:
 
         for _, l3vpn in self.l3vpns.items():
             if l3vpn["rd"]:
-                rd = router_id+":"+l3vpn["rd"]
+                rd = router_id + ":" + l3vpn["rd"]
             elif len(l3vpn["export_targets"]) > 0:
-                rd = router_id+":"+l3vpn["id"]
+                rd = router_id + ":" + l3vpn["id"]
             else:
                 rd = None
 
@@ -583,14 +635,15 @@ class SwitchSerializer:
             elif interface['lag']:
                 for i in self.device["interfaces"]:
                     if interface['lag']['id'] == i['id']:
-                        interface_stub["description"] = "LAG Member of "+i['name']
+                        interface_stub["description"] = "LAG Member of " + i['name']
                         break
 
             interface_stub["mtu"] = interface["mtu"] if interface["mtu"] else 10000
 
             if interface["type"] == "LAG":
                 interface_stub["bond_mode"] = "802.3ad"
-                interface_stub["bond_slaves"] = sorted([i["name"] for i in self.device["interfaces"] if i["lag"] and i["lag"]["id"] == interface["id"]])
+                interface_stub["bond_slaves"] = sorted(
+                    [i["name"] for i in self.device["interfaces"] if i["lag"] and i["lag"]["id"] == interface["id"]])
 
             if interface["untagged_vlan"]:
                 interface_stub["untagged_vlan"] = interface["untagged_vlan"]["vid"]
@@ -599,7 +652,8 @@ class SwitchSerializer:
             if interface["tagged_vlans"]:
                 interface_stub["tagged_vlans"] = [v["vid"] for v in interface["tagged_vlans"]]
                 # untagged vlans belong to the vid list as well
-                if interface["untagged_vlan"] and interface["untagged_vlan"]["vid"] not in interface_stub["tagged_vlans"]:
+                if interface["untagged_vlan"] and \
+                        interface["untagged_vlan"]["vid"] not in interface_stub["tagged_vlans"]:
                     interface_stub["tagged_vlans"].append(interface["untagged_vlan"]["vid"])
                 interface_stub["tagged_vlans"].sort()
                 vlans.update(interface_stub["tagged_vlans"])
@@ -638,10 +692,17 @@ class SwitchSerializer:
 
             interfaces[interface["name"]] = interface_stub
 
+        bridge_ports = sorted(
+            [
+                i["name"] for i in self.device["interfaces"] \
+                if i["enabled"] and not i["lag"] and (i["untagged_vlan"] or len(i["tagged_vlans"]) > 0)
+            ]
+        )
+
         interfaces["bridge"] = {
             "mtu": 10000,
             "tagged_vlans": sorted(list(vlans)),
-            "bridge_ports": sorted([i["name"] for i in self.device["interfaces"] if i["enabled"] and not i["lag"] and (i["untagged_vlan"] or len(i["tagged_vlans"]) > 0)]),
+            "bridge_ports": bridge_ports,
         }
 
         device_stub["cumulus__device_interfaces"] = interfaces

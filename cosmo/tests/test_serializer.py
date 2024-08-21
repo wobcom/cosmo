@@ -77,6 +77,25 @@ def test_router_fec():
     assert sd['interfaces']['et-0/0/2']['gigether']['fec'] == 'none'
 
 
+def test_router_ips():
+
+    [sd] = get_router_sd_from_path("./test_case_ips.yaml")
+
+    assert 'lo-0/0/0' in sd['interfaces']
+    assert 14 in sd['interfaces']['lo-0/0/0']['units']
+    assert 16 in sd['interfaces']['lo-0/0/0']['units']
+
+    unit_14 = sd['interfaces']['lo-0/0/0']['units'][14]
+    unit_16 = sd['interfaces']['lo-0/0/0']['units'][16]
+
+    assert unit_14['families']['inet']['address']['45.139.138.1/29'] == {}
+    assert unit_14['families']['inet']['address']['45.139.138.8/29'] == {"primary": True}
+    assert unit_14['families']['inet']['address']['45.139.138.9/29'] == {}
+
+    assert unit_16['families']['inet6']['address']['2a0e:b941:2::/122'] == {}
+    assert unit_16['families']['inet6']['address']['2a0e:b941:2::40/122'] == {"primary": True}
+    assert unit_16['families']['inet6']['address']['2a0e:b941:2::41/122'] == {}
+
 def test_router_case_mpls_evpn():
 
     sd = get_router_sd_from_path("./test_case_mpls_evpn.yaml")

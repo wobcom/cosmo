@@ -64,6 +64,7 @@ class GraphqlClient:
                   }
                   ip_addresses {
                     address
+                    role
                   }
                   untagged_vlan {
                     id
@@ -131,6 +132,7 @@ class GraphqlClient:
                         interfaces (type: "virtual") {
                           ip_addresses {
                             address
+                            role
                           }
                           parent {
                             name
