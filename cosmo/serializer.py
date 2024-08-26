@@ -1,6 +1,7 @@
 import ipaddress
 import re
 import json
+from collections import defaultdict
 
 from cosmo.logger import Logger
 
@@ -28,6 +29,34 @@ class Tags:
     # check if there are any tags with a specified key
     def has_key(self, key):
         return len(self.get_from_key(key)) > 0
+
+
+class IPHierarchyNetwork:
+    primaryIP = None
+    secondaryIPs = None
+
+    def __init__(self):
+        self.primaryIP = None
+        self.secondaryIPs = list()
+
+    def add_ip(self, ipa, is_secondary=False):
+        if is_secondary:
+            self.secondaryIPs.append(ipa)
+        elif self.primaryIP is None:
+            self.primaryIP = ipa
+        else:
+            # Note: This should be an error later on.
+            l.warning(
+                f"Ignoring {ipa}, because its marked as a primary IP and an primary IP was already given with {self.primaryIP}")
+
+    def render_addresses(self):
+        retVal = {}
+        primaryMarker = {"primary": True} if len(self.secondaryIPs) > 0 else {}
+        retVal[self.primaryIP.with_prefixlen] = primaryMarker
+        secondaryIPs = {x.with_prefixlen: {} for x in self.secondaryIPs}
+        retVal.update(secondaryIPs)
+        return retVal
+
 
 class RouterSerializer:
 
@@ -122,8 +151,8 @@ class RouterSerializer:
         unit_stub = {}
         name = iface['name'].split(".")[1]
 
-        ipv4s = []
-        ipv6s = []
+        ipv4Family = defaultdict(lambda: IPHierarchyNetwork())
+        ipv6Family = defaultdict(lambda: IPHierarchyNetwork())
         policer = {}
         tags = Tags(iface.get("tags"))
         is_edge = tags.has_key("edge")
@@ -131,7 +160,8 @@ class RouterSerializer:
         sample = is_edge and not tags.has("customer", "edge") and not tags.has("disable_sampling")
 
         for ip in iface["ip_addresses"]:
-            ipa = ipaddress.ip_network(ip["address"], strict=False)
+            ipa = ipaddress.ip_interface(ip["address"])
+            is_secondary = ip.get("role", None) == "SECONDARY"
 
             # abort if a private IP is used on a unit without a VRF
             # we use !is_global instead of is_private since the latter ignores 100.64/10
@@ -140,9 +170,9 @@ class RouterSerializer:
                 exit(f"Error while serializing device {self.device['name']}, aborting.")
 
             if ipa.version == 4:
-                ipv4s.append(ip)
-            else:
-                ipv6s.append(ip)
+                ipv4Family[ipa.network].add_ip(ipa, is_secondary)
+            elif ipa.version == 6:
+                ipv6Family[ipa.network].add_ip(ipa, is_secondary)
 
         if tags.has_key("policer"):
             policer["input"] = "POLICER_"+tags.get_from_key("policer")[0]
@@ -157,10 +187,14 @@ class RouterSerializer:
         if iface["mac_address"]:
             unit_stub["mac_address"] = iface["mac_address"]
 
-
         families = {}
-        if len(ipv4s) > 0:
-            families["inet"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv4s) }}
+        if len(ipv4Family) > 0:
+            families["inet"] = {
+                'address': {}
+            }
+            for network, ipHierarchyNetwork in ipv4Family.items():
+                families["inet"]["address"].update(ipHierarchyNetwork.render_addresses())
+
             if is_edge:
                 families["inet"]["filters"] = ["input-list [ EDGE_FILTER ]"]
             if sample:
@@ -169,8 +203,12 @@ class RouterSerializer:
                 families["inet"]["policer"] = ["arp POLICER_IXP_ARP"]
             if tags.has_key("urpf") and not tags.has("disable", "urpf"):
                 families["inet"]["rpf_check"] = {"mode": tags.get_from_key("urpf")[0]}
-        if len(ipv6s) > 0:
-            families["inet6"] = {"address": { address: {} for address in map(lambda addr: addr["address"], ipv6s) }}
+        if len(ipv6Family) > 0:
+            families["inet6"] = {
+                'address': {}
+            }
+            for network, ipHierarchyNetwork in ipv6Family.items():
+                families["inet6"]["address"].update(ipHierarchyNetwork.render_addresses())
             if is_edge:
                 families["inet6"]["filters"] = ["input-list [ EDGE_FILTER_V6 ]"]
             if sample:
