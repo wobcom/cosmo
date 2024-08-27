@@ -83,6 +83,7 @@ class RouterSerializer:
 
         self.l2vpns = {}
         self.l3vpns = {}
+        self.routing_instances = {}
 
     @staticmethod
     def process_l2vpn_terminations(l2vpn_list):
@@ -288,6 +289,44 @@ class RouterSerializer:
 
             self.l3vpns[iface["vrf"]["id"]]["interfaces"].append(iface["name"])
 
+        if tags.has("cpe", "bgp"):
+            groupname = "CPE_" + iface["name"].replace(".", "-").replace("/", "-")
+
+            if iface["vrf"]:
+                vrfname = [v["name"] for v in self.vrfs if v["id"] == iface["vrf"]["id"]][0]
+            else:
+                vrfname = "default"
+
+            # ensure paths exist
+            if not vrfname in self.routing_instances:
+                self.routing_instances[vrfname] = {}
+            if not "protocols" in self.routing_instances[vrfname]:
+                self.routing_instances[vrfname] = { "protocols": { "bgp": {"groups": {} } } }
+
+            policy_v4 = {}
+            policy_v6 = {}
+            if vrfname == "default":
+                policy_v4["export"] = "DEFAULT_V4"
+                policy_v6["export"] = "DEFAULT_V6"
+            # [TODO]: Implement automatic filter generation
+
+            self.routing_instances[vrfname]["protocols"]["bgp"]["groups"][groupname] = {
+              "any_as": True,
+              "link_local_nexthop_only": True,
+              "family": {
+                "ipv4_unicast": {
+                  "extended_nexthop": True,
+                  "policy": policy_v4,
+                },
+                "ipv6_unicast": {
+                  "policy": policy_v6,
+                },
+              },
+              "neighbors": [
+                { "interface": iface["name"] }
+              ]
+            }
+
         return name, unit_stub
 
     def serialize(self):
@@ -432,14 +471,13 @@ class RouterSerializer:
             device_stub[f"routing_options"] = routing_options
 
         l2circuits = {}
-        routing_instances = {}
 
-        routing_instances[self.mgmt_routing_instance] = {
+        self.routing_instances[self.mgmt_routing_instance] = {
             "description": "MGMT-ROUTING-INSTANCE",
         }
 
         if interfaces.get(self.mgmt_interface, {}).get("units", {}).get(0):
-            routing_instances[self.mgmt_routing_instance]["routing_options"] = {
+            self.routing_instances[self.mgmt_routing_instance]["routing_options"] = {
                 "rib": {
                     f"{self.mgmt_routing_instance}.inet.0": {
                         "static": {
@@ -461,7 +499,7 @@ class RouterSerializer:
 
         for _, l2vpn in self.l2vpns.items():
             if l2vpn['type'] == "VXLAN_EVPN":
-                routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
+                self.routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
                     "bridge_domains": [
                         {
                             "interfaces": [
@@ -486,7 +524,7 @@ class RouterSerializer:
                     "vrf_target": "target:1:" + str(l2vpn["identifier"]),
                 }
             elif l2vpn['type'] == "MPLS_EVPN":
-                routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
+                self.routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
                     "interfaces": [
                         i["name"] for i in l2vpn["interfaces"]
                     ],
@@ -515,7 +553,7 @@ class RouterSerializer:
                         }
                     }
 
-                routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
+                self.routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
                     "interfaces": [
                         i["name"] for i in l2vpn["interfaces"]
                     ],
@@ -584,7 +622,9 @@ class RouterSerializer:
             if len(rib) > 0:
                 routing_options["rib"] = rib
 
-            routing_instances[l3vpn["name"]] = {
+            if l3vpn["name"] not in self.routing_instances:
+                self.routing_instances[l3vpn["name"]] = {}
+            self.routing_instances[l3vpn["name"]].update({
                 "interfaces": l3vpn["interfaces"],
                 "description": l3vpn["description"],
                 "instance_type": "vrf",
@@ -592,8 +632,9 @@ class RouterSerializer:
                 "import_targets": [target["name"] for target in l3vpn["import_targets"]],
                 "export_targets": [target["name"] for target in l3vpn["export_targets"]],
                 "routing_options": routing_options,
-            }
-        device_stub[f"routing_instances"] = routing_instances
+            })
+
+        device_stub[f"routing_instances"] = self.routing_instances
         device_stub[f"l2circuits"] = l2circuits
 
         return device_stub

@@ -1,0 +1,137 @@
+device_list:
+- device_type:
+    slug: S9600-72XC
+  id: '17799'
+  interfaces:
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '191940'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: ifp-0/1/2
+    tagged_vlans: []
+    tags:
+    - name: speed:1g
+      slug: speed1g
+    type: A_25GBASE_X_SFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: 3
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '192117'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: 1500
+    name: ifp-0/1/2.3
+    tagged_vlans: []
+    tags:
+    - name: bgp:cpe
+      slug: bgpcpe
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: 4
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '192118'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: 1500
+    name: ifp-0/1/2.4
+    tagged_vlans: []
+    tags:
+    - name: bgp:cpe
+      slug: bgpcpe
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf:
+      id: '407'
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '192046'
+    ip_addresses: [ ]
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: lo-0/0/0
+    tagged_vlans: [ ]
+    tags: [ ]
+    type: LOOPBACK
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '192047'
+    ip_addresses:
+      - address: 45.139.136.10/24
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: lo-0/0/0.0
+    tagged_vlans: [ ]
+    tags: [ ]
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+  name: TEST0001
+  platform:
+    manufacturer:
+      slug: rtbrick
+    slug: rtbrick-consolidated-bng-q2c-24-1-1-1
+  primary_ip4:
+    address: 198.51.100.15/24
+  serial: ''
+  staticroute_set: []
+l2vpn_list: []
+vrf_list:
+- description: ''
+  export_targets:
+  - name: target:9136:407
+  id: '407'
+  import_targets:
+  - name: target:9136:407
+  name: L3VPN
+  rd: null
