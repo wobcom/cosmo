@@ -1,8 +1,8 @@
 {
-  description = "cosmo - ???";
+  description = "cosmo - a fairly odd fairy";
 
   inputs.flake-utils.url = "github:numtide/flake-utils";
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/22.11";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/24.05";
   inputs.poetry2nix = {
     url = "github:nix-community/poetry2nix";
     inputs.nixpkgs.follows = "nixpkgs";
@@ -12,7 +12,7 @@
     {
       # Nixpkgs overlay providing the application
       overlay = nixpkgs.lib.composeManyExtensions [
-        poetry2nix.overlay
+        poetry2nix.overlays.default
         (final: prev: {
           # The application
           cosmo = prev.poetry2nix.mkPoetryApplication {
@@ -36,6 +36,7 @@
         devShell = pkgs.mkShell {
           buildInputs = with pkgs; [
             black
+            poetry
             (pkgs.poetry2nix.mkPoetryEnv {
               projectDir = ./.;
               editablePackageSources = {
