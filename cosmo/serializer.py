@@ -303,12 +303,24 @@ class RouterSerializer:
             if not "protocols" in self.routing_instances[vrfname]:
                 self.routing_instances[vrfname] = { "protocols": { "bgp": {"groups": {} } } }
 
-            policy_v4 = {}
-            policy_v6 = {}
+            policy_v4 = { "import_list": [] }
+            policy_v6 = { "import_list": [] }
             if vrfname == "default":
                 policy_v4["export"] = "DEFAULT_V4"
                 policy_v6["export"] = "DEFAULT_V6"
-            # [TODO]: Implement automatic filter generation
+
+            if iface["parent"]:
+                parent = [i for i in self.device["interfaces"] if i["id"] == iface["parent"]["id"]][0]
+                connected = parent["connected_endpoints"][0]["device"]
+                addresses = set()
+                for a in connected["interfaces"]:
+                    for i in a["ip_addresses"]:
+                        if i["address"] == connected["primary_ip4"]["address"]:
+                            continue
+                        addresses.add(ipaddress.ip_network(i['address'], strict=False))
+
+                policy_v4["import_list"] = [a.with_prefixlen for a in addresses if type(a) is ipaddress.IPv4Network]
+                policy_v6["import_list"] = [a.with_prefixlen for a in addresses if type(a) is ipaddress.IPv6Network]
 
             self.routing_instances[vrfname]["protocols"]["bgp"]["groups"][groupname] = {
               "any_as": True,

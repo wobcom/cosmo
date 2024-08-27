@@ -26,6 +26,18 @@ device_list:
     type: A_25GBASE_X_SFP28
     untagged_vlan: null
     vrf: null
+    parent: null
+    connected_endpoints:
+    - device:
+        primary_ip4:
+          address: 10.128.6.12/29
+        interfaces:
+        - ip_addresses: []
+        - ip_addresses:
+          - address: 10.1.0.1/28
+          - address: 10.1.0.2/28
+        - ip_addresses:
+          - address: 10.128.6.12/29
   - custom_fields:
       bpdufilter: false
       inner_tag: null
@@ -49,6 +61,8 @@ device_list:
     type: VIRTUAL
     untagged_vlan: null
     vrf: null
+    parent:
+      id: '191940'
   - custom_fields:
       bpdufilter: false
       inner_tag: null
@@ -73,6 +87,8 @@ device_list:
     untagged_vlan: null
     vrf:
       id: '407'
+    parent:
+      id: '191940'
   - custom_fields:
       bpdufilter: false
       inner_tag: null
@@ -94,6 +110,7 @@ device_list:
     type: LOOPBACK
     untagged_vlan: null
     vrf: null
+    parent: null
   - custom_fields:
       bpdufilter: false
       inner_tag: null
@@ -116,6 +133,7 @@ device_list:
     type: VIRTUAL
     untagged_vlan: null
     vrf: null
+    parent: null
   name: TEST0001
   platform:
     manufacturer:

@@ -238,12 +238,16 @@ def test_router_case_local_bgpcpe():
     assert groups_default['CPE_ifp-0-1-2-3']['neighbors'][0]['interface'] == 'ifp-0/1/2.3'
     assert groups_default['CPE_ifp-0-1-2-3']['family']['ipv4_unicast']['policy']['export'] == 'DEFAULT_V4'
     assert groups_default['CPE_ifp-0-1-2-3']['family']['ipv6_unicast']['policy']['export'] == 'DEFAULT_V6'
+    assert groups_default['CPE_ifp-0-1-2-3']['family']['ipv4_unicast']['policy']['import_list'] == ["10.1.0.0/28"]
+    assert groups_default['CPE_ifp-0-1-2-3']['family']['ipv6_unicast']['policy']['import_list'] == []
 
     groups_L3VPN = d['routing_instances']['L3VPN']['protocols']['bgp']['groups']
     assert 'CPE_ifp-0-1-2-4' in groups_L3VPN
     assert groups_L3VPN['CPE_ifp-0-1-2-4']['neighbors'][0]['interface'] == 'ifp-0/1/2.4'
-    assert groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv4_unicast']['policy'] == {}
-    assert groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv6_unicast']['policy'] == {}
+    assert not 'export' in groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv4_unicast']['policy']
+    assert not 'export' in groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv6_unicast']['policy']
+    assert groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv4_unicast']['policy']['import_list'] == ["10.1.0.0/28"]
+    assert groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv6_unicast']['policy']['import_list'] == []
 
 def test_switch_lldp():
     [sd] = get_switch_sd_from_path('./test_case_switch_lldp.yaml')
