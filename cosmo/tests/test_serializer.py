@@ -90,11 +90,11 @@ def test_router_ips():
 
     assert unit_14['families']['inet']['address']['45.139.138.1/29'] == {}
     assert unit_14['families']['inet']['address']['45.139.138.8/29'] == {"primary": True}
-    assert unit_14['families']['inet']['address']['45.139.138.9/29'] == {}
+    assert unit_14['families']['inet']['address']['45.139.138.9/29'] == {"secondary": True}
 
     assert unit_16['families']['inet6']['address']['2a0e:b941:2::/122'] == {}
     assert unit_16['families']['inet6']['address']['2a0e:b941:2::40/122'] == {"primary": True}
-    assert unit_16['families']['inet6']['address']['2a0e:b941:2::41/122'] == {}
+    assert unit_16['families']['inet6']['address']['2a0e:b941:2::41/122'] == {"secondary": True}
 
 def test_router_case_mpls_evpn():
 
