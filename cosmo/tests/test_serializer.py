@@ -322,6 +322,27 @@ def test_router_case_local_l3vpn():
 
     assert ri['routing_options'] == {}
 
+
+def test_router_case_policer():
+    [d] = get_router_sd_from_path("./test_case_policer.yaml")
+
+    assert 'ae0' in d['interfaces']
+    assert 'units' in d['interfaces']['ae0']
+    assert 2220 in d['interfaces']['ae0']['units']
+    assert 'policer' in d['interfaces']['ae0']['units'][2220]
+    assert 'POLICER_100M' in d['interfaces']['ae0']['units'][2220]['policer']['input']
+    assert 'POLICER_100M' in d['interfaces']['ae0']['units'][2220]['policer']['output']
+
+    assert 101 in d['interfaces']['ae0']['units']
+    assert 'families' in d['interfaces']['ae0']['units'][101]
+    assert 'inet' in d['interfaces']['ae0']['units'][101]['families']
+    assert 'inet6' in d['interfaces']['ae0']['units'][101]['families']
+    assert d['interfaces']['ae0']['units'][101]['families']['inet']['policer'] == ['arp POLICER_IXP_ARP']
+    assert d['interfaces']['ae0']['units'][101]['families']['inet']['filters'] == ['input-list [ EDGE_FILTER ]']
+    assert d['interfaces']['ae0']['units'][101]['families']['inet6']['filters'] == ['input-list [ EDGE_FILTER_V6 ]']
+    assert d['interfaces']['ae0']['units'][101]['families']['inet6']['sampling'] == True
+
+
 def test_switch_lldp():
     [sd] = get_switch_sd_from_path('./test_case_switch_lldp.yaml')
 
