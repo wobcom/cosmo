@@ -4,23 +4,102 @@ from coverage.html import os
 from cosmo.serializer import RouterSerializer, SwitchSerializer
 
 
-def get_router_sd_from_path(path):
+def _yaml_load(path):
     dirname = os.path.dirname(__file__)
     test_case_name = os.path.join(dirname, path)
-
     test_case = open(test_case_name, 'r')
     test_data = yaml.safe_load(test_case)
+    return test_data
 
-    return [RouterSerializer(device=device, l2vpn_list=test_data['l2vpn_list'], vrfs=test_data['vrf_list']).serialize() for device in test_data['device_list']]
+
+def get_router_s_from_path(path):
+    test_data = _yaml_load(path)
+    return [
+        RouterSerializer(
+            device=device,
+            l2vpn_list=test_data['l2vpn_list'],
+            vrfs=test_data['vrf_list'])
+        for device in test_data['device_list']]
+
+
+def get_switch_s_from_path(path):
+    test_data = _yaml_load(path)
+    return [SwitchSerializer(device=device) for device in test_data['device_list']]
+
+
+def get_router_sd_from_path(path):
+    return list(map(lambda s: s.serialize(), get_router_s_from_path(path)))
+
 
 def get_switch_sd_from_path(path):
-    dirname = os.path.dirname(__file__)
-    test_case_name = os.path.join(dirname, path)
+    return list(map(lambda s: s.serialize(), get_switch_s_from_path(path)))
 
-    test_case = open(test_case_name, 'r')
-    test_data = yaml.safe_load(test_case)
 
-    return [SwitchSerializer(device=device).serialize() for device in test_data['device_list']]
+def test_router_platforms(capsys):
+    [juniper_s] = get_router_s_from_path("./test_case_2.yaml")
+    assert juniper_s.mgmt_routing_instance == "mgmt_junos"
+    assert juniper_s.mgmt_interface == "fxp0"
+    assert juniper_s.bmc_interface == None
+    assert juniper_s.lo_interface == "lo0"
+    
+    [rtbrick_s] = get_router_s_from_path("./test_case_l3vpn.yml")
+    assert rtbrick_s.mgmt_routing_instance == "mgmt"
+    assert rtbrick_s.mgmt_interface == "ma1"
+    assert rtbrick_s.bmc_interface == "bmc0"
+    assert rtbrick_s.lo_interface == "lo-0/0/0"
+    
+    get_router_s_from_path("./test_case_vendor_unknown.yaml")
+    assert "unsupported platform vendor: ACME" in capsys.readouterr().err
+
+
+def test_l2vpn_errors(capsys):
+    serialize = lambda y: \
+        RouterSerializer(device=y['device_list'][0],
+                         l2vpn_list=y['l2vpn_list'],
+                         vrfs=y['vrf_list'])
+
+    template = _yaml_load("./test_case_l2x_err_template.yaml")
+
+    vpws_incorrect_terminations = template
+    vpws_incorrect_terminations['l2vpn_list'].append({
+        'id': '53',
+        'identifier': None,
+        'name': 'WAN: incorrect VPWS',
+        'type': 'VPWS',
+        'terminations': [
+            {}, {}, {}]})
+    serialize(vpws_incorrect_terminations)
+    assert "VPWS circuits are only allowed to have two terminations"\
+        in capsys.readouterr().err
+
+    unsupported_type_terminations = template
+    unsupported_type_terminations['l2vpn_list'].append({
+        'id': '54',
+        'identifier': None,
+        'name': 'WAN: unsupported termination types 1',
+        'type': 'VPWS',
+        'terminations': [
+            { 'assigned_object': None },
+            { 'assigned_object': { '__typename': None }}]})
+    serialize(unsupported_type_terminations)
+    assert "Found unsupported L2VPN termination in" in capsys.readouterr().err
+
+    vpws_non_interface_term = template
+    vpws_non_interface_term['l2vpn_list'].append({
+        'id': '54',
+        'identifier': None,
+        'name': 'WAN: WAN: unsupported termination types 2',
+        'type': 'VPWS',
+        'terminations': [
+            {'assigned_object': {
+                '__typename': "VLANType"
+            }},
+            {'assigned_object': {
+                '__typename': "VLANType"
+            }}]})
+    serialize(vpws_non_interface_term)
+    assert "Found non-interface termination in L2VPN" in capsys.readouterr().err
+
 
 def test_router_physical_interface():
     [sd] = get_router_sd_from_path("./test_case_1.yaml")
@@ -77,6 +156,30 @@ def test_router_fec():
     assert sd['interfaces']['et-0/0/2']['gigether']['fec'] == 'none'
 
 
+
+def test_router_vrf_rib():
+    [sd] = get_router_sd_from_path("./test_case_vrf_staticroute.yaml")
+
+    assert 'routing_instances' in sd
+    assert 'L3VPN-TEST' in sd['routing_instances']
+    assert 'routing_options' in sd['routing_instances']['L3VPN-TEST']
+    assert 'rib' in sd['routing_instances']['L3VPN-TEST']['routing_options']
+    assert 'L3VPN-TEST.inet.0' in sd['routing_instances']['L3VPN-TEST']['routing_options']['rib']
+    assert 'L3VPN-TEST.inet.0' in sd['routing_instances']['L3VPN-TEST']['routing_options']['rib']
+    rib = sd['routing_instances']['L3VPN-TEST']['routing_options']['rib']
+    assert 'L3VPN-TEST.inet.0' in rib
+    assert 'L3VPN-TEST.inet6.0' in rib
+    assert 'static' in rib['L3VPN-TEST.inet.0']
+    assert 'static' in rib['L3VPN-TEST.inet6.0']
+    assert '10.114.23.36/32' in rib['L3VPN-TEST.inet.0']['static']
+    assert 'fd98::1/128' in rib['L3VPN-TEST.inet6.0']['static']
+    assert 'next_hop' in rib['L3VPN-TEST.inet.0']['static']['10.114.23.36/32']
+    assert 'next_hop' in rib['L3VPN-TEST.inet6.0']['static']['fd98::1/128']
+    assert rib['L3VPN-TEST.inet.0']['static']['10.114.23.36/32']['next_hop'] == '10.30.0.154'
+    assert rib['L3VPN-TEST.inet6.0']['static']['fd98::1/128']['next_hop'] == 'et-0/0/2.0'
+    assert rib['L3VPN-TEST.inet6.0']['static']['fd98::1/128']['metric'] == 100
+
+
 def test_router_ips():
 
     [sd] = get_router_sd_from_path("./test_case_ips.yaml")
@@ -95,6 +198,7 @@ def test_router_ips():
     assert unit_16['families']['inet6']['address']['2a0e:b941:2::/122'] == {}
     assert unit_16['families']['inet6']['address']['2a0e:b941:2::40/122'] == {"primary": True}
     assert unit_16['families']['inet6']['address']['2a0e:b941:2::41/122'] == {"secondary": True}
+
 
 def test_router_case_mpls_evpn():
 
@@ -218,6 +322,27 @@ def test_router_case_local_l3vpn():
 
     assert ri['routing_options'] == {}
 
+
+def test_router_case_policer():
+    [d] = get_router_sd_from_path("./test_case_policer.yaml")
+
+    assert 'ae0' in d['interfaces']
+    assert 'units' in d['interfaces']['ae0']
+    assert 2220 in d['interfaces']['ae0']['units']
+    assert 'policer' in d['interfaces']['ae0']['units'][2220]
+    assert 'POLICER_100M' in d['interfaces']['ae0']['units'][2220]['policer']['input']
+    assert 'POLICER_100M' in d['interfaces']['ae0']['units'][2220]['policer']['output']
+
+    assert 101 in d['interfaces']['ae0']['units']
+    assert 'families' in d['interfaces']['ae0']['units'][101]
+    assert 'inet' in d['interfaces']['ae0']['units'][101]['families']
+    assert 'inet6' in d['interfaces']['ae0']['units'][101]['families']
+    assert d['interfaces']['ae0']['units'][101]['families']['inet']['policer'] == ['arp POLICER_IXP_ARP']
+    assert d['interfaces']['ae0']['units'][101]['families']['inet']['filters'] == ['input-list [ EDGE_FILTER ]']
+    assert d['interfaces']['ae0']['units'][101]['families']['inet6']['filters'] == ['input-list [ EDGE_FILTER_V6 ]']
+    assert d['interfaces']['ae0']['units'][101]['families']['inet6']['sampling'] == True
+
+
 def test_switch_lldp():
     [sd] = get_switch_sd_from_path('./test_case_switch_lldp.yaml')
 
@@ -249,6 +374,11 @@ def test_switch_mgmt_interface():
     # mgmt port is present
     assert 'eth0' in sd['cumulus__device_interfaces']
     assert 'address' in sd['cumulus__device_interfaces']['eth0']
+    # also check bpdufilter is removed
+    assert 'bpdufilter' not in sd['cumulus__device_interfaces']['eth0'].keys()
+    # check that bpdufilter is present on eth1 (no ip address assigned)
+    assert 'bpdufilter' in sd['cumulus__device_interfaces']['eth1'].keys()
+    assert sd['cumulus__device_interfaces']['eth1']['bpdufilter'] == True
     # ipv4 parameters are set
     assert '10.120.142.11/24' == sd['cumulus__device_interfaces']['eth0']['address']
     assert '10.120.142.1' == sd['cumulus__device_interfaces']['eth0']['gateway']
@@ -270,3 +400,39 @@ def test_switch_case_lag():
     # check that the interfaces are registered as lag members
     assert 'swp18' in sd['cumulus__device_interfaces']['lag_42']['bond_slaves']
     assert 'swp17' in sd['cumulus__device_interfaces']['lag_42']['bond_slaves']
+
+def test_switch_interface_speed(capsys):
+    [sd] = get_switch_sd_from_path('./test_case_switch_interface_speed.yaml')
+
+    # check all switchports are present
+    assert 'swp1' in sd['cumulus__device_interfaces']
+    assert 'swp2' in sd['cumulus__device_interfaces']
+    assert 'swp3' in sd['cumulus__device_interfaces']
+    assert 'swp4' in sd['cumulus__device_interfaces']
+
+    # check that interface speeds are okay
+    assert sd['cumulus__device_interfaces']['swp1']['speed'] == 1000
+    assert sd['cumulus__device_interfaces']['swp2']['speed'] == 10000
+    assert sd['cumulus__device_interfaces']['swp3']['speed'] == 100000
+
+    # check that we have had the error from parsing
+    assert "Error: Interface speed 100m on interface swp4 is not known" in capsys.readouterr().err
+
+def test_switch_interface_fec(capsys):
+    [sd] = get_switch_sd_from_path("./test_case_switch_fec.yaml")
+
+    assert 'swp1' in sd['cumulus__device_interfaces']
+    assert 'swp2' in sd['cumulus__device_interfaces']
+    assert 'swp3' in sd['cumulus__device_interfaces']
+    assert 'swp4' in sd['cumulus__device_interfaces']
+
+    assert sd['cumulus__device_interfaces']['swp1']['fec'] == 'rs'
+    assert sd['cumulus__device_interfaces']['swp2']['fec'] == 'baser'
+    assert sd['cumulus__device_interfaces']['swp3']['fec'] == 'off'
+
+    # check that invalid fec was detected
+    assert "Error: FEC mode undefined on interface swp4 is not known" in capsys.readouterr().err
+
+    
+
+    
