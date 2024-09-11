@@ -1,0 +1,169 @@
+device_list:
+- device_type:
+    slug: mx204
+  id: '1886'
+  interfaces:
+  - custom_fields:
+      bpdufilter: null
+      inner_tag: null
+      ipv6_ra: false
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '32571'
+    ip_addresses:
+    - address: 194.146.118.41/24
+    - address: 2001:7f8:8::23b0:0:1/64
+    lag: null
+    mac_address: null
+    mode: ACCESS
+    mtu: 1500
+    name: ae0.101
+    tagged_vlans: []
+    tags:
+    - name: edge:peering-ixp
+      slug: edge_peering-ixp
+    type: VIRTUAL
+    untagged_vlan:
+      id: '1052'
+      name: ''
+      vid: 101
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      ipv6_ra: false
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '81728'
+    ip_addresses:
+    - address: 172.30.0.153/30
+    lag: null
+    mac_address: null
+    mode: ACCESS
+    mtu: 1500
+    name: ae0.2220
+    tagged_vlans: []
+    tags:
+    - name: policer:100M
+      slug: policer_100m
+    type: VIRTUAL
+    untagged_vlan:
+      id: '1050'
+      name: ''
+      vid: 2220
+    vrf:
+      id: '399'
+  - custom_fields:
+      inner_tag: null
+      ipv6_ra: false
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '32385'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: fxp0
+    tagged_vlans: []
+    tags: []
+    type: A_1000BASE_T
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      ipv6_ra: false
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '183168'
+    ip_addresses:
+    - address: 10.120.130.10/24
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: fxp0.0
+    tagged_vlans: []
+    tags: []
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      ipv6_ra: false
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '192862'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: lo0
+    tagged_vlans: []
+    tags: []
+    type: LOOPBACK
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: null
+      inner_tag: null
+      ipv6_ra: false
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: ''
+    enabled: true
+    id: '32402'
+    ip_addresses:
+    - address: 62.176.224.243/32
+    - address: 2a01:580:6000::23/128
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: lo0.0
+    tagged_vlans: []
+    tags: []
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+  name: TEST0001
+  platform:
+    manufacturer:
+      slug: juniper
+    slug: junos-21-4r3-s5-4
+  primary_ip4:
+    address: 10.120.130.10/24
+  serial: ''
+  staticroute_set: []
+l2vpn_list: []
+vrf_list:
+- description: ''
+  export_targets:
+  - name: target:9136:399
+  id: '399'
+  import_targets:
+  - name: target:9136:399
+  name: L3VPN
+  rd: null

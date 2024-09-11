@@ -52,8 +52,9 @@ class IPHierarchyNetwork:
     def render_addresses(self):
         retVal = {}
         primaryMarker = {"primary": True} if len(self.secondaryIPs) > 0 else {}
+        secondaryMarker = {"secondary": True} if len(self.secondaryIPs) > 0 else {}
         retVal[self.primaryIP.with_prefixlen] = primaryMarker
-        secondaryIPs = {x.with_prefixlen: {} for x in self.secondaryIPs}
+        secondaryIPs = {x.with_prefixlen: secondaryMarker for x in self.secondaryIPs}
         retVal.update(secondaryIPs)
         return retVal
 
