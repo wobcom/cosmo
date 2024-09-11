@@ -322,6 +322,36 @@ def test_router_case_local_l3vpn():
 
     assert ri['routing_options'] == {}
 
+def test_router_case_local_bgpcpe():
+
+    [d] = get_router_sd_from_path("./test_case_bgpcpe.yml")
+
+    # We do not need to check the interfaces further, there is no configuration to be found there.
+    assert 'ifp-0/1/2' in d['interfaces']
+    assert 3 in d['interfaces']['ifp-0/1/2']['units']
+    assert 4 in d['interfaces']['ifp-0/1/2']['units']
+    assert 'lo-0/0/0' in d['interfaces']
+    assert len(d['interfaces']) == 2
+
+    assert 'protocols' in d['routing_instances']['default']
+    assert 'bgp' in d['routing_instances']['default']['protocols']
+
+    groups_default = d['routing_instances']['default']['protocols']['bgp']['groups']
+    assert len(groups_default) == 1
+    assert 'CPE_ifp-0-1-2-3' in groups_default
+    assert groups_default['CPE_ifp-0-1-2-3']['neighbors'][0]['interface'] == 'ifp-0/1/2.3'
+    assert groups_default['CPE_ifp-0-1-2-3']['family']['ipv4_unicast']['policy']['export'] == 'DEFAULT_V4'
+    assert groups_default['CPE_ifp-0-1-2-3']['family']['ipv6_unicast']['policy']['export'] == 'DEFAULT_V6'
+    assert groups_default['CPE_ifp-0-1-2-3']['family']['ipv4_unicast']['policy']['import_list'] == ["10.1.0.0/28"]
+    assert groups_default['CPE_ifp-0-1-2-3']['family']['ipv6_unicast']['policy']['import_list'] == []
+
+    groups_L3VPN = d['routing_instances']['L3VPN']['protocols']['bgp']['groups']
+    assert 'CPE_ifp-0-1-2-4' in groups_L3VPN
+    assert groups_L3VPN['CPE_ifp-0-1-2-4']['neighbors'][0]['interface'] == 'ifp-0/1/2.4'
+    assert not 'export' in groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv4_unicast']['policy']
+    assert not 'export' in groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv6_unicast']['policy']
+    assert groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv4_unicast']['policy']['import_list'] == ["10.1.0.0/28"]
+    assert groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv6_unicast']['policy']['import_list'] == []
 
 def test_router_case_policer():
     [d] = get_router_sd_from_path("./test_case_policer.yaml")
@@ -341,7 +371,6 @@ def test_router_case_policer():
     assert d['interfaces']['ae0']['units'][101]['families']['inet']['filters'] == ['input-list [ EDGE_FILTER ]']
     assert d['interfaces']['ae0']['units'][101]['families']['inet6']['filters'] == ['input-list [ EDGE_FILTER_V6 ]']
     assert d['interfaces']['ae0']['units'][101]['families']['inet6']['sampling'] == True
-
 
 def test_switch_lldp():
     [sd] = get_switch_sd_from_path('./test_case_switch_lldp.yaml')

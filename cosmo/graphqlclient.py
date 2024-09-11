@@ -79,6 +79,24 @@ class GraphqlClient:
                     name
                     slug
                   }
+                  parent {
+                    id
+                  }
+                  connected_endpoints {
+                    ... on InterfaceType {
+                      name
+                      device {
+                        primary_ip4 {
+                          address
+                        }
+                        interfaces {
+                          ip_addresses {
+                            address
+                          }
+                        }
+                      }
+                    }
+                  }
                   custom_fields
                 }
                 staticroute_set {
