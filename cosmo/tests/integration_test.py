@@ -8,7 +8,8 @@ from cosmo.__main__ import main as cosmoMain
 
 def test_missing_config(mocker):
     utils.CommonSetup(mocker, cfgFile=None)
-    assert cosmoMain() == 1
+    with pytest.raises(Exception):
+        cosmoMain()
 
 def test_missing_netbox_url(mocker):
     utils.CommonSetup(mocker, environ={'NETBOX_API_TOKEN': utils.CommonSetup.TEST_TOKEN})

@@ -3,15 +3,13 @@ import json
 import os
 import sys
 import pathlib
+import warnings
 
 import yaml
 import argparse
 
-from cosmo.logger import Logger
 from cosmo.graphqlclient import GraphqlClient
 from cosmo.serializer import RouterSerializer, SwitchSerializer
-
-l = Logger("__main__.py")
 
 
 def main() -> int:
@@ -33,14 +31,13 @@ def main() -> int:
         allowed_hosts = None
 
     if not os.path.isfile(args.config):
-        l.error("Missing {}, please provide a configuration.".format(args.config))
-        return 1
+        raise Exception("Missing {}, please provide a configuration.".format(args.config))
 
     cosmo_configuration = {}
     with open(args.config, 'r') as cfg_file:
         cosmo_configuration = yaml.safe_load(cfg_file)
 
-    l.hint(f"Fetching information from Netbox, make sure VPN is enabled on your system.")
+    print(f"[INFO] Fetching information from Netbox, make sure VPN is enabled on your system.")
 
     netbox_url = os.environ.get("NETBOX_URL")
     netbox_api_token = os.environ.get("NETBOX_API_TOKEN")
@@ -60,7 +57,7 @@ def main() -> int:
 
     for vrf in cosmo_data["vrf_list"]:
         if len(vrf["export_targets"]) > 1 or len(vrf["import_targets"]) > 1:
-            l.warning(f"Currently we only support one import/export target per VRF. {vrf['name']} has {len(vrf['import_targets'])} import targets and {len(vrf['export_targets'])} export targets")
+            warnings.warn(f"Currently we only support one import/export target per VRF. {vrf['name']} has {len(vrf['import_targets'])} import targets and {len(vrf['export_targets'])} export targets")
             continue
 
     for device in cosmo_data["device_list"]:
@@ -73,7 +70,7 @@ def main() -> int:
         if allowed_hosts and device['name'] not in allowed_hosts and device_fqdn not in allowed_hosts:
             continue
 
-        l.info(f"Generating {device_fqdn}")
+        print(f"[INFO] Generating {device_fqdn}")
 
         content = None
         if device['name'] in cosmo_configuration['devices']['router']:
@@ -106,7 +103,7 @@ def main() -> int:
                     with open(f"./machines/{device_fqdn}/generated-cosmo.json", "w") as json_file:
                         json.dump(content, json_file, indent=4)
             case other:
-                l.error(f"unsupported output format {other}")
+                raise Exception(f"unsupported output format {other}")
                 return 1
 
     return 0
