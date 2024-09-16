@@ -1,0 +1,16 @@
+device_list:
+- device_type:
+    slug: r2000
+  id: '1999'
+  interfaces: []
+  name: TEST0001
+  platform:
+    manufacturer:
+      raw: ACME
+    raw: coyote-0-2-1-rc1
+  primary_ip4:
+    address: 45.139.136.10/24
+  serial: 4242
+  staticroute_set: []
+l2vpn_list: []
+vrf_list: []

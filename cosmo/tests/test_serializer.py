@@ -53,6 +53,9 @@ def test_router_platforms():
     with pytest.raises(Exception, match="unsupported platform vendor: ACME"):
         get_router_s_from_path("./test_case_vendor_unknown.yaml")
 
+    with pytest.raises(Exception, match="missing key"):
+        get_router_s_from_path("./test_case_no_manuf_slug.yaml")
+
 
 def test_l2vpn_errors():
     serialize = lambda y: \

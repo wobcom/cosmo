@@ -59,6 +59,12 @@ class IPHierarchyNetwork:
 class RouterSerializer:
 
     def __init__(self, device, l2vpn_list, vrfs):
+        copy = device
+        for k in ["platform", "manufacturer", "slug"]:
+            if not k in copy.keys():
+                raise Exception(f"missing key {k} in device info, can't continue")
+            else:
+                copy = copy[k]
 
         match device["platform"]["manufacturer"]["slug"]:
             case 'juniper':
