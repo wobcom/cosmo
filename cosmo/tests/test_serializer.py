@@ -37,7 +37,7 @@ def get_switch_sd_from_path(path):
     return list(map(lambda s: s.serialize(), get_switch_s_from_path(path)))
 
 
-def test_router_platforms(capsys):
+def test_router_platforms():
     [juniper_s] = get_router_s_from_path("./test_case_2.yaml")
     assert juniper_s.mgmt_routing_instance == "mgmt_junos"
     assert juniper_s.mgmt_interface == "fxp0"
@@ -54,7 +54,7 @@ def test_router_platforms(capsys):
         get_router_s_from_path("./test_case_vendor_unknown.yaml")
 
 
-def test_l2vpn_errors(capsys):
+def test_l2vpn_errors():
     serialize = lambda y: \
         RouterSerializer(device=y['device_list'][0],
                          l2vpn_list=y['l2vpn_list'],
@@ -431,7 +431,7 @@ def test_switch_case_lag():
     assert 'swp18' in sd['cumulus__device_interfaces']['lag_42']['bond_slaves']
     assert 'swp17' in sd['cumulus__device_interfaces']['lag_42']['bond_slaves']
 
-def test_switch_interface_speed(capsys):
+def test_switch_interface_speed():
     with pytest.warns(UserWarning, match="Interface speed 100m on interface swp4 is not known"):
         [sd] = get_switch_sd_from_path('./test_case_switch_interface_speed.yaml')
 
@@ -447,7 +447,7 @@ def test_switch_interface_speed(capsys):
     assert sd['cumulus__device_interfaces']['swp3']['speed'] == 100000
 
 
-def test_switch_interface_fec(capsys):
+def test_switch_interface_fec():
     with pytest.warns(UserWarning, match="FEC mode undefined on interface swp4 is not known"):
         [sd] = get_switch_sd_from_path("./test_case_switch_fec.yaml")
 
