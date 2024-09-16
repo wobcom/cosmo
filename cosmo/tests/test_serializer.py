@@ -1,5 +1,6 @@
 import yaml
 import pytest
+import copy
 from coverage.html import os
 
 from cosmo.serializer import RouterSerializer, SwitchSerializer
@@ -61,7 +62,7 @@ def test_l2vpn_errors(capsys):
 
     template = _yaml_load("./test_case_l2x_err_template.yaml")
 
-    vpws_incorrect_terminations = template
+    vpws_incorrect_terminations = copy.deepcopy(template)
     vpws_incorrect_terminations['l2vpn_list'].append({
         'id': '53',
         'identifier': None,
@@ -72,7 +73,7 @@ def test_l2vpn_errors(capsys):
     with pytest.warns(UserWarning, match="VPWS circuits are only allowed to have two terminations"):
         serialize(vpws_incorrect_terminations)
 
-    unsupported_type_terminations = template
+    unsupported_type_terminations = copy.deepcopy(template)
     unsupported_type_terminations['l2vpn_list'].append({
         'id': '54',
         'identifier': None,
@@ -84,7 +85,7 @@ def test_l2vpn_errors(capsys):
     with pytest.warns(UserWarning, match="Found unsupported L2VPN termination in"):
         serialize(unsupported_type_terminations)
 
-    vpws_non_interface_term = template
+    vpws_non_interface_term = copy.deepcopy(template)
     vpws_non_interface_term['l2vpn_list'].append({
         'id': '54',
         'identifier': None,
