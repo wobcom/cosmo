@@ -2,7 +2,18 @@ import ipaddress
 import re
 import json
 import warnings
+import abc
 from collections import defaultdict
+
+class AbstractRecoverableError(Exception, abc.ABC):
+    pass
+
+class DeviceSerializationError(AbstractRecoverableError):
+    pass
+
+class InterfaceSerializationError(AbstractRecoverableError):
+    pass
+
 
 
 class Tags:
@@ -78,7 +89,7 @@ class RouterSerializer:
                 self.bmc_interface = "bmc0"
                 self.lo_interface = "lo-0/0/0"
             case other:
-                raise Exception(f"unsupported platform vendor: {other}")
+                raise DeviceSerializationError(f"unsupported platform vendor: {other}")
                 return
 
         self.device = device
@@ -171,8 +182,7 @@ class RouterSerializer:
             # abort if a private IP is used on a unit without a VRF
             # we use !is_global instead of is_private since the latter ignores 100.64/10
             if not iface["vrf"] and not ipa.is_global and not is_mgmt:
-                raise Exception(f"Private IP {ipa} used on interface {iface['name']} in default VRF. Did you forget to configure a VRF?"
-                f"Error while serializing device {self.device['name']}, aborting.")
+                raise InterfaceSerializationError(f"Private IP {ipa} used on interface {iface['name']} in default VRF for device {self.device['name']}. Did you forget to configure a VRF?")
 
             if ipa.version == 4:
                 ipv4Family[ipa.network].add_ip(ipa, is_secondary)

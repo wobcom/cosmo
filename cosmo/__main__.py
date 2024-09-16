@@ -9,7 +9,7 @@ import yaml
 import argparse
 
 from cosmo.graphqlclient import GraphqlClient
-from cosmo.serializer import RouterSerializer, SwitchSerializer
+from cosmo.serializer import RouterSerializer, SwitchSerializer, AbstractRecoverableError
 
 
 def main() -> int:
@@ -73,14 +73,15 @@ def main() -> int:
         print(f"[INFO] Generating {device_fqdn}")
 
         content = None
-        if device['name'] in cosmo_configuration['devices']['router']:
-            serializer = RouterSerializer(device, cosmo_data['l2vpn_list'], cosmo_data["vrf_list"])
-            content = serializer.serialize()
-        elif device['name'] in cosmo_configuration['devices']['switch']:
-            serializer = SwitchSerializer(device)
-            content = serializer.serialize()
-
-        if not content:
+        try:
+            if device['name'] in cosmo_configuration['devices']['router']:
+                serializer = RouterSerializer(device, cosmo_data['l2vpn_list'], cosmo_data["vrf_list"])
+                content = serializer.serialize()
+            elif device['name'] in cosmo_configuration['devices']['switch']:
+                serializer = SwitchSerializer(device)
+                content = serializer.serialize()
+        except AbstractRecoverableError as e:
+            warnings.warn(f"{device['name']} serialization error \"{e}\", skipping ...")
             continue
 
         match cosmo_configuration['output_format']:

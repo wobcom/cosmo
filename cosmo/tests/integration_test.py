@@ -48,3 +48,12 @@ def test_device_generation_nix(mocker):
     assert cosmoMain() == 0
     testEnv.stop()
     assert os.path.isfile('machines/test0001/generated-cosmo.json')
+
+def test_device_processing_error(mocker):
+    testEnv = utils.CommonSetup(mocker, cfgFile='cosmo/tests/cosmo.devgen_nix.yml')
+    with open(f"cosmo/tests/test_case_vendor_unknown.yaml") as f:
+        utils.RequestResponseMock.patchTool(
+            mocker,{'status_code': 200, 'text': '{"data": ' + json.dumps(yaml.safe_load(f)) + '}'})
+    with pytest.warns(UserWarning, match="unsupported platform vendor"):
+        assert cosmoMain() == 0
+    testEnv.stop()
