@@ -8,7 +8,8 @@ from cosmo.__main__ import main as cosmoMain
 
 def test_missing_config(mocker):
     utils.CommonSetup(mocker, cfgFile=None)
-    assert cosmoMain() == 1
+    with pytest.raises(Exception):
+        cosmoMain()
 
 def test_missing_netbox_url(mocker):
     utils.CommonSetup(mocker, environ={'NETBOX_API_TOKEN': utils.CommonSetup.TEST_TOKEN})
@@ -47,3 +48,12 @@ def test_device_generation_nix(mocker):
     assert cosmoMain() == 0
     testEnv.stop()
     assert os.path.isfile('machines/test0001/generated-cosmo.json')
+
+def test_device_processing_error(mocker):
+    testEnv = utils.CommonSetup(mocker, cfgFile='cosmo/tests/cosmo.devgen_nix.yml')
+    with open(f"cosmo/tests/test_case_vendor_unknown.yaml") as f:
+        utils.RequestResponseMock.patchTool(
+            mocker,{'status_code': 200, 'text': '{"data": ' + json.dumps(yaml.safe_load(f)) + '}'})
+    with pytest.warns(UserWarning, match="unsupported platform vendor"):
+        assert cosmoMain() == 0
+    testEnv.stop()
