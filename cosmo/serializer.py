@@ -1,11 +1,9 @@
 import ipaddress
 import re
 import json
+import warnings
 from collections import defaultdict
 
-from cosmo.logger import Logger
-
-l = Logger("serializer.py")
 
 class Tags:
     def __init__(self, tags):
@@ -45,8 +43,7 @@ class IPHierarchyNetwork:
         elif self.primaryIP is None:
             self.primaryIP = ipa
         else:
-            # Note: This should be an error later on.
-            l.warning(
+            warnings.warn(
                 f"Ignoring {ipa}, because its marked as a primary IP and an primary IP was already given with {self.primaryIP}")
 
     def render_addresses(self):
@@ -75,7 +72,7 @@ class RouterSerializer:
                 self.bmc_interface = "bmc0"
                 self.lo_interface = "lo-0/0/0"
             case other:
-                l.error(f"unsupported platform vendor: {other}")
+                raise Exception(f"unsupported platform vendor: {other}")
                 return
 
         self.device = device
@@ -94,16 +91,16 @@ class RouterSerializer:
             if not l2vpn["name"].startswith("WAN: "):
                 continue
             if l2vpn['type'] == "VPWS" and len(l2vpn['terminations']) != 2:
-                l.warning(
+                warnings.warn(
                     f"VPWS circuits are only allowed to have two terminations. {l2vpn['name']} has {len(l2vpn['terminations'])} terminations, ignoring...")
                 continue
             for termination in l2vpn["terminations"]:
                 if not termination["assigned_object"] or termination['assigned_object']['__typename'] not in [
                     "VLANType", "InterfaceType"]:
-                    l.warning(f"Found unsupported L2VPN termination in {l2vpn['name']}, ignoring...")
+                    warnings.warn(f"Found unsupported L2VPN termination in {l2vpn['name']}, ignoring...")
                     continue
                 if l2vpn['type'] == "VPWS" and termination['assigned_object']['__typename'] != "InterfaceType":
-                    l.warning(
+                    warnings.warn(
                         f"Found non-interface termination in L2VPN {l2vpn['name']}, ignoring... VPWS only supports interace terminations.")
                     continue
                 if termination['assigned_object']['__typename'] == "VLANType":
@@ -168,8 +165,8 @@ class RouterSerializer:
             # abort if a private IP is used on a unit without a VRF
             # we use !is_global instead of is_private since the latter ignores 100.64/10
             if not iface["vrf"] and not ipa.is_global and not is_mgmt:
-                l.error(f"Private IP {ipa} used on interface {iface['name']} in default VRF. Did you forget to configure a VRF?")
-                exit(f"Error while serializing device {self.device['name']}, aborting.")
+                raise Exception(f"Private IP {ipa} used on interface {iface['name']} in default VRF. Did you forget to configure a VRF?"
+                f"Error while serializing device {self.device['name']}, aborting.")
 
             if ipa.version == 4:
                 ipv4Family[ipa.network].add_ip(ipa, is_secondary)
@@ -244,7 +241,7 @@ class RouterSerializer:
         interface_vlan_id = None
         if iface["mode"] == "ACCESS":
             if not iface.get("untagged_vlan"):
-                l.error(
+                warnings.warn(
                     f"Interface {iface['name']} on device {self.device['name']} is mode ACCESS but has no untagged vlan, skipping"
                 )
                 return
@@ -395,7 +392,7 @@ class RouterSerializer:
                         interface_stub['gigether'] = {}
                     interface_stub['gigether']["speed"] = speed
                 else:
-                    l.error(f"Interface speed {speed} on interface {interface['name']} is not known, ignoring")
+                    warnings.warn(f"Interface speed {speed} on interface {interface['name']} is not known, ignoring")
 
             if tags.has_key("autoneg"):
                 if not interface_stub.get('gigether'):
@@ -413,7 +410,7 @@ class RouterSerializer:
                     case "rs":
                         interface_stub["gigether"]["fec"] = "fec91"
                     case _:
-                        l.error(f"FEC mode {fec} on interface {interface['name']} is not known, ignoring")
+                        warnings.warn(f"FEC mode {fec} on interface {interface['name']} is not known, ignoring")
 
             if interface.get("type") == "LAG":
                 interface_stub["type"] = "lag"
@@ -455,7 +452,7 @@ class RouterSerializer:
                     name, unit = self._get_unit(si)
                     sub_num = int(name or '0')
                     if not is_loopback and sub_num != 0 and not unit.get("vlan", None):
-                        l.error(f"Sub interface {si['name']} does not have a access VLAN configured, skipping...")
+                        warnings.warn(f"Sub interface {si['name']} does not have a access VLAN configured, skipping...")
                         continue
 
                     l2vpn = self.l2vpn_interface_terminations.get(si["id"])
@@ -592,7 +589,7 @@ class RouterSerializer:
                             remote_interfaces = termination["assigned_object"]["device"]["interfaces"]
 
                     if not remote_interfaces:
-                        l.error("Found no remote interface, skipping...")
+                        warnings.warn("Found no remote interface, skipping...")
                         continue
 
                     # [TODO]: Refactor this.
@@ -717,13 +714,13 @@ class SwitchSerializer:
                 elif speed == "100g":
                     interface_stub["speed"] = 100000
                 else:
-                    l.error(f"Interface speed {speed} on interface {interface['name']} is not known, ignoring")
+                    warnings.warn(f"Interface speed {speed} on interface {interface['name']} is not known, ignoring")
 
             for fec in tags.get_from_key("fec"):
                 if fec in ["off", "rs", "baser"]:
                     interface_stub["fec"] = fec
                 else:
-                    l.error(f"FEC mode {fec} on interface {interface['name']} is not known, ignoring")
+                    warnings.warn(f"FEC mode {fec} on interface {interface['name']} is not known, ignoring")
 
             if tags.has("lldp"):
                 interface_stub["lldp"] = True

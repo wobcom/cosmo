@@ -1,4 +1,5 @@
 import yaml
+import pytest
 from coverage.html import os
 
 from cosmo.serializer import RouterSerializer, SwitchSerializer
@@ -48,8 +49,8 @@ def test_router_platforms(capsys):
     assert rtbrick_s.bmc_interface == "bmc0"
     assert rtbrick_s.lo_interface == "lo-0/0/0"
     
-    get_router_s_from_path("./test_case_vendor_unknown.yaml")
-    assert "unsupported platform vendor: ACME" in capsys.readouterr().err
+    with pytest.raises(Exception, match="unsupported platform vendor: ACME"):
+        get_router_s_from_path("./test_case_vendor_unknown.yaml")
 
 
 def test_l2vpn_errors(capsys):
@@ -68,9 +69,8 @@ def test_l2vpn_errors(capsys):
         'type': 'VPWS',
         'terminations': [
             {}, {}, {}]})
-    serialize(vpws_incorrect_terminations)
-    assert "VPWS circuits are only allowed to have two terminations"\
-        in capsys.readouterr().err
+    with pytest.warns(UserWarning, match="VPWS circuits are only allowed to have two terminations"):
+        serialize(vpws_incorrect_terminations)
 
     unsupported_type_terminations = template
     unsupported_type_terminations['l2vpn_list'].append({
@@ -81,8 +81,8 @@ def test_l2vpn_errors(capsys):
         'terminations': [
             { 'assigned_object': None },
             { 'assigned_object': { '__typename': None }}]})
-    serialize(unsupported_type_terminations)
-    assert "Found unsupported L2VPN termination in" in capsys.readouterr().err
+    with pytest.warns(UserWarning, match="Found unsupported L2VPN termination in"):
+        serialize(unsupported_type_terminations)
 
     vpws_non_interface_term = template
     vpws_non_interface_term['l2vpn_list'].append({
@@ -97,8 +97,8 @@ def test_l2vpn_errors(capsys):
             {'assigned_object': {
                 '__typename': "VLANType"
             }}]})
-    serialize(vpws_non_interface_term)
-    assert "Found non-interface termination in L2VPN" in capsys.readouterr().err
+    with pytest.warns(UserWarning, match="Found non-interface termination in L2VPN"):
+        serialize(vpws_non_interface_term)
 
 
 def test_router_physical_interface():
@@ -431,7 +431,8 @@ def test_switch_case_lag():
     assert 'swp17' in sd['cumulus__device_interfaces']['lag_42']['bond_slaves']
 
 def test_switch_interface_speed(capsys):
-    [sd] = get_switch_sd_from_path('./test_case_switch_interface_speed.yaml')
+    with pytest.warns(UserWarning, match="Interface speed 100m on interface swp4 is not known"):
+        [sd] = get_switch_sd_from_path('./test_case_switch_interface_speed.yaml')
 
     # check all switchports are present
     assert 'swp1' in sd['cumulus__device_interfaces']
@@ -444,11 +445,10 @@ def test_switch_interface_speed(capsys):
     assert sd['cumulus__device_interfaces']['swp2']['speed'] == 10000
     assert sd['cumulus__device_interfaces']['swp3']['speed'] == 100000
 
-    # check that we have had the error from parsing
-    assert "Error: Interface speed 100m on interface swp4 is not known" in capsys.readouterr().err
 
 def test_switch_interface_fec(capsys):
-    [sd] = get_switch_sd_from_path("./test_case_switch_fec.yaml")
+    with pytest.warns(UserWarning, match="FEC mode undefined on interface swp4 is not known"):
+        [sd] = get_switch_sd_from_path("./test_case_switch_fec.yaml")
 
     assert 'swp1' in sd['cumulus__device_interfaces']
     assert 'swp2' in sd['cumulus__device_interfaces']
@@ -459,9 +459,5 @@ def test_switch_interface_fec(capsys):
     assert sd['cumulus__device_interfaces']['swp2']['fec'] == 'baser'
     assert sd['cumulus__device_interfaces']['swp3']['fec'] == 'off'
 
-    # check that invalid fec was detected
-    assert "Error: FEC mode undefined on interface swp4 is not known" in capsys.readouterr().err
-
-    
 
     
