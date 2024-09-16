@@ -1,4 +1,5 @@
 import sys
+import warnings
 
 class bcolors:
     HEADER = '\033[95m'
@@ -15,6 +16,9 @@ class Logger:
 
     def __init__(self, name):
         self.name = name
+        warnings.warn("Logger is deprecated, please use native "
+                      "errors and specific warnings / error types "
+                      "where applicable.", DeprecationWarning)
 
     def warning(self, text):
         print(bcolors.FAIL + f"Warning: {text}" + bcolors.ENDC, file=sys.stderr)
