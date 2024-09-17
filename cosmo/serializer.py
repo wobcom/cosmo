@@ -1,6 +1,7 @@
 import ipaddress
 import re
 import json
+import abc
 from collections import defaultdict
 
 from cosmo.logger import Logger
@@ -651,6 +652,30 @@ class RouterSerializer:
         device_stub[f"l2circuits"] = l2circuits
 
         return device_stub
+
+
+class SwitchElement(abc.ABC):
+    @abc.abstractmethod
+    def serialize():
+        pass
+
+class SwitchElementCompound(SwitchElement):
+    # children is a list
+    def add(c: SwitchElement):
+        raise NotImplemented
+
+    def remove(c: SwitchElement):
+        raise NotImplemented
+
+    def getChildren(c: SwitchElement):
+        raise NotImplemented
+
+    def serialize():
+        raise NotImplemented
+
+class InterfaceSwitchElement(SwitchElement):
+    def serialize():
+        raise NotImplemented
 
 
 class SwitchSerializer:

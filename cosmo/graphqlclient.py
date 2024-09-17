@@ -25,6 +25,9 @@ class GraphqlClient:
         return r.json()
 
     def get_data(self, device_config):
+        # TODO add typename everywhere so that the custom JSON parser
+        # can have JSONRPC2.0-style interface and no hazardous
+        # field-guessing for object types
         query_template = Template(
             """
             {
