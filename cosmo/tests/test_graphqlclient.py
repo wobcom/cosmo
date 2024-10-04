@@ -15,10 +15,12 @@ TEST_DEVICE_CFG = {
         'switch2'
     ]}
 
+
 def test_case_query_ok(mocker):
     utils.RequestResponseMock.patchTool(mocker)
     gql = GraphqlClient(TEST_URL, TEST_TOKEN)
     gql.query('check')
+
 
 def test_case_query_nok(mocker):
     with pytest.raises(Exception):
@@ -27,12 +29,25 @@ def test_case_query_nok(mocker):
         gql = GraphqlClient(TEST_URL, TEST_TOKEN)
         gql.query('check')
 
+
 def test_case_get_data(mocker):
-    mockAnswer = []
+    mockAnswer = {}
     postMock = utils.RequestResponseMock.patchTool(
-        mocker,returnData={'status_code': 200, 'text': '{"data":' + str(mockAnswer) + '}'})
+        mocker, returnData={'status_code': 200, 'text': '{"data":' + str(mockAnswer) + '}'}
+    )
     gql = GraphqlClient(TEST_URL, TEST_TOKEN)
-    responseData = gql.get_data(TEST_DEVICE_CFG)
+    responseData = gql.get_device_data(TEST_DEVICE_CFG)
+    assert responseData == mockAnswer
+    postMock.assert_called()
+
+
+def test_case_get_device_data(mocker):
+    mockAnswer = {}
+    postMock = utils.RequestResponseMock.patchTool(
+        mocker, returnData={'status_code': 200, 'text': '{"data":' + str(mockAnswer) + '}'}
+    )
+    gql = GraphqlClient(TEST_URL, TEST_TOKEN)
+    responseData = gql.get_device_data(TEST_DEVICE_CFG)
     assert responseData == mockAnswer
     postMock.assert_called_once()
     kwargs = postMock.call_args.kwargs

@@ -1,4 +1,5 @@
 import json
+from multiprocessing import Pool
 from string import Template
 
 import requests
@@ -24,7 +25,7 @@ class GraphqlClient:
 
         return r.json()
 
-    def get_data(self, device_config):
+    def get_device_data(self, device_config):
         query_template = Template(
             """
             {
@@ -34,7 +35,7 @@ class GraphqlClient:
                 id
                 name
                 serial
-                
+
                 device_type {
                   slug
                 }
@@ -118,18 +119,21 @@ class GraphqlClient:
                  metric
                 }
               }
-              vrf_list {
-                id
-                name
-                description
-                rd
-                export_targets {
-                  name
-                }
-                import_targets {
-                  name
-                }
-              }
+            }"""
+        )
+
+        query = query_template.substitute(
+            device_array=json.dumps(device_config['router'] + device_config['switch'])
+        )
+
+        r = self.query(query)
+
+        return r['data']
+
+
+    def get_l2vpn_data(self):
+        query_template = """
+            {
               l2vpn_list {
                 id
                 name
@@ -163,13 +167,48 @@ class GraphqlClient:
                   }
                 }
               }
-            }"""
-        )
+            }
+        """
 
-        query = query_template.substitute(
-            device_array=json.dumps(device_config['router'] + device_config['switch'])
-        )
-
-        r = self.query(query)
+        r = self.query(query_template)
 
         return r['data']
+
+    def get_vrf_data(self):
+        query_template = """
+            {
+              vrf_list {
+                id
+                name
+                description
+                rd
+                export_targets {
+                  name
+                }
+                import_targets {
+                  name
+                }
+              }
+            }
+        """
+
+        r = self.query(query_template)
+
+        return r['data']
+
+
+    def get_data(self, device_config):
+        with Pool() as pool:
+            device_data = pool.apply_async(self.get_device_data, (device_config, ))
+            l2vpn_data = pool.apply_async(self.get_l2vpn_data, ())
+            vrf_data = pool.apply_async(self.get_vrf_data, ())
+
+            device_data = device_data.get()
+            l2vpn_data = l2vpn_data.get()
+            vrf_data = vrf_data.get()
+
+        return {
+            **device_data,
+            **l2vpn_data,
+            **vrf_data
+        }
