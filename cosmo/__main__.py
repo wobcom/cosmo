@@ -12,6 +12,11 @@ from cosmo.graphqlclient import GraphqlClient
 from cosmo.serializer import RouterSerializer, SwitchSerializer, AbstractRecoverableError
 
 
+
+def info(string: str) -> None:
+    print("[INFO] " + string)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Automagically generate filter lists and BGP sessions for WAN-Core network"
@@ -37,7 +42,7 @@ def main() -> int:
     with open(args.config, 'r') as cfg_file:
         cosmo_configuration = yaml.safe_load(cfg_file)
 
-    print(f"[INFO] Fetching information from Netbox, make sure VPN is enabled on your system.")
+    info(f"Fetching information from Netbox, make sure VPN is enabled on your system.")
 
     netbox_url = os.environ.get("NETBOX_URL")
     netbox_api_token = os.environ.get("NETBOX_API_TOKEN")
@@ -70,7 +75,7 @@ def main() -> int:
         if allowed_hosts and device['name'] not in allowed_hosts and device_fqdn not in allowed_hosts:
             continue
 
-        print(f"[INFO] Generating {device_fqdn}")
+        info(f"Generating {device_fqdn}")
 
         content = None
         try:
