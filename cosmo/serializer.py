@@ -68,29 +68,24 @@ class IPHierarchyNetwork:
 
 
 class RouterSerializer:
-
     def __init__(self, device, l2vpn_list, vrfs):
-        copy = device
-        for k in ["platform", "manufacturer", "slug"]:
-            if not k in copy.keys():
-                raise Exception(f"missing key {k} in device info, can't continue")
-            else:
-                copy = copy[k]
-
-        match device["platform"]["manufacturer"]["slug"]:
-            case 'juniper':
-                self.mgmt_routing_instance = "mgmt_junos"
-                self.mgmt_interface = "fxp0"
-                self.bmc_interface = None
-                self.lo_interface = "lo0"
-            case 'rtbrick':
-                self.mgmt_routing_instance = "mgmt"
-                self.mgmt_interface = "ma1"
-                self.bmc_interface = "bmc0"
-                self.lo_interface = "lo-0/0/0"
-            case other:
-                raise DeviceSerializationError(f"unsupported platform vendor: {other}")
-                return
+        try:
+            match device["platform"]["manufacturer"]["slug"]:
+                case 'juniper':
+                    self.mgmt_routing_instance = "mgmt_junos"
+                    self.mgmt_interface = "fxp0"
+                    self.bmc_interface = None
+                    self.lo_interface = "lo0"
+                case 'rtbrick':
+                    self.mgmt_routing_instance = "mgmt"
+                    self.mgmt_interface = "ma1"
+                    self.bmc_interface = "bmc0"
+                    self.lo_interface = "lo-0/0/0"
+                case other:
+                    raise DeviceSerializationError(f"unsupported platform vendor: {other}")
+                    return
+        except KeyError as ke:
+            raise KeyError(f"missing key in device info, can't continue.") from ke
 
         self.device = device
         self.l2vpn_vlan_terminations, self.l2vpn_interface_terminations = RouterSerializer.process_l2vpn_terminations(l2vpn_list)
