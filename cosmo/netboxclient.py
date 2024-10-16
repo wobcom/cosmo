@@ -375,7 +375,7 @@ class NetboxV4Strategy(NetboxStrategy):
         r = self.query(query)
         graphql_data = r['data']
 
-        static_routes = self.query_rest("/api/plugins/routing/staticroutes/", {"device": device_list})
+        static_routes = self.query_rest("api/plugins/routing/staticroutes/", {"device": device_list})
 
         for d in r['data']['device_list']:
 
