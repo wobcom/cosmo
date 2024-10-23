@@ -8,7 +8,7 @@ import warnings
 import yaml
 import argparse
 
-from cosmo.graphqlclient import GraphqlClient
+from cosmo.netboxclient import NetboxClient
 from cosmo.serializer import RouterSerializer, SwitchSerializer, AbstractRecoverableError
 
 
@@ -52,8 +52,8 @@ def main() -> int:
     if netbox_api_token is None:
         raise Exception("NETBOX_API_TOKEN is empty.")
 
-    gql = GraphqlClient(url=netbox_url, token=netbox_api_token)
-    cosmo_data = gql.get_data(cosmo_configuration['devices'])
+    nc = NetboxClient(url=netbox_url, token=netbox_api_token)
+    cosmo_data = nc.get_data(cosmo_configuration['devices'])
 
     def noop(*args, **kwargs):
         pass

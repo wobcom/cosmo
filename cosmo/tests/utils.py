@@ -1,7 +1,8 @@
 import json
 
+
 class CommonSetup:
-    PROGNAME='cosmo'
+    PROGNAME = 'cosmo'
     TEST_URL = 'https://netbox.example.com'
     TEST_TOKEN = 'token123'
     DEFAULT_ENVIRON = {'NETBOX_URL': TEST_URL, 'NETBOX_API_TOKEN': TEST_TOKEN}
@@ -28,7 +29,6 @@ class CommonSetup:
 
         self.patches += p.getPatches()
 
-
     def stop(self):
         for patch in self.patches:
             self.mocker.stop(patch)
@@ -40,13 +40,20 @@ class RequestResponseMock:
         self.text = kwargs['text']
 
     @staticmethod
-    def patchTool(mocker, returnData={'status_code': 200, 'text': '{"data": {"vrf_list": [], "device_list": []}}'}):
-        postMock = mocker.patch('requests.post', return_value=RequestResponseMock(**returnData))
-        return postMock
+    def patchTool(mocker, graphqlData=None, versionData=None):
+
+        if graphqlData is None:
+            graphqlData = {'status_code': 200, 'text': json.dumps({"data": {"vrf_list": [], "device_list": []}})}
+
+        if versionData is None:
+            versionData = {'status_code': 200, 'text': json.dumps({"netbox-version": "wc_3.7.5-0.7.0"})}
+
+        postMock1 = mocker.patch('requests.get', return_value=RequestResponseMock(**versionData))
+        postMock2 = mocker.patch('requests.post', return_value=RequestResponseMock(**graphqlData))
+        return [postMock1, postMock2]
 
     def json(self):
         return json.loads(self.text)
-
 
 
 # it has to be stateful - so I'm making an object
@@ -69,5 +76,6 @@ class PatchIoFilePath:
         self.patches.append(self.mocker.patch(self.namespace + '.open', self._openReplacement))
         self.patches.append(self.mocker.patch(self.namespace + '.os.path.isfile',
                                               lambda f: True if f == self.requestedPath else False))
+
     def getPatches(self):
         return self.patches

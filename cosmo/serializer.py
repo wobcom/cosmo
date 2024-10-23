@@ -102,7 +102,7 @@ class RouterSerializer:
         for l2vpn in l2vpn_list:
             if not l2vpn["name"].startswith("WAN: "):
                 continue
-            if l2vpn['type'] == "VPWS" and len(l2vpn['terminations']) != 2:
+            if l2vpn['type'].lower() == "vpws" and len(l2vpn['terminations']) != 2:
                 warnings.warn(
                     f"VPWS circuits are only allowed to have two terminations. {l2vpn['name']} has {len(l2vpn['terminations'])} terminations, ignoring...")
                 continue
@@ -111,7 +111,7 @@ class RouterSerializer:
                     "VLANType", "InterfaceType"]:
                     warnings.warn(f"Found unsupported L2VPN termination in {l2vpn['name']}, ignoring...")
                     continue
-                if l2vpn['type'] == "VPWS" and termination['assigned_object']['__typename'] != "InterfaceType":
+                if l2vpn['type'].lower() == "vpws" and termination['assigned_object']['__typename'] != "InterfaceType":
                     warnings.warn(
                         f"Found non-interface termination in L2VPN {l2vpn['name']}, ignoring... VPWS only supports interace terminations.")
                     continue
@@ -172,7 +172,8 @@ class RouterSerializer:
 
         for ip in iface["ip_addresses"]:
             ipa = ipaddress.ip_interface(ip["address"])
-            is_secondary = ip.get("role", None) == "SECONDARY"
+            role = ip.get("role", None)
+            is_secondary = role and role.lower() == "secondary"
 
             # abort if a private IP is used on a unit without a VRF
             # we use !is_global instead of is_private since the latter ignores 100.64/10
@@ -250,7 +251,7 @@ class RouterSerializer:
             unit_stub["mtu"] = iface["mtu"]
 
         interface_vlan_id = None
-        if iface["mode"] == "ACCESS":
+        if iface["mode"] and iface["mode"].lower() == "access":
             if not iface.get("untagged_vlan"):
                 warnings.warn(
                     f"Interface {iface['name']} on device {self.device['name']} is mode ACCESS but has no untagged vlan, skipping"
@@ -268,9 +269,9 @@ class RouterSerializer:
 
         l2vpn = l2vpn_vlan_attached or l2vpn_interface_attached
         if l2vpn:
-            if l2vpn['type'] in ["VPWS", "EVPL"] and unit_stub.get('vlan'):
+            if l2vpn['type'].lower() in ["vpws", "evpl"] and unit_stub.get('vlan'):
                 unit_stub["encapsulation"] = "vlan-ccc"
-            elif l2vpn['type'] in ["MPLS_EVPN", "VXLAN_EVPN"]:
+            elif l2vpn['type'].lower() in ["mpls_evpn", "vxlan_evpn"]:
                 unit_stub["encapsulation"] = "vlan-bridge"
 
             # We need to collect the used L2VPNs for rendering those afterwards in other places within the configuration.
@@ -423,15 +424,15 @@ class RouterSerializer:
                     case _:
                         warnings.warn(f"FEC mode {fec} on interface {interface['name']} is not known, ignoring")
 
-            if interface.get("type") == "LAG":
+            if interface.get("type", '').lower() == "lag":
                 interface_stub["type"] = "lag"
-            elif interface.get("type") == "LOOPBACK":
+            elif interface.get("type", '').lower() == "loopback":
                 interface_stub["type"] = "loopback"
-            elif interface.get("type") == "VIRTUAL":
+            elif interface.get("type", '').lower() == "virtual":
                 interface_stub["type"] = "virtual"
             elif tags.has_key("access"):
                 interface_stub["type"] = "access"
-            elif "BASE" in interface.get("type", ""):
+            elif "base" in interface.get("type", "").lower():
                 interface_stub["type"] = "physical"
 
             if tags.has_key("access"):
@@ -467,7 +468,7 @@ class RouterSerializer:
                         continue
 
                     l2vpn = self.l2vpn_interface_terminations.get(si["id"])
-                    if len(sub_interfaces) == 1 and l2vpn and l2vpn['type'] in ["VPWS", "EPL", "EVPL"] \
+                    if len(sub_interfaces) == 1 and l2vpn and l2vpn['type'].lower() in ["vpws", "epl", "evpl"] \
                       and not si.get('vlan') and not si.get('custom_fields', {}).get("outer_tag", None):
                         interface_stub["encapsulation"] = "ethernet-ccc"
 
@@ -520,7 +521,7 @@ class RouterSerializer:
             router_id = next(iter(interfaces[self.lo_interface]["units"][0]["families"]["inet"]["address"].keys())).split("/")[0]
 
         for _, l2vpn in self.l2vpns.items():
-            if l2vpn['type'] == "VXLAN_EVPN":
+            if l2vpn['type'].lower() == "vxlan_evpn":
                 self.routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
                     "bridge_domains": [
                         {
@@ -545,7 +546,7 @@ class RouterSerializer:
                     "route_distinguisher": "9136:" + str(l2vpn["identifier"]),
                     "vrf_target": "target:1:" + str(l2vpn["identifier"]),
                 }
-            elif l2vpn['type'] == "MPLS_EVPN":
+            elif l2vpn['type'].lower() == "mpls_evpn":
                 self.routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
                     "interfaces": [
                         i["name"] for i in l2vpn["interfaces"]
@@ -558,8 +559,8 @@ class RouterSerializer:
                     "route_distinguisher": "9136:" + str(l2vpn["identifier"]),
                     "vrf_target": "target:1:" + str(l2vpn["identifier"]),
                 }
-            elif l2vpn['type'] == "VPWS":
-                l2vpn_interfaces = {};
+            elif l2vpn['type'].lower() == "vpws":
+                l2vpn_interfaces = {}
                 for i in l2vpn["interfaces"]:
                     id_local = int(i['id'])
 
@@ -589,8 +590,8 @@ class RouterSerializer:
                     "route_distinguisher": "9136:" + str(l2vpn["identifier"]),
                     "vrf_target": "target:1:" + str(l2vpn["identifier"]),
                 }
-            elif l2vpn['type'] == "EPL" or l2vpn['type'] == "EVPL":
-                l2vpn_interfaces = {};
+            elif l2vpn['type'].lower() == "epl" or l2vpn['type'].lower() == "evpl":
+                l2vpn_interfaces = {}
                 for i in l2vpn["interfaces"]:
                     for termination in l2vpn["terminations"]:
                         if termination["assigned_object"]["id"] == i["id"]:
@@ -613,7 +614,9 @@ class RouterSerializer:
                     # We pick a `virtual` interface which is not in a VRF and which parent is a `loopback`
                     # Then we pick the first IPv4 address.
                     for a in remote_interfaces:
-                        if a["vrf"] == None and a["parent"] and a["parent"]["type"] == "LOOPBACK" and a["parent"]["name"].startswith("lo"):
+                        if a["vrf"] is None and a["parent"] and \
+                                a["parent"]["type"] and a["parent"]["type"].lower() == "loopback" and \
+                                a["parent"]["name"].startswith("lo"):
                             for ip in a['ip_addresses']:
                                 ipa = ipaddress.ip_interface(ip["address"])
                                 if ipa.version == 4:
@@ -628,7 +631,7 @@ class RouterSerializer:
 
                 l2circuits[l2vpn["name"].replace("WAN: ", "")] = {
                     "interfaces": l2vpn_interfaces,
-                    "description": f"{l2vpn['type']}: " + l2vpn["name"].replace("WAN: ", "") + " via " + remote_device,
+                    "description": f"{l2vpn['type'].upper()}: " + l2vpn["name"].replace("WAN: ", "") + " via " + remote_device,
                 }
 
         for _, l3vpn in self.l3vpns.items():
@@ -689,7 +692,7 @@ class SwitchSerializer:
 
             interface_stub["mtu"] = interface["mtu"] if interface["mtu"] else 10000
 
-            if interface["type"] == "LAG":
+            if interface["type"] and interface['type'].lower() == "lag":
                 interface_stub["bond_mode"] = "802.3ad"
                 interface_stub["bond_slaves"] = sorted([i["name"] for i in self.device["interfaces"] if i["lag"] and i["lag"]["id"] == interface["id"]])
 
