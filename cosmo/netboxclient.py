@@ -5,17 +5,19 @@ from urllib.parse import urlencode
 import requests
 
 
-class GraphqlClient:
+class NetboxClient:
     def __init__(self, url, token):
         self.url = url
         self.token = token
 
         v = self.query_version()
 
-        if v == "3.x":
-            self.child_client = GraphqlClientV3(url, token)
-        elif v == "4.x":
-            self.child_client = GraphqlClientV4(url, token)
+        if v.startswith("wc_3."):
+            print("[INFO] Using version 3.x strategy...")
+            self.child_client = NetboxV3Strategy(url, token)
+        elif v.startswith("4."):
+            print("[INFO] Using version 4.x strategy...")
+            self.child_client = NetboxV4Strategy(url, token)
         else:
             raise Exception("Unknown Version")
 
@@ -32,13 +34,12 @@ class GraphqlClient:
             raise Exception("Error querying api: " + r.text)
 
         json = r.json()
-        return "3.x" if str(json['netbox-version']).startswith("wc_3") else "4.x"
-
+        return json['netbox-version']
     def get_data(self, device_config):
         return self.child_client.get_data(device_config)
 
 
-class GraphqlBase:
+class NetboxStrategy:
     def __init__(self, url, token):
         self.url = url
         self.token = token
@@ -85,7 +86,7 @@ class GraphqlBase:
         return return_array
 
 
-class GraphqlClientV3(GraphqlBase):
+class NetboxV3Strategy(NetboxStrategy):
 
     def get_data(self, device_config):
         query_template = Template(
@@ -238,7 +239,7 @@ class GraphqlClientV3(GraphqlBase):
         return r['data']
 
 
-class GraphqlClientV4(GraphqlBase):
+class NetboxV4Strategy(NetboxStrategy):
 
     def get_data(self, device_config):
         query_template = Template(
