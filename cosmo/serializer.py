@@ -321,16 +321,21 @@ class RouterSerializer:
 
             if iface["parent"]:
                 parent = [i for i in self.device["interfaces"] if i["id"] == iface["parent"]["id"]][0]
-                connected = parent["connected_endpoints"][0]["device"]
-                addresses = set()
-                for a in connected["interfaces"]:
-                    for i in a["ip_addresses"]:
-                        if i["address"] == connected["primary_ip4"]["address"]:
-                            continue
-                        addresses.add(ipaddress.ip_network(i['address'], strict=False))
+                connected_element = next(iter(parent["connected_endpoints"]), None)
+                if connected_element is None:
+                    warnings.warn(f"Interface {iface['name']} on device {self.device['name']} has a bgp:cpe tag on it without a connected device, skipping...")
+                else:
+                    cpe = connected_element["device"]
 
-                policy_v4["import_list"] = [a.with_prefixlen for a in addresses if type(a) is ipaddress.IPv4Network]
-                policy_v6["import_list"] = [a.with_prefixlen for a in addresses if type(a) is ipaddress.IPv6Network]
+                    addresses = set()
+                    for a in cpe["interfaces"]:
+                        for i in a["ip_addresses"]:
+                            if cpe["primary_ip4"] and i["address"] == cpe["primary_ip4"]["address"]:
+                                continue
+                            addresses.add(ipaddress.ip_network(i['address'], strict=False))
+
+                    policy_v4["import_list"] = [a.with_prefixlen for a in addresses if type(a) is ipaddress.IPv4Network]
+                    policy_v6["import_list"] = [a.with_prefixlen for a in addresses if type(a) is ipaddress.IPv6Network]
 
             self.routing_instances[vrfname]["protocols"]["bgp"]["groups"][groupname] = {
               "any_as": True,
