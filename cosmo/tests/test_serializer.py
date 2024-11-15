@@ -3,7 +3,7 @@ import pytest
 import copy
 from coverage.html import os
 
-from cosmo.serializer import RouterSerializer, SwitchSerializer
+from cosmo.serializer import RouterSerializer, SwitchSerializer, RouterSerializerConfig
 
 
 def _yaml_load(path):
@@ -18,6 +18,7 @@ def get_router_s_from_path(path):
     test_data = _yaml_load(path)
     return [
         RouterSerializer(
+            cfg=RouterSerializerConfig(),
             device=device,
             l2vpn_list=test_data['l2vpn_list'],
             vrfs=test_data['vrf_list'])
@@ -43,13 +44,13 @@ def test_router_platforms():
     assert juniper_s.mgmt_interface == "fxp0"
     assert juniper_s.bmc_interface == None
     assert juniper_s.lo_interface == "lo0"
-    
+
     [rtbrick_s] = get_router_s_from_path("./test_case_l3vpn.yml")
     assert rtbrick_s.mgmt_routing_instance == "mgmt"
     assert rtbrick_s.mgmt_interface == "ma1"
     assert rtbrick_s.bmc_interface == "bmc0"
     assert rtbrick_s.lo_interface == "lo-0/0/0"
-    
+
     with pytest.raises(Exception, match="unsupported platform vendor: ACME"):
         get_router_s_from_path("./test_case_vendor_unknown.yaml")
 
@@ -59,9 +60,12 @@ def test_router_platforms():
 
 def test_l2vpn_errors():
     serialize = lambda y: \
-        RouterSerializer(device=y['device_list'][0],
-                         l2vpn_list=y['l2vpn_list'],
-                         vrfs=y['vrf_list'])
+        RouterSerializer(
+            cfg=RouterSerializerConfig(),
+            device=y['device_list'][0],
+            l2vpn_list=y['l2vpn_list'],
+            vrfs=y['vrf_list']
+        )
 
     template = _yaml_load("./test_case_l2x_err_template.yaml")
 
@@ -83,8 +87,8 @@ def test_l2vpn_errors():
         'name': 'WAN: unsupported termination types 1',
         'type': 'VPWS',
         'terminations': [
-            { 'assigned_object': None },
-            { 'assigned_object': { '__typename': None }}]})
+            {'assigned_object': None},
+            {'assigned_object': {'__typename': None}}]})
     with pytest.warns(UserWarning, match="Found unsupported L2VPN termination in"):
         serialize(unsupported_type_terminations)
 
@@ -135,7 +139,6 @@ def test_router_logical_interface():
 
 
 def test_router_lag():
-
     [sd] = get_router_sd_from_path("./test_case_lag.yaml")
 
     assert 'et-0/0/0' in sd['interfaces']
@@ -148,7 +151,6 @@ def test_router_lag():
 
 
 def test_router_fec():
-
     [sd] = get_router_sd_from_path("./test_case_fec.yaml")
 
     assert 'et-0/0/0' in sd['interfaces']
@@ -158,7 +160,6 @@ def test_router_fec():
     assert sd['interfaces']['et-0/0/0']['gigether']['fec'] == 'fec91'
     assert sd['interfaces']['et-0/0/1']['gigether']['fec'] == 'fec74'
     assert sd['interfaces']['et-0/0/2']['gigether']['fec'] == 'none'
-
 
 
 def test_router_vrf_rib():
@@ -185,7 +186,6 @@ def test_router_vrf_rib():
 
 
 def test_router_ips():
-
     [sd] = get_router_sd_from_path("./test_case_ips.yaml")
 
     assert 'lo-0/0/0' in sd['interfaces']
@@ -205,12 +205,11 @@ def test_router_ips():
 
 
 def test_router_case_mpls_evpn():
-
     sd = get_router_sd_from_path("./test_case_mpls_evpn.yaml")
 
     for d in sd:
         assert 'ae0' in d['interfaces']
-        assert  338 in  d['interfaces']['ae0']['units']
+        assert 338 in d['interfaces']['ae0']['units']
 
         unit = d['interfaces']['ae0']['units'][338]
 
@@ -236,12 +235,11 @@ def test_router_case_mpls_evpn():
 
 
 def test_router_case_vpws():
-
     sd = get_router_sd_from_path("./test_case_vpws.yaml")
 
     for index, d in enumerate(sd):
         assert 'et-0/0/0' in d['interfaces']
-        assert  0 in  d['interfaces']['et-0/0/0']['units']
+        assert 0 in d['interfaces']['et-0/0/0']['units']
 
         unit = d['interfaces']['et-0/0/0']['units'][0]
 
@@ -268,7 +266,6 @@ def test_router_case_vpws():
 
 
 def test_router_case_local_l2x():
-
     [d] = get_router_sd_from_path("./test_case_local_l2x.yaml")
 
     assert 'ifp-0/0/4' in d['interfaces']
@@ -300,9 +297,7 @@ def test_router_case_local_l2x():
     assert l2c['interfaces']['ifp-0/0/5.7']['remote_ip'] == '45.139.136.10'
 
 
-
 def test_router_case_local_l3vpn():
-
     [d] = get_router_sd_from_path("./test_case_l3vpn.yml")
 
     # We do not need to check the interfaces further, there is no configuration to be found there.
@@ -326,8 +321,8 @@ def test_router_case_local_l3vpn():
 
     assert ri['routing_options'] == {}
 
-def test_router_case_local_bgpcpe():
 
+def test_router_case_local_bgpcpe():
     [d] = get_router_sd_from_path("./test_case_bgpcpe.yml")
 
     # We do not need to check the interfaces further, there is no configuration to be found there.
@@ -357,6 +352,7 @@ def test_router_case_local_bgpcpe():
     assert groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv4_unicast']['policy']['import_list'] == ["10.1.0.0/28"]
     assert groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv6_unicast']['policy']['import_list'] == []
 
+
 def test_router_case_policer():
     [d] = get_router_sd_from_path("./test_case_policer.yaml")
 
@@ -376,12 +372,14 @@ def test_router_case_policer():
     assert d['interfaces']['ae0']['units'][101]['families']['inet6']['filters'] == ['input-list [ EDGE_FILTER_V6 ]']
     assert d['interfaces']['ae0']['units'][101]['families']['inet6']['sampling'] == True
 
+
 def test_switch_lldp():
     [sd] = get_switch_sd_from_path('./test_case_switch_lldp.yaml')
 
     assert 'swp52' in sd['cumulus__device_interfaces']
     assert 'lldp' in sd['cumulus__device_interfaces']['swp52']
     assert True == sd['cumulus__device_interfaces']['swp52']['lldp']
+
 
 def test_switch_vlans():
     [sd] = get_switch_sd_from_path('./test_case_switch_vlan.yaml')
@@ -400,6 +398,7 @@ def test_switch_vlans():
     # check bridge attrs
     assert 10000 == sd['cumulus__device_interfaces']['bridge']['mtu']
     assert sorted(['swp1', 'lag_2000']) == sd['cumulus__device_interfaces']['bridge']['bridge_ports']
+
 
 def test_switch_mgmt_interface():
     [sd] = get_switch_sd_from_path('./test_case_switch_mgmt.yaml')
@@ -420,6 +419,7 @@ def test_switch_mgmt_interface():
     # description is set (optional)
     assert 'management interface' == sd['cumulus__device_interfaces']['eth0']['description']
 
+
 def test_switch_case_lag():
     [sd] = get_switch_sd_from_path('./test_case_switch_lag.yaml')
 
@@ -433,6 +433,7 @@ def test_switch_case_lag():
     # check that the interfaces are registered as lag members
     assert 'swp18' in sd['cumulus__device_interfaces']['lag_42']['bond_slaves']
     assert 'swp17' in sd['cumulus__device_interfaces']['lag_42']['bond_slaves']
+
 
 def test_switch_interface_speed():
     with pytest.warns(UserWarning, match="Interface speed 100m on interface swp4 is not known"):
@@ -462,6 +463,3 @@ def test_switch_interface_fec():
     assert sd['cumulus__device_interfaces']['swp1']['fec'] == 'rs'
     assert sd['cumulus__device_interfaces']['swp2']['fec'] == 'baser'
     assert sd['cumulus__device_interfaces']['swp3']['fec'] == 'off'
-
-
-    

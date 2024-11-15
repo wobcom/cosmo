@@ -66,9 +66,16 @@ class IPHierarchyNetwork:
         retVal.update(secondaryIPs)
         return retVal
 
+class RouterSerializerConfig:
+    def __init__(self, config = {}):
+        self.config = config
+
+    @property
+    def allow_private_ips(self):
+        return self.config.get("allow_private_ips", False)
 
 class RouterSerializer:
-    def __init__(self, device, l2vpn_list, vrfs):
+    def __init__(self, cfg, device, l2vpn_list, vrfs):
         try:
             match device["platform"]["manufacturer"]["slug"]:
                 case 'juniper':
@@ -87,6 +94,7 @@ class RouterSerializer:
         except KeyError as ke:
             raise KeyError(f"missing key in device info, can't continue.") from ke
 
+        self.cfg = cfg
         self.device = device
         self.l2vpn_vlan_terminations, self.l2vpn_interface_terminations = RouterSerializer.process_l2vpn_terminations(l2vpn_list)
         self.vrfs = vrfs
@@ -177,7 +185,7 @@ class RouterSerializer:
 
             # abort if a private IP is used on a unit without a VRF
             # we use !is_global instead of is_private since the latter ignores 100.64/10
-            if not iface["vrf"] and not ipa.is_global and not is_mgmt:
+            if not iface["vrf"] and not ipa.is_global and not is_mgmt and not self.cfg.allow_private_ips:
                 raise InterfaceSerializationError(f"Private IP {ipa} used on interface {iface['name']} in default VRF for device {self.device['name']}. Did you forget to configure a VRF?")
 
             if ipa.version == 4:
