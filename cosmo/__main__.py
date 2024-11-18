@@ -1,4 +1,3 @@
-import ipaddress
 import json
 import os
 import sys
@@ -8,7 +7,7 @@ import warnings
 import yaml
 import argparse
 
-from cosmo.netboxclient import NetboxClient
+from cosmo.clients.netbox import NetboxClient
 from cosmo.serializer import RouterSerializer, SwitchSerializer, AbstractRecoverableError, RouterSerializerConfig
 
 
