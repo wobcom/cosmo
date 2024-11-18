@@ -76,6 +76,60 @@ class ConnectedDevicesDataQuery(ParallelQuery):
 
         return data
 
+class LoopbackDataQuery(ParallelQuery):
+    def _fetch_data(self, kwargs):
+        # Note: This does not use the device list, because we can have other devices, which are not
+        query_template = Template('''
+            query{
+              interface_list(filters: {
+                name: {starts_with: "lo"},
+                type: {exact:"loopback"}
+              }) {
+                id,
+                name,
+                child_interfaces {
+                  id,
+                  name,
+                  vrf {
+                    id
+                  },
+                  ip_addresses {
+                    address,
+                    family {
+                     value,
+                    }
+                  }
+                }
+                device{
+                  name,
+                }
+              }
+            }
+        ''')
+
+        return self.client.query(query_template.substitute())['data']
+
+    def _merge_into(self, data: object, query_data):
+
+        loopbacks = dict()
+
+        for interface in query_data['interface_list']:
+            child_interface = next(filter(lambda i: i['vrf'] is None, interface['child_interfaces']), None)
+            if not child_interface:
+                continue
+            device_name = interface['device']['name']
+
+            loopbacks[device_name] = {
+                "ipv4": next(filter(lambda l: l['family']['value'] == 4, child_interface['ip_addresses']))['address'],
+                "ipv6": next(filter(lambda l: l['family']['value'] == 6, child_interface['ip_addresses']))['address']
+            }
+
+
+        return {
+            **data,
+            'loopbacks': loopbacks
+        }
+
 
 class L2VPNDataQuery(ParallelQuery):
     def _fetch_data(self, kwargs):
@@ -97,18 +151,6 @@ class L2VPNDataQuery(ParallelQuery):
                       id
                       device {
                         name
-                        interfaces (filters:{type: {exact: "virtual"}}) {
-                          ip_addresses {
-                            address
-                          }
-                          parent {
-                            name
-                            type
-                          }
-                          vrf {
-                            id
-                          }
-                        }
                       }
                     }
                   }
@@ -269,6 +311,7 @@ class NetboxV4Strategy:
             L2VPNDataQuery(self.client, device_list=device_list),
             StaticRouteQuery(self.client, device_list=device_list),
             ConnectedDevicesDataQuery(self.client, device_list=device_list),
+            LoopbackDataQuery(self.client, device_list=device_list)
         ])
 
         with Pool() as pool:
