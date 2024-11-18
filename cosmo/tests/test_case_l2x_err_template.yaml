@@ -14,3 +14,7 @@ device_list:
   staticroute_set: []
 l2vpn_list: []
 vrf_list: []
+loopbacks:
+   TEST0001:
+      ipv4: "45.139.136.10/24"
+      ipv6: ""

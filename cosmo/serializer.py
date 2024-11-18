@@ -614,37 +614,42 @@ class RouterSerializer:
                     warnings.warn(f"EPL or EVPL {l2vpn['name']} has not exact two terminations...")
                     continue
 
-                device_names = list(set([t['assigned_object']['device']['name'] for t in l2vpn["terminations"]]))
+                local_termination_device = next(filter(
+                    lambda term: term["assigned_object"]["device"]['name'] == self.device['name'], l2vpn["terminations"]
+                ))
+                other_termination_device = next(filter(
+                    lambda term: term["id"] != local_termination_device['id'], l2vpn["terminations"]
+                ))
+                other_device = other_termination_device["assigned_object"]["device"]["name"]
 
-                for i in l2vpn["interfaces"]:
-                    local_termination = next(filter(
-                        lambda term: term["assigned_object"]["id"] == i["id"], l2vpn["terminations"]
+                for termination in l2vpn["terminations"]:
+                    # If interface is None, it is not generated yet, since l2vpn['interfaces'] is initialzied lazy.
+                    # This can also happen, if you have device not in your generation list.
+                    interface = next(filter(lambda i: i['id'] == termination['assigned_object']['id'], l2vpn['interfaces']), None)
+                    if not interface:
+                        continue
+
+                    # Note: We need the other termination here.
+                    # This might be a remote termination or another local termination, so we cannot just check for another device name here.
+                    other_termination = next(filter(
+                        lambda term: term["id"] != termination['id'], l2vpn["terminations"]
                     ))
-                    remote_termination = next(filter(
-                        lambda term: term["assigned_object"]["id"] != i["id"], l2vpn["terminations"]
-                    ))
 
-                    id_local = int(local_termination["id"]) + 1000000
-                    id_remote = int(remote_termination["id"]) + 1000000
-                    remote_device = remote_termination["assigned_object"]["device"]["name"]
+                    id_local = int(termination["id"]) + 1000000
+                    id_remote = int(other_termination["id"]) + 1000000
+                    other_device = other_termination["assigned_object"]["device"]["name"]
+                    other_ip = ipaddress.ip_interface(self.loopbacks[other_device]['ipv4'])
 
-                    remote_ip = self.loopbacks[remote_device]['ipv4']
-
-                    l2vpn_interfaces[i["name"]] = {
+                    l2vpn_interfaces[interface["name"]] = {
                         "local_label": id_local,
                         "remote_label": id_remote,
-                        "remote_ip": remote_ip,
+                        "remote_ip": str(other_ip.ip),
                     }
-
-                if len(device_names) == 1:
-                    descriptive_name = "via " + device_names[0]
-                else:
-                    descriptive_name = "between " + ("and".join(device_names))
 
                 l2circuits[l2vpn["name"].replace("WAN: ", "")] = {
                     "interfaces": l2vpn_interfaces,
-                    "description":
-                        f"{l2vpn['type'].upper()}: " + l2vpn["name"].replace("WAN: ", "") + " " + descriptive_name,
+                    "description": f"{l2vpn['type'].upper()}: " + l2vpn["name"].replace("WAN: ",
+                                                                                        "") + f" via {other_device}",
                 }
 
         for _, l3vpn in self.l3vpns.items():

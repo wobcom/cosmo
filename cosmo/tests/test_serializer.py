@@ -21,7 +21,9 @@ def get_router_s_from_path(path):
             cfg=RouterSerializerConfig(),
             device=device,
             l2vpn_list=test_data['l2vpn_list'],
-            vrfs=test_data['vrf_list'])
+            vrfs=test_data['vrf_list'],
+            loopbacks=test_data.get('loopbacks', {}),
+        )
         for device in test_data['device_list']]
 
 
@@ -64,7 +66,8 @@ def test_l2vpn_errors():
             cfg=RouterSerializerConfig(),
             device=y['device_list'][0],
             l2vpn_list=y['l2vpn_list'],
-            vrfs=y['vrf_list']
+            vrfs=y['vrf_list'],
+            loopbacks=y['loopbacks']
         )
 
     template = _yaml_load("./test_case_l2x_err_template.yaml")
