@@ -206,6 +206,6 @@ l2vpn_list:
         name: TEST0001
       id: '183167'
     id: '850'
-  type: MPLS_EVPN
+  type: mpls-evpn
 
 vrf_list: []

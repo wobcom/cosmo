@@ -279,7 +279,8 @@ class RouterSerializer:
         if l2vpn:
             if l2vpn['type'].lower() in ["vpws", "evpl"] and unit_stub.get('vlan'):
                 unit_stub["encapsulation"] = "vlan-ccc"
-            elif l2vpn['type'].lower() in ["mpls_evpn", "vxlan_evpn"]:
+            # Note: Netbox v4 uses minus, Netbox v3 uses underscore.
+            elif l2vpn['type'].lower() in ["mpls_evpn", "vxlan_evpn", "mpls-evpn", "vxlan-evpn"]:
                 unit_stub["encapsulation"] = "vlan-bridge"
 
             # We need to collect the used L2VPNs for rendering those afterwards in other places within the configuration.
@@ -534,7 +535,7 @@ class RouterSerializer:
             router_id = next(iter(interfaces[self.lo_interface]["units"][0]["families"]["inet"]["address"].keys())).split("/")[0]
 
         for _, l2vpn in self.l2vpns.items():
-            if l2vpn['type'].lower() == "vxlan_evpn":
+            if l2vpn['type'].lower() in ["vxlan_evpn", "vxlan-evpn"]:
                 self.routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
                     "bridge_domains": [
                         {
@@ -559,7 +560,7 @@ class RouterSerializer:
                     "route_distinguisher": "9136:" + str(l2vpn["identifier"]),
                     "vrf_target": "target:1:" + str(l2vpn["identifier"]),
                 }
-            elif l2vpn['type'].lower() == "mpls_evpn":
+            elif l2vpn['type'].lower() in ["mpls_evpn", "mpls-evpn"]:
                 self.routing_instances[l2vpn["name"].replace("WAN: ", "")] = {
                     "interfaces": [
                         i["name"] for i in l2vpn["interfaces"]
