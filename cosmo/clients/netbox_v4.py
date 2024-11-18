@@ -76,6 +76,7 @@ class ConnectedDevicesDataQuery(ParallelQuery):
 
         return data
 
+
 class L2VPNDataQuery(ParallelQuery):
     def _fetch_data(self, kwargs):
         query_template = Template('''
@@ -166,14 +167,15 @@ class StaticRouteQuery(ParallelQuery):
 
         return data
 
+
 class DeviceDataQuery(ParallelQuery):
     def _fetch_data(self, kwargs):
-        device_list = kwargs.get("device_list")
+        device = kwargs.get("device")
         query_template = Template(
             """
             query {
               device_list(filters: {
-                name: { in_list: $device_list },
+                name: { i_exact: $device },
               }) {
                 id
                 name
@@ -234,15 +236,17 @@ class DeviceDataQuery(ParallelQuery):
         )
 
         query = query_template.substitute(
-            device_list=json.dumps(device_list)
+            device=json.dumps(device)
         )
         return self.client.query(query)['data']
 
-    def _merge_into(self, data: object, query_data):
-        return {
-            **data,
-            **query_data,
-        }
+    def _merge_into(self, data: dict, query_data):
+        if 'device_list' not in data:
+            data['device_list'] = []
+
+        data['device_list'].extend(query_data['device_list'])
+
+        return data
 
 
 class NetboxV4Strategy:
@@ -253,13 +257,19 @@ class NetboxV4Strategy:
     def get_data(self, device_config):
         device_list = device_config['router'] + device_config['switch']
 
-        queries = [
-            DeviceDataQuery(self.client, device_list=device_list),
+        queries = list()
+
+        for d in device_list:
+            queries.append(
+                DeviceDataQuery(self.client, device=d)
+            )
+
+        queries.extend([
             VrfDataQuery(self.client, device_list=device_list),
             L2VPNDataQuery(self.client, device_list=device_list),
             StaticRouteQuery(self.client, device_list=device_list),
             ConnectedDevicesDataQuery(self.client, device_list=device_list),
-        ]
+        ])
 
         with Pool() as pool:
 
