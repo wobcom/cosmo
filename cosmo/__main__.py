@@ -8,11 +8,10 @@ import yaml
 import argparse
 
 from cosmo.clients.netbox import NetboxClient
+from cosmo.log import info
 from cosmo.serializer import RouterSerializer, SwitchSerializer, AbstractRecoverableError, RouterSerializerConfig
 
 
-def info(string: str) -> None:
-    print("[INFO] " + string)
 
 
 def main() -> int:

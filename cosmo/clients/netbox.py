@@ -2,7 +2,7 @@ import time
 
 import requests
 
-from cosmo.clients.netbox_v3 import NetboxV3Strategy
+from cosmo import log
 from cosmo.clients.netbox_v4 import NetboxV4Strategy
 
 
@@ -13,11 +13,8 @@ class NetboxClient:
 
         self.version = self.query_version()
 
-        if self.version.startswith("wc_3."):
-            print("[INFO] Using version 3.x strategy...")
-            self.child_client = NetboxV3Strategy(url, token)
-        elif self.version.startswith("4."):
-            print("[INFO] Using version 4.x strategy...")
+        if self.version.startswith("4."):
+            log.info("Using version 4.x strategy...")
             self.child_client = NetboxV4Strategy(url, token)
         else:
             raise Exception("Unknown Version")
@@ -42,7 +39,7 @@ class NetboxClient:
         data = self.child_client.get_data(device_config)
         end_time = time.perf_counter()
         diff_time = end_time - start_time
-        print(f"[INFO] Data fetching took {round(diff_time, 2)} s...")
+        log.info(f"Data fetching took {round(diff_time, 2)} s...")
 
         return data
 
