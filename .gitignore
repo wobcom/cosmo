@@ -6,7 +6,6 @@ cosmo.yml
 .direnv
 leaf*.json
 
-cosmo_data.yaml
 machines/**
 
 .coverage

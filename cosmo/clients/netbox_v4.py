@@ -85,10 +85,8 @@ class LoopbackDataQuery(ParallelQuery):
                 name: {starts_with: "lo"},
                 type: {exact:"loopback"}
               }) {
-                id,
                 name,
                 child_interfaces {
-                  id,
                   name,
                   vrf {
                     id
@@ -119,9 +117,11 @@ class LoopbackDataQuery(ParallelQuery):
                 continue
             device_name = interface['device']['name']
 
+            l_ipv4 = next(filter(lambda l: l['family']['value'] == 4, child_interface['ip_addresses']), None)
+            l_ipv6 = next(filter(lambda l: l['family']['value'] == 6, child_interface['ip_addresses']), None)
             loopbacks[device_name] = {
-                "ipv4": next(filter(lambda l: l['family']['value'] == 4, child_interface['ip_addresses']))['address'],
-                "ipv6": next(filter(lambda l: l['family']['value'] == 6, child_interface['ip_addresses']))['address']
+                "ipv4": l_ipv4['address'] if l_ipv4 else None,
+                "ipv6": l_ipv6['address'] if l_ipv6 else None
             }
 
 

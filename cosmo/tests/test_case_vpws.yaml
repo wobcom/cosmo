@@ -130,3 +130,8 @@ l2vpn_list:
     id: '866'
   type: VPWS
 vrf_list: []
+loopbacks:
+  TEST0002:
+    ipv4: 45.139.136.10/24
+  TEST0001:
+    ipv4: 45.139.136.11/24

@@ -111,3 +111,19 @@ vrf_list:
   - name: target:9136:407
   name: L3VPN
   rd: null
+# This has some double use and gets put into NetboxClient and RouterSerializer.
+# Therefore it has the same data twice in different formats.
+loopback_interface_list:
+  - name: "lo0"
+    device:
+      name: "TEST0001"
+    child_interfaces:
+      - name: "lo0.0"
+        vrf: null
+        ip_addresses:
+          - address: 45.139.136.10/24
+            family:
+              value: 4
+loopbacks:
+  TEST0001:
+    ipv4: 45.139.136.10/24
