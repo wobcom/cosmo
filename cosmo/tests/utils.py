@@ -52,7 +52,8 @@ class RequestResponseMock:
             request_lists = [
                 "device_list",
                 "vrf_list",
-                "l2vpn_list"
+                "l2vpn_list",
+                "interface_list"
             ]
             retVal = dict()
 

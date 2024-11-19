@@ -1,7 +1,7 @@
 import pytest
 
 import cosmo.tests.utils as utils
-from cosmo.netboxclient import NetboxClient
+from cosmo.clients.netbox import NetboxClient
 
 TEST_URL = 'https://netbox.example.com'
 TEST_TOKEN = 'token123'
@@ -21,6 +21,7 @@ def test_case_get_data(mocker):
         "device_list": [],
         "l2vpn_list": [],
         "vrf_list": [],
+        "loopbacks": {},
     }
     [getMock, postMock] = utils.RequestResponseMock.patchNetboxClient(mocker)
 

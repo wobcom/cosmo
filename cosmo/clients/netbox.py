@@ -1,8 +1,4 @@
-import json
 import time
-from multiprocessing.pool import Pool
-from string import Template
-from urllib.parse import urlencode
 
 import requests
 
@@ -15,12 +11,12 @@ class NetboxClient:
         self.url = url
         self.token = token
 
-        v = self.query_version()
+        self.version = self.query_version()
 
-        if v.startswith("wc_3."):
+        if self.version.startswith("wc_3."):
             print("[INFO] Using version 3.x strategy...")
             self.child_client = NetboxV3Strategy(url, token)
-        elif v.startswith("4."):
+        elif self.version.startswith("4."):
             print("[INFO] Using version 4.x strategy...")
             self.child_client = NetboxV4Strategy(url, token)
         else:
