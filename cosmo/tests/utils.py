@@ -38,6 +38,7 @@ class RequestResponseMock:
 
     @staticmethod
     def patchNetboxClient(mocker, **patchKwArgs):
+
         def patchGetFunc(url, **kwargs):
             if "/api/status" in url:
                 return ResponseMock(200, {"netbox-version": "4.1.2"})
