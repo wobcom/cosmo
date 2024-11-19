@@ -31,7 +31,7 @@ class NetboxAPIClient:
 
     def query_rest(self, path, queries):
         q = urlencode(queries, doseq=True)
-        url = urljoin(self.url, path) + f"?{q}",
+        url = urljoin(self.url, path) + f"?{q}"
 
         return_array = list()
 

@@ -1,4 +1,5 @@
 import json
+from abc import ABC, abstractmethod
 from builtins import map
 from multiprocessing import Pool
 from string import Template
@@ -6,7 +7,7 @@ from string import Template
 from cosmo.clients.netbox_client import NetboxAPIClient
 
 
-class ParallelQuery:
+class ParallelQuery(ABC):
 
     def __init__(self, client: NetboxAPIClient, **kwargs):
         self.client = client
@@ -17,15 +18,17 @@ class ParallelQuery:
     def fetch_data(self, pool):
         return pool.apply_async(self._fetch_data, args=(self.kwargs,))
 
+    @abstractmethod
     def _fetch_data(self, **kwargs):
-        raise NotImplementedError()
+        pass
 
     def merge_into(self, data_promise, data: object):
         query_data = data_promise.get()
         return self._merge_into(data, query_data)
 
+    @abstractmethod
     def _merge_into(self, data: object, query_result):
-        raise NotImplementedError()
+        pass
 
 
 class ConnectedDevicesDataQuery(ParallelQuery):
