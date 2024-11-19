@@ -45,13 +45,11 @@ def test_router_platforms():
     assert juniper_s.mgmt_routing_instance == "mgmt_junos"
     assert juniper_s.mgmt_interface == "fxp0"
     assert juniper_s.bmc_interface == None
-    assert juniper_s.lo_interface == "lo0"
 
     [rtbrick_s] = get_router_s_from_path("./test_case_l3vpn.yml")
     assert rtbrick_s.mgmt_routing_instance == "mgmt"
     assert rtbrick_s.mgmt_interface == "ma1"
     assert rtbrick_s.bmc_interface == "bmc0"
-    assert rtbrick_s.lo_interface == "lo-0/0/0"
 
     with pytest.raises(Exception, match="unsupported platform vendor: ACME"):
         get_router_s_from_path("./test_case_vendor_unknown.yaml")

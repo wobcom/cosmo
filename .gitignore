@@ -7,7 +7,7 @@ cosmo.yml
 leaf*.json
 
 cosmo_data.yaml
-machines/test0001/*
+machines/**
 
 .coverage
 *~

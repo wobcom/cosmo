@@ -86,12 +86,10 @@ class RouterSerializer:
                     self.mgmt_routing_instance = "mgmt_junos"
                     self.mgmt_interface = "fxp0"
                     self.bmc_interface = None
-                    self.lo_interface = "lo0"
                 case 'rtbrick':
                     self.mgmt_routing_instance = "mgmt"
                     self.mgmt_interface = "ma1"
                     self.bmc_interface = "bmc0"
-                    self.lo_interface = "lo-0/0/0"
                 case other:
                     raise DeviceSerializationError(f"unsupported platform vendor: {other}")
                     return
@@ -535,8 +533,7 @@ class RouterSerializer:
                 }
             }
 
-        if interfaces.get(self.lo_interface, {}).get("units", {}).get(0):
-            router_id = next(iter(interfaces[self.lo_interface]["units"][0]["families"]["inet"]["address"].keys())).split("/")[0]
+        router_id = str(ipaddress.ip_interface(self.loopbacks[self.device['name']]['ipv4']).ip)
 
         for _, l2vpn in self.l2vpns.items():
             if l2vpn['type'].lower() in ["vxlan_evpn", "vxlan-evpn"]:
