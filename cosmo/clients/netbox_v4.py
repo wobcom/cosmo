@@ -78,7 +78,9 @@ class ConnectedDevicesDataQuery(ParallelQuery):
 
 class LoopbackDataQuery(ParallelQuery):
     def _fetch_data(self, kwargs):
-        # Note: This does not use the device list, because we can have other devices, which are not
+        # Note: This does not use the device list, because we can have other participating devices
+        # which are not in the same repository and thus are not appearing in device list.
+
         query_template = Template('''
             query{
               interface_list(filters: {

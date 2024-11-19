@@ -1,4 +1,4 @@
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urljoin
 
 import requests
 
@@ -10,7 +10,7 @@ class NetboxAPIClient:
 
     def query(self, query):
         r = requests.post(
-            f"{self.url}/graphql/",
+            urljoin(self.url, "/graphql/"),
             json={"query": query},
             headers={
                 "Authorization": f"Token {self.token}",
@@ -31,7 +31,7 @@ class NetboxAPIClient:
 
     def query_rest(self, path, queries):
         q = urlencode(queries, doseq=True)
-        url = f"{self.url}/{path}?{q}"
+        url = urljoin(self.url, path) + f"?{q}",
 
         return_array = list()
 

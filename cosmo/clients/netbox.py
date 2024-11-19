@@ -1,4 +1,5 @@
 import time
+from urllib.parse import urljoin
 
 import requests
 
@@ -21,7 +22,7 @@ class NetboxClient:
 
     def query_version(self):
         r = requests.get(
-            f"{self.url}/api/status/",
+            urljoin(self.url, "/api/status/"),
             headers={
                 "Authorization": f"Token {self.token}",
                 "Content-Type": "application/json",
