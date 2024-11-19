@@ -10,12 +10,9 @@ class NetboxClient:
         self.url = url
         self.token = token
 
-        v = self.query_version()
+        self.version = self.query_version()
 
-        if v.startswith("wc_3."):
-            print("[INFO] Using version 3.x strategy...")
-            self.child_client = NetboxV3Strategy(url, token)
-        elif v.startswith("4."):
+        if self.version.startswith("4."):
             print("[INFO] Using version 4.x strategy...")
             self.child_client = NetboxV4Strategy(url, token)
         else:
@@ -35,6 +32,7 @@ class NetboxClient:
 
         json = r.json()
         return json['netbox-version']
+
     def get_data(self, device_config):
         return self.child_client.get_data(device_config)
 
@@ -84,159 +82,6 @@ class NetboxStrategy:
             return_array.extend(data['results'])
 
         return return_array
-
-
-class NetboxV3Strategy(NetboxStrategy):
-
-    def get_data(self, device_config):
-        query_template = Template(
-            """
-            {
-              device_list(
-                name: $device_array,
-              ) {
-                id
-                name
-                serial
-                
-                device_type {
-                  slug
-                }
-                platform {
-                  manufacturer {
-                    slug
-                  }
-                  slug
-                }
-                primary_ip4 {
-                  address
-                }
-                interfaces {
-                  id
-                  name
-                  enabled
-                  type
-                  mode
-                  mtu
-                  mac_address
-                  description
-                  vrf {
-                    id
-                  }
-                  lag {
-                    id
-                  }
-                  ip_addresses {
-                    address
-                  }
-                  untagged_vlan {
-                    id
-                    name
-                    vid
-                  }
-                  tagged_vlans {
-                    id
-                    name
-                    vid
-                  }
-                  tags {
-                    name
-                    slug
-                  }
-                  parent {
-                    id
-                  }
-                  connected_endpoints {
-                    ... on InterfaceType {
-                      name
-                      device {
-                        primary_ip4 {
-                          address
-                        }
-                        interfaces {
-                          ip_addresses {
-                            address
-                          }
-                        }
-                      }
-                    }
-                  }
-                  custom_fields
-                }
-                staticroute_set {
-                  interface {
-                    name
-                  }
-                  vrf {
-                    name
-                  }
-                  prefix {
-                    prefix
-                    family {
-                      value
-                    }
-                 }
-                 next_hop {
-                   address
-                 }
-                 metric
-                }
-              }
-              vrf_list {
-                id
-                name
-                description
-                rd
-                export_targets {
-                  name
-                }
-                import_targets {
-                  name
-                }
-              }
-              l2vpn_list {
-                id
-                name
-                type
-                identifier
-                terminations {
-                  id
-                  assigned_object {
-                    __typename
-                    ... on VLANType {
-                      id
-                    }
-                    ... on InterfaceType {
-                      id
-                      device {
-                        name
-                        interfaces (type: "virtual") {
-                          ip_addresses {
-                            address
-                          }
-                          parent {
-                            name
-                            type
-                          }
-                          vrf {
-                            id
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }"""
-        )
-
-        query = query_template.substitute(
-            device_array=json.dumps(device_config['router'] + device_config['switch'])
-        )
-
-        r = self.query(query)
-
-        return r['data']
 
 
 class NetboxV4Strategy(NetboxStrategy):
@@ -378,7 +223,6 @@ class NetboxV4Strategy(NetboxStrategy):
         static_routes = self.query_rest("api/plugins/routing/staticroutes/", {"device": device_list})
 
         for d in r['data']['device_list']:
-
             device_static_routes = list(filter(lambda sr: str(sr['device']['id']) == d['id'], static_routes))
             d['staticroute_set'] = device_static_routes
 
