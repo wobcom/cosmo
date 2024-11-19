@@ -35,25 +35,46 @@ class CommonSetup:
 
 
 class RequestResponseMock:
-    def __init__(self, **kwargs):
-        self.status_code = kwargs['status_code']
-        self.text = kwargs['text']
 
     @staticmethod
-    def patchTool(mocker, graphqlData=None, versionData=None):
+    def patchNetboxClient(mocker, **patchKwArgs):
+        def patchGetFunc(url, **kwargs):
+            if "/api/status" in url:
+                return ResponseMock(200, {"netbox-version": "4.1.2"})
 
-        if graphqlData is None:
-            graphqlData = {'status_code': 200, 'text': json.dumps({"data": {"vrf_list": [], "device_list": []}})}
+            return ResponseMock(200, {
+                "next": None,
+                "results": [],
+            })
 
-        if versionData is None:
-            versionData = {'status_code': 200, 'text': json.dumps({"netbox-version": "wc_3.7.5-0.7.0"})}
+        def patchPostFunc(url, json, **kwargs):
+            q = json.get("query")
+            request_lists = [
+                "device_list",
+                "vrf_list",
+                "l2vpn_list"
+            ]
+            retVal = dict()
 
-        postMock1 = mocker.patch('requests.get', return_value=RequestResponseMock(**versionData))
-        postMock2 = mocker.patch('requests.post', return_value=RequestResponseMock(**graphqlData))
+            for rl in request_lists:
+                if rl in q:
+                    retVal[rl] = patchKwArgs.get(rl, [])
+
+            return ResponseMock(200, {"data": retVal})
+
+        postMock1 = mocker.patch('requests.get', side_effect=patchGetFunc)
+        postMock2 = mocker.patch('requests.post', side_effect=patchPostFunc)
         return [postMock1, postMock2]
 
+
+class ResponseMock:
+    def __init__(self, status_code, obj):
+        self.status_code = status_code
+        self.text = json.dumps(obj)
+        self.obj = obj
+
     def json(self):
-        return json.loads(self.text)
+        return self.obj
 
 
 # it has to be stateful - so I'm making an object
