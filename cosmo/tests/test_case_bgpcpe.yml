@@ -153,3 +153,6 @@ vrf_list:
   - name: target:9136:407
   name: L3VPN
   rd: null
+loopbacks:
+  TEST0001:
+    ipv4: 45.139.136.10/24

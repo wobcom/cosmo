@@ -1,4 +1,3 @@
-import ipaddress
 import json
 import os
 import sys
@@ -8,12 +7,11 @@ import warnings
 import yaml
 import argparse
 
-from cosmo.netboxclient import NetboxClient
+from cosmo.clients.netbox import NetboxClient
+from cosmo.log import info
 from cosmo.serializer import RouterSerializer, SwitchSerializer, AbstractRecoverableError, RouterSerializerConfig
 
 
-def info(string: str) -> None:
-    print("[INFO] " + string)
 
 
 def main() -> int:
@@ -81,7 +79,7 @@ def main() -> int:
             if device['name'] in cosmo_configuration['devices']['router']:
 
                 router_serializer_cfg = RouterSerializerConfig(cosmo_configuration.get("router_serializer_configuration", {}))
-                serializer = RouterSerializer(router_serializer_cfg, device, cosmo_data['l2vpn_list'], cosmo_data["vrf_list"])
+                serializer = RouterSerializer(router_serializer_cfg, device, cosmo_data['l2vpn_list'], cosmo_data["vrf_list"], cosmo_data["loopbacks"])
                 content = serializer.serialize()
             elif device['name'] in cosmo_configuration['devices']['switch']:
                 serializer = SwitchSerializer(device)

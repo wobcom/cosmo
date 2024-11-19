@@ -21,7 +21,9 @@ def get_router_s_from_path(path):
             cfg=RouterSerializerConfig(),
             device=device,
             l2vpn_list=test_data['l2vpn_list'],
-            vrfs=test_data['vrf_list'])
+            vrfs=test_data['vrf_list'],
+            loopbacks=test_data.get('loopbacks', {}),
+        )
         for device in test_data['device_list']]
 
 
@@ -43,13 +45,11 @@ def test_router_platforms():
     assert juniper_s.mgmt_routing_instance == "mgmt_junos"
     assert juniper_s.mgmt_interface == "fxp0"
     assert juniper_s.bmc_interface == None
-    assert juniper_s.lo_interface == "lo0"
 
     [rtbrick_s] = get_router_s_from_path("./test_case_l3vpn.yml")
     assert rtbrick_s.mgmt_routing_instance == "mgmt"
     assert rtbrick_s.mgmt_interface == "ma1"
     assert rtbrick_s.bmc_interface == "bmc0"
-    assert rtbrick_s.lo_interface == "lo-0/0/0"
 
     with pytest.raises(Exception, match="unsupported platform vendor: ACME"):
         get_router_s_from_path("./test_case_vendor_unknown.yaml")
@@ -64,7 +64,8 @@ def test_l2vpn_errors():
             cfg=RouterSerializerConfig(),
             device=y['device_list'][0],
             l2vpn_list=y['l2vpn_list'],
-            vrfs=y['vrf_list']
+            vrfs=y['vrf_list'],
+            loopbacks=y['loopbacks']
         )
 
     template = _yaml_load("./test_case_l2x_err_template.yaml")

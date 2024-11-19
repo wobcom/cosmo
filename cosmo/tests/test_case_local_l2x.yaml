@@ -96,28 +96,17 @@ l2vpn_list:
   - assigned_object:
       __typename: InterfaceType
       device:
-        interfaces:
-        - ip_addresses:
-          - address: 45.139.136.10/24
-          parent:
-            name: lo-0/0/0
-            type: LOOPBACK
-          vrf: null
         name: TEST0001
       id: '191150'
     id: '944'
   - assigned_object:
       __typename: InterfaceType
       device:
-        interfaces:
-        - ip_addresses:
-          - address: 45.139.136.10/24
-          parent:
-            name: lo-0/0/0
-            type: LOOPBACK
-          vrf: null
         name: TEST0001
       id: '191151'
     id: '945'
   type: EVPL
 vrf_list: []
+loopbacks:
+  TEST0001:
+    ipv4: 45.139.136.10/24

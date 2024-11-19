@@ -38,6 +38,7 @@ class RequestResponseMock:
 
     @staticmethod
     def patchNetboxClient(mocker, **patchKwArgs):
+
         def patchGetFunc(url, **kwargs):
             if "/api/status" in url:
                 return ResponseMock(200, {"netbox-version": "4.1.2"})
@@ -52,19 +53,23 @@ class RequestResponseMock:
             request_lists = [
                 "device_list",
                 "vrf_list",
-                "l2vpn_list"
+                "l2vpn_list",
             ]
             retVal = dict()
 
             for rl in request_lists:
-                if rl in q:
+                if "bgp_cpe" in q:
+                    retVal['interface_list'] = patchKwArgs.get("connected_devices_interface_list", [])
+                elif "loopback" in q:
+                    retVal['interface_list'] = patchKwArgs.get("loopback_interface_list", [])
+                elif rl in q:
                     retVal[rl] = patchKwArgs.get(rl, [])
 
             return ResponseMock(200, {"data": retVal})
 
-        postMock1 = mocker.patch('requests.get', side_effect=patchGetFunc)
-        postMock2 = mocker.patch('requests.post', side_effect=patchPostFunc)
-        return [postMock1, postMock2]
+        getMock = mocker.patch('requests.get', side_effect=patchGetFunc)
+        postMock = mocker.patch('requests.post', side_effect=patchPostFunc)
+        return [getMock, postMock]
 
 
 class ResponseMock:
