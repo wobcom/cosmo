@@ -9,7 +9,7 @@ device_list:
       raw: ACME
     raw: coyote-0-2-1-rc1
   primary_ip4:
-    address: 45.139.136.10/24
+    address: 45.139.136.10/32
   serial: 4242
   staticroute_set: []
 l2vpn_list: []

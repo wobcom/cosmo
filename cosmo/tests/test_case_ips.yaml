@@ -4,26 +4,6 @@ device_list:
     id: '1746'
     interfaces:
       - custom_fields:
-          bpdufilter: false
-          bpduguard: false
-        inner_tag: null
-        ipv6_ra: false
-        outer_tag: null
-        description: ''
-        enabled: true
-        id: '3646'
-        ip_addresses: [ ]
-        lag: null
-        mac_address: null
-        mode: null
-        mtu: null
-        name: lo-0/0/0
-        tagged_vlans: [ ]
-        tags: [ ]
-        type: LOOPBACK
-        untagged_vlan: null
-        vrf: null
-      - custom_fields:
           inner_tag: null
           outer_tag: null
         description: 'Customer: Test-Port'
@@ -40,7 +20,7 @@ device_list:
         mac_address: 94:BF:41:41:41:F3
         mode: null
         mtu: null
-        name: lo-0/0/0.14
+        name: ifp-0/0/2.0
         tagged_vlans: [ ]
         tags: [ ]
         type: A_100GBASE_X_QSFP28
@@ -63,7 +43,7 @@ device_list:
         mac_address: 94:BF:41:41:41:F4
         mode: null
         mtu: null
-        name: lo-0/0/0.16
+        name: ifp-0/0/3.0
         tagged_vlans: [ ]
         tags: [ ]
         type: A_100GBASE_X_QSFP28
@@ -75,11 +55,11 @@ device_list:
         slug: juniper
       slug: junos-21-4r3-s5-4
     primary_ip4:
-      address: 45.139.136.10/24
+      address: 45.139.136.10/32
     serial: 4242
     staticroute_set: [ ]
 l2vpn_list: [ ]
 vrf_list: [ ]
 loopbacks:
   TEST0001:
-    ipv4: 45.139.136.10/24
+    ipv4: 45.139.136.10/32

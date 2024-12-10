@@ -139,4 +139,4 @@ vrf_list:
   rd: null
 loopbacks:
   TEST0001:
-    ipv4: 45.139.136.10/24
+    ipv4: 45.139.136.10/32
