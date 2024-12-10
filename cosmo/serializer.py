@@ -168,7 +168,7 @@ class RouterSerializer:
                 rib[table]["static"][route["prefix"]["prefix"]] = r
         return rib
 
-    def _get_unit(self, iface):
+    def _get_unit(self, iface, is_loopback=False):
         unit_stub = {}
         name = iface['name'].split(".")[1]
 
@@ -189,6 +189,10 @@ class RouterSerializer:
             # we use !is_global instead of is_private since the latter ignores 100.64/10
             if not iface["vrf"] and not ipa.is_global and not is_mgmt and not self.cfg.allow_private_ips:
                 raise InterfaceSerializationError(f"Private IP {ipa} used on interface {iface['name']} in default VRF for device {self.device['name']}. Did you forget to configure a VRF?")
+
+            # We only want /32 on loopback interfaces.
+            if is_loopback and not ipa.network.prefixlen == ipa.max_prefixlen:
+                raise InterfaceSerializationError(f"IP {ipa} is not a valid loopback IP address.")
 
             if ipa.version == 4:
                 ipv4Family[ipa.network].add_ip(ipa, is_secondary)
@@ -473,14 +477,15 @@ class RouterSerializer:
                 self.device["interfaces"], interface["name"]
             )
             if len(sub_interfaces) > 0:
-                is_loopback = interface_stub.get("type") == "loopback"
+                is_parent_loopback = interface_stub.get("type") == "loopback"
+                is_parent_virtual = interface_stub.get("type") == "virtual"
                 for si in sub_interfaces:
                     if not si['enabled']:
                         continue
 
-                    name, unit = self._get_unit(si)
+                    name, unit = self._get_unit(si, is_loopback=is_parent_loopback)
                     sub_num = int(name or '0')
-                    if not is_loopback and sub_num != 0 and not unit.get("vlan", None):
+                    if not is_parent_loopback and not is_parent_virtual and sub_num != 0 and not unit.get("vlan", None):
                         warnings.warn(f"Sub interface {si['name']} does not have a access VLAN configured, skipping...")
                         continue
 
