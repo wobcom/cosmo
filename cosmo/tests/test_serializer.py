@@ -189,20 +189,21 @@ def test_router_vrf_rib():
 def test_router_ips():
     [sd] = get_router_sd_from_path("./test_case_ips.yaml")
 
-    assert 'lo-0/0/0' in sd['interfaces']
-    assert 14 in sd['interfaces']['lo-0/0/0']['units']
-    assert 16 in sd['interfaces']['lo-0/0/0']['units']
+    assert 'ifp-0/0/2' in sd['interfaces']
+    assert 'ifp-0/0/3' in sd['interfaces']
+    assert 0 in sd['interfaces']['ifp-0/0/2']['units']
+    assert 0 in sd['interfaces']['ifp-0/0/3']['units']
 
-    unit_14 = sd['interfaces']['lo-0/0/0']['units'][14]
-    unit_16 = sd['interfaces']['lo-0/0/0']['units'][16]
+    unit_v4 = sd['interfaces']['ifp-0/0/2']['units'][0]
+    unit_v6 = sd['interfaces']['ifp-0/0/3']['units'][0]
 
-    assert unit_14['families']['inet']['address']['45.139.138.1/29'] == {}
-    assert unit_14['families']['inet']['address']['45.139.138.8/29'] == {"primary": True}
-    assert unit_14['families']['inet']['address']['45.139.138.9/29'] == {"secondary": True}
+    assert unit_v4['families']['inet']['address']['45.139.138.1/29'] == {}
+    assert unit_v4['families']['inet']['address']['45.139.138.8/29'] == {"primary": True}
+    assert unit_v4['families']['inet']['address']['45.139.138.9/29'] == {"secondary": True}
 
-    assert unit_16['families']['inet6']['address']['2a0e:b941:2::/122'] == {}
-    assert unit_16['families']['inet6']['address']['2a0e:b941:2::40/122'] == {"primary": True}
-    assert unit_16['families']['inet6']['address']['2a0e:b941:2::41/122'] == {"secondary": True}
+    assert unit_v6['families']['inet6']['address']['2a0e:b941:2::/122'] == {}
+    assert unit_v6['families']['inet6']['address']['2a0e:b941:2::40/122'] == {"primary": True}
+    assert unit_v6['families']['inet6']['address']['2a0e:b941:2::41/122'] == {"secondary": True}
 
 
 def test_router_case_mpls_evpn():

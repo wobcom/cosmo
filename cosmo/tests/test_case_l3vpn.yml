@@ -81,7 +81,7 @@ device_list:
     enabled: true
     id: '192047'
     ip_addresses:
-      - address: 45.139.136.10/24
+      - address: 45.139.136.10/32
     lag: null
     mac_address: null
     mode: null
@@ -121,9 +121,9 @@ loopback_interface_list:
       - name: "lo0.0"
         vrf: null
         ip_addresses:
-          - address: 45.139.136.10/24
+          - address: 45.139.136.10/32
             family:
               value: 4
 loopbacks:
   TEST0001:
-    ipv4: 45.139.136.10/24
+    ipv4: 45.139.136.10/32
