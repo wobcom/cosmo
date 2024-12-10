@@ -240,6 +240,9 @@ class RouterSerializer:
                 families["inet6"]["ipv6_ra"] = True
 
         if tags.has("core"):
+            if not iface["mtu"]:
+                warnings.warn(f"Interface {iface['name']} on device {self.device['name']} has a core tag, but no MTU set.") 
+
             families["iso"] = {}
             families["mpls"] = {}
 
