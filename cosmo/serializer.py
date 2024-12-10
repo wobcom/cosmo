@@ -439,7 +439,9 @@ class RouterSerializer:
                     case _:
                         warnings.warn(f"FEC mode {fec} on interface {interface['name']} is not known, ignoring")
 
-            if interface.get("type", '').lower() == "lag":
+            if interface.get("type", '').lower() == "lag" and tags.has_key("access"):
+                interface_stub["type"] = "lag-access"
+            elif interface.get("type", '').lower() == "lag":
                 interface_stub["type"] = "lag"
             elif interface.get("type", '').lower() == "loopback":
                 interface_stub["type"] = "loopback"
