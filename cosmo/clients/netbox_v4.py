@@ -275,6 +275,7 @@ class DeviceDataQuery(ParallelQuery):
                   }
                   parent {
                     id
+                    mtu
                   }
                   custom_fields
                 }
