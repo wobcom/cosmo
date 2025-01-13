@@ -66,11 +66,11 @@ device_list:
         slug: juniper
       slug: junos-21-4r3-s5-4
     primary_ip4:
-      address: 45.139.136.10/24
+      address: 45.139.136.10/32
     serial: 4242
     staticroute_set: [ ]
 l2vpn_list: [ ]
 vrf_list: [ ]
 loopbacks:
   TEST0001:
-    ipv4: 45.139.136.10/24
+    ipv4: 45.139.136.10/32

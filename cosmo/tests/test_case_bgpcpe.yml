@@ -122,7 +122,7 @@ device_list:
     enabled: true
     id: '192047'
     ip_addresses:
-      - address: 45.139.136.10/24
+      - address: 45.139.136.10/32
     lag: null
     mac_address: null
     mode: null
@@ -155,4 +155,4 @@ vrf_list:
   rd: null
 loopbacks:
   TEST0001:
-    ipv4: 45.139.136.10/24
+    ipv4: 45.139.136.10/32
