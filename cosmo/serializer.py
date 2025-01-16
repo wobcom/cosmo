@@ -79,9 +79,6 @@ class RouterSerializerConfig:
 
 
 class RouterSerializer:
-
-    MINIMAL_CORE_MTU = 9000
-
     def __init__(self, cfg, device, l2vpn_list, vrfs, loopbacks):
         try:
             match device["platform"]["manufacturer"]["slug"]:
@@ -254,10 +251,8 @@ class RouterSerializer:
             # We allow this configuration specifically.
             is_sonderlocke_mtu = tags.has( "mtu", "sonderlocke")
 
-            if not mtu:
-                warnings.warn(f"Interface {iface['name']} on device {self.device['name']} has a core tag, but no MTU set.")
-            elif not is_sonderlocke_mtu and mtu < self.MINIMAL_CORE_MTU:
-                warnings.warn(f"Interface {iface['name']} on device {self.device['name']} has a low MTU for a core link.")
+            if not is_sonderlocke_mtu and mtu not in [9216, 9600, 9230, 9586, 9116]:
+                warnings.warn(f"Interface {iface['name']} on device {self.device['name']} has MTU {iface['mtu']} set, which is not one of the allowed values for core interfaces.")
 
             families["iso"] = {}
             families["mpls"] = {}
