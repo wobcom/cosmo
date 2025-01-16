@@ -316,6 +316,14 @@ class RouterSerializer:
 
         if tags.has("unnumbered"):
             unit_stub["unnumbered"] = True
+            if iface["vrf"]:
+                # get loopback interface of the same VRF for address borrowing
+                unit_stub["unnumbered_interface"] = next(
+                    filter(
+                        lambda i: (i["name"].startswith("lo") and i["vrf"] and i["vrf"]["id"] == iface["vrf"]["id"]),
+                        self.device["interfaces"],
+                    )
+                )["name"]
 
         if iface["vrf"]:
             vrfid = iface["vrf"]["id"]
