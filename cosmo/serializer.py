@@ -194,7 +194,7 @@ class RouterSerializer:
                 raise InterfaceSerializationError(f"Private IP {ipa} used on interface {iface['name']} in default VRF for device {self.device['name']}. Did you forget to configure a VRF?")
 
             # We only want /32 on loopback interfaces.
-            if is_loopback and not ipa.network.prefixlen == ipa.max_prefixlen:
+            if is_loopback and not ipa.network.prefixlen == ipa.max_prefixlen and not iface["vrf"]:
                 raise InterfaceSerializationError(f"IP {ipa} is not a valid loopback IP address.")
 
             if ipa.version == 4:
