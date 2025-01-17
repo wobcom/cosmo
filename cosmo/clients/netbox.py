@@ -1,7 +1,9 @@
+import re
 import time
 from urllib.parse import urljoin
 
 import requests
+from packaging.version import Version
 
 from cosmo import log
 from cosmo.clients.netbox_v4 import NetboxV4Strategy
@@ -12,11 +14,16 @@ class NetboxClient:
         self.url = url
         self.token = token
 
-        self.version = self.query_version()
+        version = self.query_version()
+        base_version_match = re.search(r'[\d.]+', version)
+        base_version = Version(base_version_match.group(0))
 
-        if self.version.startswith("4."):
-            log.info("Using version 4.x strategy...")
-            self.child_client = NetboxV4Strategy(url, token)
+        if base_version > Version("4.2.0"):
+            log.info("Using version 4.2.x strategy...")
+            self.child_client = NetboxV4Strategy(url, token, multiple_mac_addresses=True)
+        elif base_version > Version("4.0.0"):
+            log.info("Using version 4.0.x strategy...")
+            self.child_client = NetboxV4Strategy(url, token, multiple_mac_addresses=False)
         else:
             raise Exception("Unknown Version")
 

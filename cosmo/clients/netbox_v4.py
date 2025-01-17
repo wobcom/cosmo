@@ -216,6 +216,11 @@ class StaticRouteQuery(ParallelQuery):
 
 
 class DeviceDataQuery(ParallelQuery):
+
+    def __init__(self, *args, multiple_mac_addresses=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.multiple_mac_addresses = multiple_mac_addresses
+
     def _fetch_data(self, kwargs):
         device = kwargs.get("device")
         query_template = Template(
@@ -248,7 +253,7 @@ class DeviceDataQuery(ParallelQuery):
                   type
                   mode
                   mtu
-                  mac_address
+                  $macaddress_field
                   description
                   vrf {
                     id
@@ -284,13 +289,22 @@ class DeviceDataQuery(ParallelQuery):
         )
 
         query = query_template.substitute(
-            device=json.dumps(device)
+            device=json.dumps(device),
+            macaddress_field="primary_mac_address { mac_address }" if self.multiple_mac_addresses else "mac_address",
         )
-        return self.client.query(query)['data']
+
+        query_result = self.client.query(query)
+        return query_result['data']
 
     def _merge_into(self, data: dict, query_data):
         if 'device_list' not in data:
             data['device_list'] = []
+
+        for d in query_data['device_list']:
+            for i in d['interfaces']:
+                if 'primary_mac_address' in i:
+                    i['mac_address'] = i['primary_mac_address']['mac_address'] if i['primary_mac_address'] else None
+                    del i['primary_mac_address']
 
         data['device_list'].extend(query_data['device_list'])
 
@@ -299,8 +313,9 @@ class DeviceDataQuery(ParallelQuery):
 
 class NetboxV4Strategy:
 
-    def __init__(self, url, token):
+    def __init__(self, url, token, multiple_mac_addresses):
         self.client = NetboxAPIClient(url, token)
+        self.multiple_mac_addresses = multiple_mac_addresses
 
     def get_data(self, device_config):
         device_list = device_config['router'] + device_config['switch']
@@ -309,7 +324,7 @@ class NetboxV4Strategy:
 
         for d in device_list:
             queries.append(
-                DeviceDataQuery(self.client, device=d)
+                DeviceDataQuery(self.client, device=d, multiple_mac_addresses=self.multiple_mac_addresses)
             )
 
         queries.extend([
