@@ -41,7 +41,7 @@ class RequestResponseMock:
 
         def patchGetFunc(url, **kwargs):
             if "/api/status" in url:
-                return ResponseMock(200, {"netbox-version": "4.1.2"})
+                return ResponseMock(200, {"netbox-version": "4.1.2+wobcom_0.4.2"})
 
             return ResponseMock(200, {
                 "next": None,

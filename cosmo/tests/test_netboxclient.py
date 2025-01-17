@@ -1,4 +1,5 @@
 import pytest
+from packaging.version import Version
 
 import cosmo.tests.utils as utils
 from cosmo.clients.netbox import NetboxClient
@@ -26,7 +27,7 @@ def test_case_get_data(mocker):
     [getMock, postMock] = utils.RequestResponseMock.patchNetboxClient(mocker)
 
     nc = NetboxClient(TEST_URL, TEST_TOKEN)
-    assert nc.version == "4.1.2"
+    assert nc.base_version == Version("4.1.2")
 
     getMock.assert_called_once()
 

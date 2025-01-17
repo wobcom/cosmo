@@ -16,12 +16,12 @@ class NetboxClient:
 
         version = self.query_version()
         base_version_match = re.search(r'[\d.]+', version)
-        base_version = Version(base_version_match.group(0))
+        self.base_version = Version(base_version_match.group(0))
 
-        if base_version > Version("4.2.0"):
+        if self.base_version > Version("4.2.0"):
             log.info("Using version 4.2.x strategy...")
             self.child_client = NetboxV4Strategy(url, token, multiple_mac_addresses=True)
-        elif base_version > Version("4.0.0"):
+        elif self.base_version > Version("4.0.0"):
             log.info("Using version 4.0.x strategy...")
             self.child_client = NetboxV4Strategy(url, token, multiple_mac_addresses=False)
         else:
