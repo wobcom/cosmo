@@ -251,7 +251,7 @@ class RouterSerializer:
             # We allow this configuration specifically.
             is_sonderlocke_mtu = tags.has( "mtu", "sonderlocke")
 
-            if not is_sonderlocke_mtu and mtu not in [9216, 9600, 9230, 9586, 9116]:
+            if not is_sonderlocke_mtu and mtu is not None and mtu not in [9216, 9600, 9230, 9586, 9116]:
                 warnings.warn(f"Interface {iface['name']} on device {self.device['name']} has MTU {iface['mtu']} set, which is not one of the allowed values for core interfaces.")
 
             families["iso"] = {}
