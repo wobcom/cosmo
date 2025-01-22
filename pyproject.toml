@@ -12,6 +12,7 @@ cosmo = "cosmo.__main__:main"
 python = "^3.9"
 requests = ">2.26.0"
 PyYAML = ">5.1"
+packaging = "^24.2"
 
 [tool.poetry.dev-dependencies]
 
