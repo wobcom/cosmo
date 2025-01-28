@@ -253,7 +253,6 @@ class DeviceDataQuery(ParallelQuery):
                   type
                   mode
                   mtu
-                  $macaddress_field
                   description
                   vrf {
                     id
@@ -290,7 +289,6 @@ class DeviceDataQuery(ParallelQuery):
 
         query = query_template.substitute(
             device=json.dumps(device),
-            macaddress_field="primary_mac_address { mac_address }" if self.multiple_mac_addresses else "mac_address",
         )
 
         query_result = self.client.query(query)
@@ -301,10 +299,11 @@ class DeviceDataQuery(ParallelQuery):
             data['device_list'] = []
 
         for d in query_data['device_list']:
+
+            res = self.client.query_rest("api/dcim/interfaces/", {"device_id": [d['id']]})
             for i in d['interfaces']:
-                if 'primary_mac_address' in i:
-                    i['mac_address'] = i['primary_mac_address']['mac_address'] if i['primary_mac_address'] else None
-                    del i['primary_mac_address']
+                rest_res = next(filter(lambda ri: str(ri['id']) == i['id'], res))
+                i['mac_address'] = rest_res['primary_mac_address']['mac_address'] if rest_res['primary_mac_address'] else None
 
         data['device_list'].extend(query_data['device_list'])
 
