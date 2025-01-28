@@ -79,6 +79,7 @@ class ConnectedDevicesDataQuery(ParallelQuery):
 
         return data
 
+
 class LoopbackDataQuery(ParallelQuery):
     def _fetch_data(self, kwargs):
         # Note: This does not use the device list, because we can have other participating devices
@@ -128,7 +129,6 @@ class LoopbackDataQuery(ParallelQuery):
                 "ipv4": l_ipv4['address'] if l_ipv4 else None,
                 "ipv6": l_ipv6['address'] if l_ipv6 else None
             }
-
 
         return {
             **data,
@@ -215,6 +215,28 @@ class StaticRouteQuery(ParallelQuery):
         return data
 
 
+# Note:
+# Netbox v4.2 broke mac addresses in the GraphQL queries. Therefore, we just fetch them via the REST API and add them.
+class DeviceMACQuery(ParallelQuery):
+    def _fetch_data(self, kwargs):
+        device_list = kwargs.get("device_list")
+        return self.client.query_rest("api/dcim/interfaces", {"primary_mac_address__n": "null", "device": device_list})
+
+    def _merge_into(self, data: dict, query_data):
+        for d in data['device_list']:
+            for i in d['interfaces']:
+                mq = next(
+                    filter(
+                        lambda mi: str(mi['device']['id']) == d['id'] and str(mi['id']) == i['id'],
+                        query_data
+                    ),
+                    None
+                )
+                # Field must be set at any time, it's not requested in the GraphQL query anymore.
+                i['mac_address'] = mq['primary_mac_address']['mac_address'] if mq else None
+        return data
+
+
 class DeviceDataQuery(ParallelQuery):
 
     def __init__(self, *args, multiple_mac_addresses=False, **kwargs):
@@ -298,13 +320,6 @@ class DeviceDataQuery(ParallelQuery):
         if 'device_list' not in data:
             data['device_list'] = []
 
-        for d in query_data['device_list']:
-
-            res = self.client.query_rest("api/dcim/interfaces/", {"device_id": [d['id']]})
-            for i in d['interfaces']:
-                rest_res = next(filter(lambda ri: str(ri['id']) == i['id'], res))
-                i['mac_address'] = rest_res['primary_mac_address']['mac_address'] if rest_res['primary_mac_address'] else None
-
         data['device_list'].extend(query_data['device_list'])
 
         return data
@@ -330,6 +345,7 @@ class NetboxV4Strategy:
             VrfDataQuery(self.client, device_list=device_list),
             L2VPNDataQuery(self.client, device_list=device_list),
             StaticRouteQuery(self.client, device_list=device_list),
+            DeviceMACQuery(self.client, device_list=device_list),
             ConnectedDevicesDataQuery(self.client, device_list=device_list),
             LoopbackDataQuery(self.client, device_list=device_list)
         ])
