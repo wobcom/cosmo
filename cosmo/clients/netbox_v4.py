@@ -251,24 +251,30 @@ class DeviceDataQuery(ParallelQuery):
               device_list(filters: {
                 name: { i_exact: $device },
               }) {
+                __typename
                 id
                 name
                 serial
 
                 device_type {
+                  __typename
                   slug
                 }
                 platform {
+                  __typename
                   manufacturer {
+                    __typename
                     slug
                   }
                   slug
                 }
                 primary_ip4 {
+                  __typename
                   address
                 }
 
                 interfaces {
+                  __typename
                   id
                   name
                   enabled
@@ -277,29 +283,36 @@ class DeviceDataQuery(ParallelQuery):
                   mtu
                   description
                   vrf {
+                    __typename
                     id
                   }
                   lag {
+                    __typename
                     id
                   }
                   ip_addresses {
+                    __typename
                     address
                   }
                   untagged_vlan {
+                    __typename
                     id
                     name
                     vid
                   }
                   tagged_vlans {
+                    __typename
                     id
                     name
                     vid
                   }
                   tags {
+                    __typename
                     name
                     slug
                   }
                   parent {
+                    __typename
                     id
                     mtu
                   }
