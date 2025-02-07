@@ -36,18 +36,25 @@ class ConnectedDevicesDataQuery(ParallelQuery):
         query_template = Template('''
             query {
               interface_list(filters: { tag: "bgp_cpe" }) {
+                __typename
                 id,
                 parent {
+                  __typename
                   id,
                   connected_endpoints {
                     ... on InterfaceType {
+                      __typename
                       name
                       device {
+                        __typename
                         primary_ip4 {
+                          __typename
                           address
                         }
                         interfaces {
+                          __typename
                           ip_addresses {
+                            __typename
                             address
                           }
                         }
@@ -91,20 +98,26 @@ class LoopbackDataQuery(ParallelQuery):
                 name: {starts_with: "lo"},
                 type: {exact:"loopback"}
               }) {
+                __typename
                 name,
                 child_interfaces {
+                  __typename
                   name,
                   vrf {
+                    __typename
                     id
                   },
                   ip_addresses {
+                    __typename
                     address,
                     family {
+                     __typename
                      value,
                     }
                   }
                 }
                 device{
+                  __typename
                   name,
                 }
               }
@@ -141,20 +154,25 @@ class L2VPNDataQuery(ParallelQuery):
         query_template = Template('''
          query {
             l2vpn_list (filters: {name: {starts_with: "WAN: "}}) {
+                __typename
                 id
                 name
                 type
                 identifier
                 terminations {
+                  __typename
                   id
                   assigned_object {
                     __typename
                     ... on VLANType {
+                      __typename
                       id
                     }
                     ... on InterfaceType {
+                      __typename
                       id
                       device {
+                        __typename
                         name
                       }
                     }
@@ -178,14 +196,17 @@ class VrfDataQuery(ParallelQuery):
         query_template = Template('''
             query {
                 vrf_list {
+                    __typename
                     id
                     name
                     description
                     rd
                     export_targets {
+                      __typename
                       name
                     }
                     import_targets {
+                      __typename
                       name
                     }
                 }
