@@ -39,20 +39,86 @@ class AbstractNetboxType(abc.ABC, dict):
         return self._getNetboxType()
 
 
-class DeviceType(AbstractNetboxType):
-    pass
+class AbstractManufacturerStrategy(abc.ABC):
+    def matches(self, manuf_slug):
+        return True if manuf_slug == self.mySlug() else False
+    @abc.abstractmethod
+    def mySlug(self):
+        pass
+    @abc.abstractmethod
+    def getRoutingInstance(self):
+        pass
+    @abc.abstractmethod
+    def getManagementInterface(self):
+        pass
+    @abc.abstractmethod
+    def getBmcInterface(self):
+        pass
 
+class JuniperManufacturerStrategy(AbstractManufacturerStrategy):
+    def mySlug(self):
+        return "juniper"
+    def getRoutingInstance(self):
+        return "mgmt_junos"
+    def getManagementInterface(self):
+        return "fxp0"
+    def getBmcInterface(self):
+        return None
+
+class RtBrickManufacturerStrategy(AbstractManufacturerStrategy):
+    def mySlug(self):
+        return "rtbrick"
+    def getRoutingInstance(self):
+        return "mgmt"
+    def getManagementInterface(self):
+        return "ma1"
+    def getBmcInterface(self):
+        return "bmc0"
+
+# POJO style store
+class DeviceType(AbstractNetboxType):
+    manufacturer_strategy: AbstractManufacturerStrategy = None
+
+    def getPlatformManufacturer(self):
+        return self.getPlatform().getManufacturer().getSlug()
+
+    def getManufacturerStrategy(self):
+        if self.manufacturer_strategy:
+            return self.manufacturer_strategy
+        else:
+            slug = self.getPlatformManufacturer()
+            for c in AbstractManufacturerStrategy.__subclasses__():
+                if c().matches(slug):
+                    self.manufacturer_strategy = c(); break
+            return self.manufacturer_strategy
+
+    def getRoutingInstance(self):
+        return self.getManufacturerStrategy().getRoutingInstance()
+
+    def getManagementInterface(self):
+        return self.getManufacturerStrategy().getManagementInterface()
+
+    def getBmcInterface(self):
+        return self.getManufacturerStrategy().getBmcInterface()
+
+    def getDeviceType(self):
+        return self['device_type']
+
+    def getPlatform(self):
+        return self['platform']
 
 class DeviceTypeType(AbstractNetboxType):
     pass
 
 
 class PlatformType(AbstractNetboxType):
-    pass
+    def getManufacturer(self):
+        return self['manufacturer']
 
 
 class ManufacturerType(AbstractNetboxType):
-    pass
+    def getSlug(self):
+        return self['slug']
 
 
 class IPAddressType(AbstractNetboxType):
