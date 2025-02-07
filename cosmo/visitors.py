@@ -28,7 +28,6 @@ class AbstractNoopNetboxTypesVisitor(abc.ABC):
         return o
 
     def _dictLikeTemplateMethod(self, o):
-        breakpoint()
         o = deepcopy(o)
         keys = list(o.keys())
         for key in keys:
