@@ -157,9 +157,9 @@ class IPAddressType(AbstractNetboxType):
 
 class InterfaceType(AbstractNetboxType):
     def __repr__(self):
-        return super().__repr__() + f"({self.getInterfaceName()})"
+        return super().__repr__() + f"({self.getName()})"
 
-    def getInterfaceName(self):
+    def getName(self):
         return self['name']
 
 
@@ -168,7 +168,13 @@ class VRFType(AbstractNetboxType):
 
 
 class TagType(AbstractNetboxType):
-    pass
+    _delimiter = ':'
+    def getTagComponents(self):
+        return self['name'].split(self._delimiter)
+    def getTagName(self):
+        return self.getTagComponents()[0]
+    def getTagValue(self):
+        return self.getTagComponents()[1]
 
 
 class VLANType(AbstractNetboxType):

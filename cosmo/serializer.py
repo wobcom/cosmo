@@ -6,6 +6,9 @@ import abc
 from collections import defaultdict
 
 from cosmo.common import deepsort
+from cosmo.types import DeviceType
+from cosmo.visitors import SwitchDeviceExporterVisitor
+
 
 class AbstractRecoverableError(Exception, abc.ABC):
     pass
@@ -717,6 +720,10 @@ class SwitchSerializer:
         self.device = device
 
     def serialize(self):
+        return SwitchDeviceExporterVisitor().accept(
+            DeviceType(self.device)
+        )
+
         device_stub = {}
 
         interfaces = {}
