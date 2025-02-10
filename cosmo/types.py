@@ -8,16 +8,13 @@ class AbstractNetboxType(abc.ABC, dict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__mappings = {}
-        for c in AbstractNetboxType.__subclasses__():
-            self.__mappings.update(c.register())
         for k, v in without_keys(self, "__parent").items():
             self[k] = self.convert(v)
 
     def convert(self, item):
         if isinstance(item, dict):
             if "__typename" in item.keys():
-                c = self.__mappings[item["__typename"]]
+                c = {k: v for k, v in [c.register() for c in AbstractNetboxType.__subclasses__()]}[item["__typename"]]
                 #            self descending in tree
                 return c({k: self.convert(v) for k, v in without_keys(item, "__parent").items()} | {"__parent": self})
             else:
@@ -38,20 +35,17 @@ class AbstractNetboxType(abc.ABC, dict):
         return cls.__name__
 
     @classmethod
-    def register(cls) -> dict:
-        return {cls._getNetboxType(): cls}
+    def register(cls) -> tuple:
+        return cls._getNetboxType(), cls
 
-    def getParent(self):
-        return self['__parent']
-
-    def __deepcopy__(self, memo):
-        # I'm using convert because we have to rebuild the circular reference
-        # tree, since we cannot use the old references and thus __parent
-        # becomes invalid. Implementing __deepcopy__ is better than implementing
-        # workarounds for object instances in client code.
-        return self.__class__().convert(self.__class__(
-            {k: deepcopy(v,memo) for k, v in without_keys(self, "__parent").items()}
-        ))
+    def getParent(self, target_type=None):
+        if not target_type:
+            return self['__parent']
+        else:
+            instance = self
+            while type(instance) != target_type:
+                instance = instance['__parent']
+            return instance
 
     def __repr__(self):
         return self._getNetboxType()

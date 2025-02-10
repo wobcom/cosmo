@@ -1,16 +1,16 @@
 import abc
-from copy import deepcopy
-from functools import singledispatchmethod
+from .common import without_keys
+from functools import singledispatchmethod, wraps
+
+
+def dictlike(fun):
+    @wraps(fun)
+    def wrapper(self, *args, **kwargs):
+        return self._dictLikeTemplateMethod(fun(self, *args, **kwargs))
+    return wrapper
 
 
 class AbstractNoopNetboxTypesVisitor(abc.ABC):
-    def __init__(self, *args, **kwargs):
-        for c in AbstractNoopNetboxTypesVisitor.__subclasses__():
-            self.accept.register(
-                c,
-                lambda self, o: self._dictLikeTemplateMethod(o)
-            )
-
     @singledispatchmethod
     def accept(self, o):
         raise NotImplementedError(f"unsupported type {o}")
@@ -28,14 +28,9 @@ class AbstractNoopNetboxTypesVisitor(abc.ABC):
         return o
 
     def _dictLikeTemplateMethod(self, o):
-        o = deepcopy(o)
-        keys = list(o.keys())
-        for key in keys:
-            self._mutateDictKVTemplateMethod(o, key)
+        for key in list(without_keys(o,"__parent").keys()):
+            o[key] = self.accept(o[key])
         return o
-
-    def _mutateDictKVTemplateMethod(self, o, key):
-        o[key] = self.accept(o[key])
 
     @accept.register
     def _(self, o: dict) -> dict:
@@ -43,7 +38,6 @@ class AbstractNoopNetboxTypesVisitor(abc.ABC):
 
     @accept.register
     def _(self, o: list) -> list:
-        o = deepcopy(o)
         for i, v in enumerate(o):
             o[i] = self.accept(v)
         return o
