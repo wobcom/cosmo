@@ -5,6 +5,8 @@ import warnings
 import abc
 from collections import defaultdict
 
+from deepmerge import Merger
+
 from cosmo.common import deepsort
 from cosmo.types import DeviceType
 from cosmo.visitors import SwitchDeviceExporterVisitor
@@ -720,11 +722,23 @@ class SwitchSerializer:
         self.device = device
 
     def serialize(self):
-        return SwitchDeviceExporterVisitor().accept(
-            DeviceType(self.device)
-        )
-
         device_stub = {}
+        # like always_merger but with append_unique strategy
+        # for lists
+        my_merger = Merger(
+            [
+                (list, ["append_unique"]),
+                (dict, ["merge"]),
+                (set, ["union"]),
+            ],
+            ["override"],
+            ["override"]
+        )
+        for value in iter(DeviceType(self.device)):
+            new = SwitchDeviceExporterVisitor().accept(value)
+            if new:
+                device_stub = my_merger.merge(device_stub, new)
+        return device_stub
 
         interfaces = {}
         vlans = set()

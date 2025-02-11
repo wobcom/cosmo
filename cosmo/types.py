@@ -173,6 +173,22 @@ class InterfaceType(AbstractNetboxType):
     def getName(self):
         return self['name']
 
+    def getUntaggedVLAN(self):
+        return self["untagged_vlan"]
+
+    def getTaggedVLANS(self):
+        return self["tagged_vlans"]
+
+    def enabled(self):
+        if self["enabled"]:
+            return True
+        return False
+
+    def lagMember(self):
+        if self["lag"]:
+            return True
+        return False
+
 
 class VRFType(AbstractNetboxType):
     pass
@@ -189,4 +205,5 @@ class TagType(AbstractNetboxType):
 
 
 class VLANType(AbstractNetboxType):
-    pass
+    def getVID(self):
+        return self["vid"]

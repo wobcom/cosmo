@@ -1,9 +1,7 @@
 import abc
 from functools import singledispatchmethod
-from .types import (AbstractNetboxType,
-                    InterfaceType,
-                    TagType, DeviceType)
-
+from .types import (InterfaceType,
+                    TagType, VLANType)
 
 class AbstractNoopNetboxTypesVisitor(abc.ABC):
     @singledispatchmethod
@@ -32,28 +30,95 @@ class AbstractNoopNetboxTypesVisitor(abc.ABC):
 
 
 class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
+    _interfaces_key = "cumulus__device_interfaces"
+
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
 
+    def processUntaggedVLAN(self, o: VLANType):
+        return {
+            self._interfaces_key: {
+                o.getParent(InterfaceType).getName(): {
+                    "untagged_vlan": o.getVID(),
+                    # untagged VLANs belong to the vid list as well
+                    "tagged_vlans": [ o.getVID() ]
+                },
+                "bridge": {
+                    "mtu": 10_000,
+                    "tagged_vlans": [ o.getVID() ]
+                }
+            }
+        }
+
+    def processTaggedVLAN(self, o: VLANType):
+        return {
+            self._interfaces_key: {
+                o.getParent(InterfaceType).getName(): {
+                    "tagged_vlans": [ o.getVID() ]
+                },
+                "bridge": {
+                    "mtu": 10_000,
+                    "tagged_vlans": [ o.getVID() ],
+                }
+            }
+        }
+
     @accept.register
-    def _(self, o: DeviceType):
-        o['cumulus__device_interfaces'] = {}
-        for interface in o['interfaces']:
-            o['cumulus__device_interfaces'][interface.getName()] = interface
-        return o
+    def _(self, o: VLANType):
+        ret = None
+        parent_interface = o.getParent(InterfaceType)
+        if o in parent_interface.getTaggedVLANS():
+            ret = self.processTaggedVLAN(o)
+        elif o == parent_interface.getUntaggedVLAN():
+            ret = self.processUntaggedVLAN(o)
+        if parent_interface.enabled() and not parent_interface.lagMember():
+            ret[self._interfaces_key]["bridge"]["bridge_ports"] = [ parent_interface.getName() ]
+        return ret
+
+    def processLagMember(self, o: InterfaceType):
+        pass
+
+    def processInterface(self, o: InterfaceType):
+        pass
+
+    @accept.register
+    def _(self, o: InterfaceType):
+        # either lag member
+        if type(o.getParent()) == InterfaceType:
+            return self.processLagMember(o)
+        else:
+        # or device interface
+            return self.processInterface(o)
 
     @accept.register
     def _(self, o: TagType):
+        parent_interface = o.getParent(InterfaceType)
         if o.getTagName() == "speed":
-            o.getParent(InterfaceType)["speed"] = {
-                "1g": 1000,
-                "10g": 10_000,
-                "100g": 100_000,
-            }[o.getTagValue()]
-        elif o.getTagName() == "fec":
-            if o.getTagValue() in ['off', 'rs', 'baser']:
-                o.getParent(InterfaceType)["fec"] = o.getTagValue()
-        elif o.getTagName() == "lldp":
-            o.getParent(InterfaceType)["lldp"] = True
-        return o
+            return {
+                self._interfaces_key: {
+                    parent_interface.getName(): {
+                        "speed": {
+                        "1g": 1000,
+                        "10g": 10_000,
+                        "100g": 100_000,
+                        }[o.getTagValue()]
+                    }
+                }
+            }
+        if o.getTagName() == "fec" and o.getTagValue() in ["off", "rs", "baser"]:
+            return {
+                self._interfaces_key: {
+                    parent_interface.getName(): {
+                        "fec": o.getTagValue()
+                    }
+                }
+            }
+        if o.getTagName() == "lldp":
+            return {
+                self._interfaces_key: {
+                    parent_interface.getName(): {
+                        "lldp": True
+                    }
+                }
+            }
