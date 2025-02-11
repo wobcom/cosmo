@@ -1,7 +1,8 @@
 import abc
+import ipaddress
 from functools import singledispatchmethod
 from .types import (InterfaceType,
-                    TagType, VLANType)
+                    TagType, VLANType, IPAddressType)
 
 class AbstractNoopNetboxTypesVisitor(abc.ABC):
     @singledispatchmethod
@@ -35,6 +36,23 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
+
+    @accept.register
+    def _(self, o: IPAddressType):
+        parent_interface = o.getParent(InterfaceType)
+        if parent_interface and parent_interface.isManagementInterface():
+            return {
+                self._interfaces_key: {
+                    parent_interface.getName(): {
+                        "vrf": "mgmt",
+                        "mtu": 1_500 if not parent_interface.getMTU() else parent_interface.getMTU(),
+                        "address": o.getIPAddress(),
+                        "gateway": next(
+                            ipaddress.ip_network(o.getIPAddress(),strict=False).hosts()
+                        ).compressed
+                    }
+                }
+            }
 
     def processUntaggedVLAN(self, o: VLANType):
         return {
@@ -80,7 +98,17 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         pass
 
     def processInterface(self, o: InterfaceType):
-        pass
+        return {
+            self._interfaces_key: {
+                o.getName(): {
+                    "mtu": 10_000 if not o.getMTU() else o.getMTU()
+                } | {
+                    "description": o.getDescription()
+                } if o.getDescription() else {} | {
+                    "bpdufilter": True
+                } if not o.isManagementInterface() else {}
+            }
+        }
 
     @accept.register
     def _(self, o: InterfaceType):

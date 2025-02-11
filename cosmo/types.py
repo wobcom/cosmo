@@ -1,7 +1,7 @@
 import abc
 from collections.abc import Iterable
 from .common import head, without_keys
-
+from typing import Self
 
 class AbstractNetboxType(abc.ABC, Iterable, dict):
     __parent = None
@@ -49,13 +49,17 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
     def register(cls) -> tuple:
         return cls._getNetboxType(), cls
 
-    def getParent(self, target_type=None):
+    def getParent(self, target_type=None) -> Self | None:
         if not target_type:
             return self['__parent']
         else:
             instance = self
             while type(instance) != target_type:
-                instance = instance['__parent']
+                if "__parent" not in instance.keys():
+                    # up to the whole tree we went, and we found nothing
+                    return None
+                else:
+                    instance = instance['__parent']
             return instance
 
     def __repr__(self):
@@ -163,14 +167,15 @@ class ManufacturerType(AbstractNetboxType):
 
 
 class IPAddressType(AbstractNetboxType):
-    pass
+    def getIPAddress(self) -> str:
+        return self["address"]
 
 
 class InterfaceType(AbstractNetboxType):
     def __repr__(self):
         return super().__repr__() + f"({self.getName()})"
 
-    def getName(self):
+    def getName(self) -> str:
         return self['name']
 
     def getUntaggedVLAN(self):
@@ -188,6 +193,15 @@ class InterfaceType(AbstractNetboxType):
         if self["lag"]:
             return True
         return False
+
+    def getMTU(self):
+        return self["mtu"]
+
+    def getDescription(self):
+        return self["description"]
+
+    def isManagementInterface(self):
+        return len(self["ip_addresses"]) == 1 and self.getName().startswith("eth")
 
 
 class VRFType(AbstractNetboxType):
