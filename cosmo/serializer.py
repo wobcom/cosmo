@@ -448,6 +448,12 @@ class RouterSerializer:
                     interface_stub['gigether'] = {}
                 interface_stub['gigether']['autonegotiation'] = True if tags.get_from_key("autoneg")[0] == "on" else False
 
+            if tags.has("sampling"):
+                interface_stub['sampling'] = True
+            if tags.has_key("sampling"):
+                interface_stub['sampling'] = True
+                interface_stub['sampling-profile'] = tags.get_from_key("sampling")[0]
+
             for fec in tags.get_from_key("fec"):
                 if not interface_stub.get("gigether"):
                     interface_stub["gigether"] = {}
