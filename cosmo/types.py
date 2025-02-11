@@ -1,15 +1,26 @@
 import abc
-from copy import deepcopy
+from collections.abc import Iterable
 from .common import head, without_keys
 
 
-class AbstractNetboxType(abc.ABC, dict):
+class AbstractNetboxType(abc.ABC, Iterable, dict):
     __parent = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for k, v in without_keys(self, "__parent").items():
             self[k] = self.convert(v)
+
+    def __iter__(self):
+        yield self
+        for k, v in without_keys(self, ["__parent", "__typename"]).items():
+            if isinstance(v, dict):
+                yield from iter(v)
+            if isinstance(v, list):
+                for e in v:
+                    yield from e
+            else:
+                yield v
 
     def convert(self, item):
         if isinstance(item, dict):

@@ -1,16 +1,8 @@
 import abc
-from .common import without_keys
-from functools import singledispatchmethod, wraps
+from functools import singledispatchmethod
 from .types import (AbstractNetboxType,
                     InterfaceType,
                     TagType, DeviceType)
-
-
-def dictlike(fun):
-    @wraps(fun)
-    def wrapper(self, *args, **kwargs):
-        return self._dictLikeTemplateMethod(fun(self, *args, **kwargs))
-    return wrapper
 
 
 class AbstractNoopNetboxTypesVisitor(abc.ABC):
@@ -20,30 +12,23 @@ class AbstractNoopNetboxTypesVisitor(abc.ABC):
 
     @accept.register
     def _(self, o: int):
-        return o
+        pass
 
     @accept.register
     def _(self, o: None):
-        return o
+        pass
 
     @accept.register
     def _(self, o: str):
-        return o
-
-    def _dictLikeTemplateMethod(self, o):
-        for key in list(without_keys(o,"__parent").keys()):
-            o[key] = self.accept(o[key])
-        return o
+        pass
 
     @accept.register
     def _(self, o: dict) -> dict:
-        return self._dictLikeTemplateMethod(o)
+        pass
 
     @accept.register
     def _(self, o: list) -> list:
-        for i, v in enumerate(o):
-            o[i] = self.accept(v)
-        return o
+        pass
 
 
 class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
@@ -52,7 +37,6 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         return super().accept(o)
 
     @accept.register
-    @dictlike
     def _(self, o: DeviceType):
         o['cumulus__device_interfaces'] = {}
         for interface in o['interfaces']:
@@ -60,7 +44,6 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         return o
 
     @accept.register
-    @dictlike
     def _(self, o: TagType):
         if o.getTagName() == "speed":
             o.getParent(InterfaceType)["speed"] = {
