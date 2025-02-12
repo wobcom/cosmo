@@ -1,5 +1,6 @@
 import abc
 import ipaddress
+import warnings
 from functools import singledispatchmethod
 from .types import (InterfaceType,
                     TagType, VLANType, IPAddressType)
@@ -142,18 +143,25 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
     @accept.register
     def _(self, o: TagType):
         parent_interface = o.getParent(InterfaceType)
+        speeds = {
+            "1g": 1000,
+            "10g": 10_000,
+            "100g": 100_000,
+        }
         if o.getTagName() == "speed":
-            return {
-                self._interfaces_key: {
-                    parent_interface.getName(): {
-                        "speed": {
-                        "1g": 1000,
-                        "10g": 10_000,
-                        "100g": 100_000,
-                        }[o.getTagValue()]
+            if o.getTagValue() not in speeds:
+                warnings.warn(
+                    f"Interface speed {o.getTagValue()} on interface "
+                    f"{o.getParent(InterfaceType).getName()} is not known, ignoring"
+                )
+            else:
+                return {
+                    self._interfaces_key: {
+                        parent_interface.getName(): {
+                            "speed": speeds[o.getTagValue()]
+                        }
                     }
                 }
-            }
         if o.getTagName() == "fec" and o.getTagValue() in ["off", "rs", "baser"]:
             return {
                 self._interfaces_key: {

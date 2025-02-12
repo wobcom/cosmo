@@ -1,12 +1,15 @@
 device_list:
 - device_type:
     slug: sn3420
+    __typename: DeviceTypeType
   id: '1718'
+  __typename: DeviceType
   interfaces:
   - custom_fields:
       inner_tag: null
       outer_tag: null
     description: 'speed test 1g'
+    __typename: InterfaceType
     enabled: true
     id: '30317'
     ip_addresses: []
@@ -19,6 +22,7 @@ device_list:
     tags:
      - name: speed:1g
        slug: speed:1g
+       __typename: TagType
     type: A_1000BASE_T
     untagged_vlan: null
     vrf: null
@@ -26,6 +30,7 @@ device_list:
       inner_tag: null
       outer_tag: null
     description: 'speed test 10g'
+    __typename: InterfaceType
     enabled: true
     id: '30318'
     ip_addresses: []
@@ -38,6 +43,7 @@ device_list:
     tags:
      - name: speed:10g
        slug: speed:10g
+       __typename: TagType
     type: A_10GBASE_CX1
     untagged_vlan: null
     vrf: null
@@ -45,6 +51,7 @@ device_list:
       inner_tag: null
       outer_tag: null
     description: 'speed test 100g'
+    __typename: InterfaceType
     enabled: true
     id: '30319'
     ip_addresses: []
@@ -57,6 +64,7 @@ device_list:
     tags:
      - name: speed:100g
        slug: speed:100g
+       __typename: TagType
     type: A_100GBASE_CR1
     untagged_vlan: null
     vrf: null
@@ -64,6 +72,7 @@ device_list:
       inner_tag: null
       outer_tag: null
     description: 'speed test invalid'
+    __typename: InterfaceType
     enabled: true
     id: '30320'
     ip_addresses: []
@@ -76,6 +85,7 @@ device_list:
     tags:
      - name: speed:100m
        slug: speed:100m
+       __typename: TagType
     type: A_100BASE_T
     untagged_vlan: null
     vrf: null
@@ -83,8 +93,10 @@ device_list:
   platform:
     manufacturer: null
     slug: cumulus-linux-4-3
+    __typename: PlatformType
   primary_ip4:
     address: 10.120.142.11/24
+    __typename: IPAddressType
   serial: 4242
   staticroute_set: []
 l2vpn_list: []
