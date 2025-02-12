@@ -90,12 +90,18 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             ret = self.processTaggedVLAN(o)
         elif o == parent_interface.getUntaggedVLAN():
             ret = self.processUntaggedVLAN(o)
-        if parent_interface.enabled() and not parent_interface.lagMember():
+        if parent_interface.enabled() and not parent_interface.isLagMember():
             ret[self._interfaces_key]["bridge"]["bridge_ports"] = [ parent_interface.getName() ]
         return ret
 
     def processLagMember(self, o: InterfaceType):
-        pass
+        return {
+            self._interfaces_key: {
+                o.getName(): {
+                    "bond_mode": "802.3ad",
+                }
+            }
+        }
 
     def processInterface(self, o: InterfaceType):
         return {
@@ -110,13 +116,27 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             }
         }
 
+    def processInterfaceLagInfo(self, o: InterfaceType):
+        return {
+            self._interfaces_key: {
+                o.getName(): {
+                    "bond_slaves": [
+                        o.getParent(InterfaceType).getName()
+                    ]
+                }
+            }
+        }
+
     @accept.register
     def _(self, o: InterfaceType):
-        # either lag member
-        if type(o.getParent()) == InterfaceType:
+        # either lag interface
+        if o.isLagInterface():
             return self.processLagMember(o)
+        # 'lag': {'__typename': 'InterfaceType', 'id': '${ID}', 'name': '${NAME}'}
+        elif type(o.getParent()) == InterfaceType: # interface in interface -> lagInfo
+            return self.processInterfaceLagInfo(o)
+        # or "normal" interface
         else:
-        # or device interface
             return self.processInterface(o)
 
     @accept.register

@@ -310,6 +310,7 @@ class DeviceDataQuery(ParallelQuery):
                   lag {
                     __typename
                     id
+                    name
                   }
                   ip_addresses {
                     __typename

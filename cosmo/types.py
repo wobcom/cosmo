@@ -53,7 +53,7 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
         if not target_type:
             return self['__parent']
         else:
-            instance = self
+            instance = self['__parent']
             while type(instance) != target_type:
                 if "__parent" not in instance.keys():
                     # up to the whole tree we went, and we found nothing
@@ -189,8 +189,13 @@ class InterfaceType(AbstractNetboxType):
             return True
         return False
 
-    def lagMember(self):
-        if self["lag"]:
+    def isLagMember(self):
+        if "lag" in self.keys() and self["lag"]:
+            return True
+        return False
+
+    def isLagInterface(self):
+        if "type" in self.keys() and str(self["type"]).lower() == "lag":
             return True
         return False
 
