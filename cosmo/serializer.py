@@ -738,4 +738,4 @@ class SwitchSerializer:
             new = SwitchDeviceExporterVisitor().accept(value)
             if new:
                 device_stub = my_merger.merge(device_stub, new)
-        return device_stub
+        return deepsort(device_stub)
