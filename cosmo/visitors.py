@@ -148,11 +148,12 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             "10g": 10_000,
             "100g": 100_000,
         }
+        fecs = [ "off", "rs", "baser" ]
         if o.getTagName() == "speed":
             if o.getTagValue() not in speeds:
                 warnings.warn(
                     f"Interface speed {o.getTagValue()} on interface "
-                    f"{o.getParent(InterfaceType).getName()} is not known, ignoring"
+                    f"{parent_interface.getName()} is not known, ignoring"
                 )
             else:
                 return {
@@ -162,14 +163,20 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                         }
                     }
                 }
-        if o.getTagName() == "fec" and o.getTagValue() in ["off", "rs", "baser"]:
-            return {
-                self._interfaces_key: {
-                    parent_interface.getName(): {
-                        "fec": o.getTagValue()
+        if o.getTagName() == "fec":
+            if o.getTagValue() not in fecs:
+                warnings.warn(
+                    f"FEC mode {o.getTagValue()} on interface "
+                    f"{parent_interface.getName()} is not known, ignoring"
+                )
+            else:
+                return {
+                    self._interfaces_key: {
+                        parent_interface.getName(): {
+                            "fec": o.getTagValue()
+                        }
                     }
                 }
-            }
         if o.getTagName() == "lldp":
             return {
                 self._interfaces_key: {
