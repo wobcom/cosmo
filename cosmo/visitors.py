@@ -140,48 +140,59 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         else:
             return self.processInterface(o)
 
-    @accept.register
-    def _(self, o: TagType):
+    def processSpeedTag(self, o: TagType):
         parent_interface = o.getParent(InterfaceType)
         speeds = {
             "1g": 1000,
             "10g": 10_000,
             "100g": 100_000,
         }
-        fecs = [ "off", "rs", "baser" ]
-        if o.getTagName() == "speed":
-            if o.getTagValue() not in speeds:
-                warnings.warn(
-                    f"Interface speed {o.getTagValue()} on interface "
-                    f"{parent_interface.getName()} is not known, ignoring"
-                )
-            else:
-                return {
-                    self._interfaces_key: {
-                        parent_interface.getName(): {
-                            "speed": speeds[o.getTagValue()]
-                        }
-                    }
-                }
-        if o.getTagName() == "fec":
-            if o.getTagValue() not in fecs:
-                warnings.warn(
-                    f"FEC mode {o.getTagValue()} on interface "
-                    f"{parent_interface.getName()} is not known, ignoring"
-                )
-            else:
-                return {
-                    self._interfaces_key: {
-                        parent_interface.getName(): {
-                            "fec": o.getTagValue()
-                        }
-                    }
-                }
-        if o.getTagName() == "lldp":
+        if o.getTagValue() not in speeds:
+            warnings.warn(
+                f"Interface speed {o.getTagValue()} on interface "
+                f"{parent_interface.getName()} is not known, ignoring"
+            )
+        else:
             return {
                 self._interfaces_key: {
                     parent_interface.getName(): {
-                        "lldp": True
+                        "speed": speeds[o.getTagValue()]
                     }
                 }
             }
+
+    def processFECTag(self, o: TagType):
+        parent_interface = o.getParent(InterfaceType)
+        fecs = ["off", "rs", "baser"]
+        if o.getTagValue() not in fecs:
+            warnings.warn(
+                f"FEC mode {o.getTagValue()} on interface "
+                f"{parent_interface.getName()} is not known, ignoring"
+            )
+        else:
+            return {
+                self._interfaces_key: {
+                    parent_interface.getName(): {
+                        "fec": o.getTagValue()
+                    }
+                }
+            }
+
+    def processLLDPTag(self, o: TagType):
+        parent_interface = o.getParent(InterfaceType)
+        return {
+            self._interfaces_key: {
+                parent_interface.getName(): {
+                    "lldp": True
+                }
+            }
+        }
+
+    @accept.register
+    def _(self, o: TagType):
+        if o.getTagName() == "speed":
+            return self.processSpeedTag(o)
+        if o.getTagName() == "fec":
+            return self.processFECTag(o)
+        if o.getTagName() == "lldp":
+            return self.processLLDPTag(o)
