@@ -9,7 +9,7 @@ from deepmerge import Merger
 
 from cosmo.common import deepsort
 from cosmo.types import DeviceType
-from cosmo.visitors import SwitchDeviceExporterVisitor
+from cosmo.switchvisitor import SwitchDeviceExporterVisitor
 
 
 class AbstractRecoverableError(Exception, abc.ABC):
