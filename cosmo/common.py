@@ -13,3 +13,21 @@ def without_keys(d, keys) -> dict:
     if type(keys) != list:
         keys = [keys]
     return {k: v for k,v in d.items() if k not in keys}
+
+
+class ObjCache:
+    def __init__(self):
+        self._obj_cache = {}
+        self.hits = 0
+
+    def associate(self, o: object, v: object):
+        self._obj_cache[id(o)] = v
+
+    def get(self, o: object):
+        if id(o) in self._obj_cache.keys():
+            self.hits += 1
+            return self._obj_cache[id(o)]
+        return None
+
+    def getHits(self):
+        return self.hits
