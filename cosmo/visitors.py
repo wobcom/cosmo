@@ -109,11 +109,11 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             self._interfaces_key: {
                 o.getName(): {
                     "mtu": 10_000 if not o.getMTU() else o.getMTU()
-                } | {
+                } | ({
                     "description": o.getDescription()
-                } if o.getDescription() else {} | {
+                } if o.getDescription() else {}) | ({
                     "bpdufilter": True
-                } if not o.isManagementInterface() else {}
+                } if not o.isManagementInterface() else {})
             }
         }
 
