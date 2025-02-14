@@ -63,9 +63,9 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             self._interfaces_key: {
                 o.getParent(InterfaceType).getName(): {
                     "untagged_vlan": o.getVID(),
-                    # untagged VLANs belong to the vid list as well
-                    "tagged_vlans": [ o.getVID() ]
-                },
+                    # if we have tagged and untagged VLANs on an interface,
+                    # untagged VLANs belong to the tagged VID list as well
+                } | ({ "tagged_vlans": [o.getVID()] } if len(o.getParent(InterfaceType).getTaggedVLANS()) else {}),
                 "bridge": {
                     "mtu": 10_000,
                     "tagged_vlans": [ o.getVID() ]
