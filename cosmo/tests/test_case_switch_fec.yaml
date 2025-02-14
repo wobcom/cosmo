@@ -90,7 +90,9 @@ device_list:
     vrf: null
   name: TEST0001
   platform:
-    manufacturer: null
+    manufacturer:
+      __typename: ManufacturerType
+      slug: cumulus-networks
     slug: cumulus-linux-4-3
     __typename: PlatformType
   primary_ip4:

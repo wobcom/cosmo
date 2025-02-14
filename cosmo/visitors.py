@@ -2,8 +2,10 @@ import abc
 import ipaddress
 import warnings
 from functools import singledispatchmethod
+
+from .manufacturers import AbstractManufacturer
 from .types import (InterfaceType,
-                    TagType, VLANType, IPAddressType)
+                    TagType, VLANType, IPAddressType, DeviceType)
 
 class AbstractNoopNetboxTypesVisitor(abc.ABC):
     @singledispatchmethod
@@ -40,8 +42,9 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
 
     @accept.register
     def _(self, o: IPAddressType):
+        manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
         parent_interface = o.getParent(InterfaceType)
-        if parent_interface and parent_interface.isManagementInterface():
+        if parent_interface and manufacturer.isManagementInterface(parent_interface):
             return {
                 self._interfaces_key: {
                     parent_interface.getName(): {
@@ -105,6 +108,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         }
 
     def processInterface(self, o: InterfaceType):
+        manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
         return {
             self._interfaces_key: {
                 o.getName(): {
@@ -113,7 +117,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                     "description": o.getDescription()
                 } if o.getDescription() else {}) | ({
                     "bpdufilter": True
-                } if not o.isManagementInterface() else {})
+                } if not manufacturer.isManagementInterface(o) else {})
             }
         }
 

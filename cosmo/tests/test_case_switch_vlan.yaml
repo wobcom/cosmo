@@ -68,7 +68,9 @@ device_list:
   name: TEST0001
   platform:
     __typename: PlatformType
-    manufacturer: null
+    manufacturer:
+      __typename: ManufacturerType
+      slug: cumulus-networks
     slug: cumulus-linux-4-3
   primary_ip4:
     __typename: IPAddressType
