@@ -98,26 +98,32 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             ret[self._interfaces_key]["bridge"]["bridge_ports"] = [ parent_interface.getName() ]
         return ret
 
+    @staticmethod
+    def processInterfaceCommon(o: InterfaceType):
+        manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
+        description = {
+            "description": o.getDescription()
+        } if o.getDescription() else {}
+        bpdu_filter = {
+            "bpdufilter": True
+        } if not manufacturer.isManagementInterface(o) else {}
+        return {
+            "mtu": 10_000 if not o.getMTU() else o.getMTU()
+        } | description | bpdu_filter
+
     def processLagMember(self, o: InterfaceType):
         return {
             self._interfaces_key: {
                 o.getName(): {
                     "bond_mode": "802.3ad",
-                }
+                } | self.processInterfaceCommon(o)
             }
         }
 
     def processInterface(self, o: InterfaceType):
-        manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
         return {
             self._interfaces_key: {
-                o.getName(): {
-                    "mtu": 10_000 if not o.getMTU() else o.getMTU()
-                } | ({
-                    "description": o.getDescription()
-                } if o.getDescription() else {}) | ({
-                    "bpdufilter": True
-                } if not manufacturer.isManagementInterface(o) else {})
+                o.getName(): self.processInterfaceCommon(o)
             }
         }
 
