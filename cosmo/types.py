@@ -86,6 +86,8 @@ class DeviceTypeType(AbstractNetboxType):
 class PlatformType(AbstractNetboxType):
     def getManufacturer(self):
         return self['manufacturer']
+    def getSlug(self):
+        return self['slug']
 
 
 class ManufacturerType(AbstractNetboxType):
