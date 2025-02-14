@@ -10,6 +10,7 @@ from deepmerge import Merger
 from cosmo.common import deepsort
 from cosmo.types import DeviceType
 from cosmo.switchvisitor import SwitchDeviceExporterVisitor
+from cosmo.routervisitor import RouterDeviceExporterVisitor
 
 
 class AbstractRecoverableError(Exception, abc.ABC):
@@ -395,6 +396,24 @@ class RouterSerializer:
         return name, unit_stub
 
     def serialize(self):
+        device_stub = {}
+        # like always_merger but with append_unique strategy
+        # for lists
+        my_merger = Merger(
+            [
+                (list, ["append_unique"]),
+                (dict, ["merge"]),
+                (set, ["union"]),
+            ],
+            ["override"],
+            ["override"]
+        )
+        for value in iter(DeviceType(self.device)):
+            new = RouterDeviceExporterVisitor().accept(value)
+            if new:
+                device_stub = my_merger.merge(device_stub, new)
+        return deepsort(device_stub)
+
         device_stub = {
             f"device_model": self.device["device_type"]["slug"],
             f"platform": self.device["platform"]["slug"],
