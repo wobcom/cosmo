@@ -103,7 +103,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
         description = {
             "description": o.getDescription()
-        } if o.getDescription() else {}
+        } if o.hasDescription() else {}
         bpdu_filter = {
             "bpdufilter": True
         } if not manufacturer.isManagementInterface(o) else {}
@@ -135,9 +135,9 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                         o.getParent(InterfaceType).getName()
                     ]
                 },
-                o.getParent(InterfaceType).getName(): {
+                o.getParent(InterfaceType).getName(): ({
                     "description": f"LAG Member of {o.getName()}"
-                }
+                } if not o.getParent(InterfaceType).hasDescription() else {})
             }
         }
 

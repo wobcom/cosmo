@@ -134,6 +134,9 @@ class InterfaceType(AbstractNetboxType):
     def getDescription(self):
         return self["description"]
 
+    def hasDescription(self):
+        return self.getDescription() != '' and self.getDescription() is not None
+
 
 class VRFType(AbstractNetboxType):
     pass
