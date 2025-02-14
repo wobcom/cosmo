@@ -134,6 +134,9 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                     "bond_slaves": [
                         o.getParent(InterfaceType).getName()
                     ]
+                },
+                o.getParent(InterfaceType).getName(): {
+                    "description": f"LAG Member of {o.getName()}"
                 }
             }
         }
