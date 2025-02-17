@@ -100,6 +100,16 @@ class IPAddressType(AbstractNetboxType):
         return self["address"]
 
 
+class TagType(AbstractNetboxType):
+    _delimiter = ':'
+    def getTagComponents(self):
+        return self['name'].split(self._delimiter)
+    def getTagName(self):
+        return self.getTagComponents()[0]
+    def getTagValue(self):
+        return self.getTagComponents()[1]
+
+
 class InterfaceType(AbstractNetboxType):
     def __repr__(self):
         return super().__repr__() + f"({self.getName()})"
@@ -131,25 +141,34 @@ class InterfaceType(AbstractNetboxType):
     def getMTU(self):
         return self["mtu"]
 
+    def getTags(self) -> list[TagType]:
+        return self["tags"]
+
     def getDescription(self):
         return self["description"]
 
     def hasDescription(self):
         return self.getDescription() != '' and self.getDescription() is not None
 
+    def getRawType(self) -> str:
+        return self.get("type", '')
+
+    def getAssociatedType(self):
+        my_type = self.getRawType().lower()
+        authorized_types = [ "lag", "loopback", "virtual", "access" ]
+        if "base" in my_type:
+            return "physical"
+        elif (
+            "lag" == my_type and
+            any([tag.getTagName() == "access" for tag in self.getTags()])
+        ):
+            return "lag-access"
+        elif my_type in authorized_types:
+            return my_type
+
 
 class VRFType(AbstractNetboxType):
     pass
-
-
-class TagType(AbstractNetboxType):
-    _delimiter = ':'
-    def getTagComponents(self):
-        return self['name'].split(self._delimiter)
-    def getTagName(self):
-        return self.getTagComponents()[0]
-    def getTagValue(self):
-        return self.getTagComponents()[1]
 
 
 class VLANType(AbstractNetboxType):
@@ -157,7 +176,8 @@ class VLANType(AbstractNetboxType):
         return self["vid"]
 
 class L2VPNType(AbstractNetboxType):
-    pass
+    def getName(self) -> str:
+        return self["name"]
 
 class CosmoLoopbackType(AbstractNetboxType):
     # TODO: refactor me for greater code reuse! (see netbox_v4.py)

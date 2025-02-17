@@ -105,6 +105,7 @@ class RouterSerializer:
 
         self.cfg = cfg
         self.device = device
+        self.l2vpn_list = l2vpn_list
         self.l2vpn_vlan_terminations, self.l2vpn_interface_terminations = RouterSerializer.process_l2vpn_terminations(l2vpn_list)
         self.vrfs = vrfs
         self.loopbacks = loopbacks
@@ -408,13 +409,12 @@ class RouterSerializer:
             ["override"],
             ["override"]
         )
-        router_visitor = RouterDeviceExporterVisitor(
-            [L2VPNType(l2vpn) for l2vpn in self.l2vpns],
-            [VRFType(vrf) for vrf in self.vrfs],
-            [CosmoLoopbackType(v) for k,v in self.loopbacks.items()]
-        )
+        self.device['l2vpn_list'] = self.l2vpn_list
+        self.device['vrf_list'] = self.vrfs
+        self.device['loopback_list'] = self.loopbacks
+        # breakpoint()
         for value in iter(DeviceType(self.device)):
-            new = router_visitor.accept(value)
+            new = RouterDeviceExporterVisitor().accept(value)
             if new:
                 device_stub = my_merger.merge(device_stub, new)
         return deepsort(device_stub)

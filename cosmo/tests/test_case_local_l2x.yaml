@@ -90,6 +90,7 @@ device_list:
   staticroute_set: []
 l2vpn_list:
 - id: '53'
+  __typename: L2VPNType
   identifier: null
   name: 'WAN: L2X'
   terminations:
