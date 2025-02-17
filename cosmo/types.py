@@ -143,6 +143,25 @@ class InterfaceType(AbstractNetboxType):
             return True
         return False
 
+    def spitInterfacePathWith(self, d: dict) -> dict:
+        # does not check for config correctness! do your checks 1st O:-)
+        if self.isSubInterface():
+            return {
+                self.getName().split('.')[0]: {
+                    "units": {
+                        int(self.getName().split('.')[1]): {
+                            **d
+                        }
+                    }
+                }
+            }
+        else:
+            return {
+                self.getName(): {
+                    **d
+                }
+            }
+
     def getMode(self) -> str|None:
         if "mode" in self:
             return self["mode"]

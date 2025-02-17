@@ -50,7 +50,7 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         else:
             return {
                 self._interfaces_key: {
-                    o.getName(): self.processInterfaceCommon(o)
+                    **o.spitInterfacePathWith(self.processInterfaceCommon(o))
                 }
             }
 
@@ -58,20 +58,16 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         parent_interface = o.getParent(InterfaceType)
         if not parent_interface.isInAccessMode():
             warnings.warn(
-                f"Interface {parent_interface} on device {o.getParent(DeviceType).getName} "
+                f"Interface {parent_interface} on device {o.getParent(DeviceType).getName()} "
                 "is mode ACCESS but has no untagged vlan, skipping"
             )
         elif parent_interface.isSubInterface() and parent_interface.enabled():
             return {
                 self._interfaces_key: {
-                    parent_interface.getName().split('.')[0]: {
-                        "units": {
-                            o.getVID(): {
-                                **self.processInterfaceCommon(parent_interface),
-                                "vlan": o.getVID(),
-                            }
-                        }
-                    }
+                    **parent_interface.spitInterfacePathWith({
+                        **self.processInterfaceCommon(parent_interface),
+                        "vlan": o.getVID()
+                    }),
                 }
             }
 
@@ -85,11 +81,11 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
     def processAutonegTag(self, o: TagType):
         return {
             self._interfaces_key: {
-                o.getParent(InterfaceType).getName(): {
+                **o.getParent(InterfaceType).spitInterfacePathWith({
                     "gigether": {
                         "autonegotiation": True if o.getTagValue() == "on" else False
                     }
-                }
+                })
             }
         }
 
@@ -102,11 +98,11 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         else:
             return {
                 self._interfaces_key: {
-                    o.getParent(InterfaceType).getName(): {
+                    **o.getParent(InterfaceType).spitInterfacePathWith({
                         "gigether":  {
                             "speed": o.getTagValue()
                         }
-                    }
+                    })
                 }
             }
 
