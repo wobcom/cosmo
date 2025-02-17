@@ -1,7 +1,7 @@
 import abc
 from collections.abc import Iterable
 from .common import without_keys
-from typing import Self
+from typing import Self, Iterator, Any
 
 
 class AbstractNetboxType(abc.ABC, Iterable, dict):
@@ -12,7 +12,7 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
         for k, v in without_keys(self, "__parent").items():
             self[k] = self.convert(v)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Self|str|int|bool|None]:
         yield self
         for k, v in without_keys(self, ["__parent", "__typename"]).items():
             if isinstance(v, dict):
@@ -155,3 +155,12 @@ class TagType(AbstractNetboxType):
 class VLANType(AbstractNetboxType):
     def getVID(self):
         return self["vid"]
+
+class L2VPNType(AbstractNetboxType):
+    pass
+
+class CosmoLoopbackType(AbstractNetboxType):
+    # TODO: refactor me for greater code reuse! (see netbox_v4.py)
+    # this is an artificial type that we create in cosmo
+    # it does not exist in netbox
+    pass

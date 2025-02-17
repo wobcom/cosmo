@@ -140,7 +140,9 @@ class LoopbackDataQuery(ParallelQuery):
             l_ipv6 = next(filter(lambda l: l['family']['value'] == 6, child_interface['ip_addresses']), None)
             loopbacks[device_name] = {
                 "ipv4": l_ipv4['address'] if l_ipv4 else None,
-                "ipv6": l_ipv6['address'] if l_ipv6 else None
+                "ipv6": l_ipv6['address'] if l_ipv6 else None,
+                "__typename": "CosmoLoopbackType",
+                "device": device_name,
             }
 
         return {

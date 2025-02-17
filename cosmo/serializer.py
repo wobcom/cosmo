@@ -8,7 +8,7 @@ from collections import defaultdict
 from deepmerge import Merger
 
 from cosmo.common import deepsort
-from cosmo.types import DeviceType
+from cosmo.types import DeviceType, L2VPNType, VRFType, CosmoLoopbackType
 from cosmo.switchvisitor import SwitchDeviceExporterVisitor
 from cosmo.routervisitor import RouterDeviceExporterVisitor
 
@@ -408,8 +408,13 @@ class RouterSerializer:
             ["override"],
             ["override"]
         )
+        router_visitor = RouterDeviceExporterVisitor(
+            [L2VPNType(l2vpn) for l2vpn in self.l2vpns],
+            [VRFType(vrf) for vrf in self.vrfs],
+            [CosmoLoopbackType(v) for k,v in self.loopbacks.items()]
+        )
         for value in iter(DeviceType(self.device)):
-            new = RouterDeviceExporterVisitor().accept(value)
+            new = router_visitor.accept(value)
             if new:
                 device_stub = my_merger.merge(device_stub, new)
         return deepsort(device_stub)
