@@ -138,6 +138,20 @@ class InterfaceType(AbstractNetboxType):
             return True
         return False
 
+    def isSubInterface(self):
+        if "." in self.getName():
+            return True
+        return False
+
+    def getMode(self) -> str|None:
+        if "mode" in self:
+            return self["mode"]
+
+    def isInAccessMode(self):
+        if self.getMode() and self.getMode().lower() == "access":
+            return True
+        return False
+
     def getMTU(self):
         return self["mtu"]
 

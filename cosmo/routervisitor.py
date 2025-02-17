@@ -2,7 +2,7 @@ import re
 import warnings
 from functools import singledispatchmethod
 
-from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType
+from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
 
@@ -29,17 +29,58 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
     def _(self, o: VRFType):
         pass
 
+    @staticmethod
+    def processInterfaceCommon(o: InterfaceType):
+        return {
+            "type": o.getAssociatedType(),
+            "description": o.getDescription(),
+            "mtu": o.getMTU(),
+        } | ({"shutdown": True} if not o.enabled() else {})
+
+    @staticmethod
+    def processSubInterface(o: InterfaceType):
+        if not o.getUntaggedVLAN():
+            warnings.warn(f"Sub interface {o.getName()} does not have a access VLAN configured, skipping...")
+
+
     @accept.register
     def _(self, o: InterfaceType):
-        return {
-            self._interfaces_key: {
-                o.getName(): {
-                    "type": o.getAssociatedType(),
-                    "description": o.getDescription(),
-                    "mtu": o.getMTU(),
-                } | ({"shutdown": True} if not o.enabled() else {})
+        if o.isSubInterface():
+            return self.processSubInterface(o)
+        else:
+            return {
+                self._interfaces_key: {
+                    o.getName(): self.processInterfaceCommon(o)
+                }
             }
-        }
+
+    def processUntaggedVLAN(self, o: VLANType):
+        parent_interface = o.getParent(InterfaceType)
+        if not parent_interface.isInAccessMode():
+            warnings.warn(
+                f"Interface {parent_interface} on device {o.getParent(DeviceType).getName} "
+                "is mode ACCESS but has no untagged vlan, skipping"
+            )
+        elif parent_interface.isSubInterface() and parent_interface.enabled():
+            return {
+                self._interfaces_key: {
+                    parent_interface.getName().split('.')[0]: {
+                        "units": {
+                            o.getVID(): {
+                                **self.processInterfaceCommon(parent_interface),
+                                "vlan": o.getVID(),
+                            }
+                        }
+                    }
+                }
+            }
+
+    @accept.register
+    def _(self, o: VLANType):
+        parent_interface = o.getParent(InterfaceType)
+        if o == parent_interface.getUntaggedVLAN():
+            return self.processUntaggedVLAN(o)
+
 
     def processAutonegTag(self, o: TagType):
         return {

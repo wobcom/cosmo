@@ -1,12 +1,15 @@
 device_list:
 - device_type:
+    __typename: DeviceTypeType
     slug: mx204
   id: '1746'
+  __typename: DeviceType
   interfaces:
   - custom_fields:
       inner_tag: null
       outer_tag: null
     description: 'Customer: Test-Port'
+    __typename: InterfaceType
     enabled: true
     id: '30747'
     ip_addresses: []
@@ -28,6 +31,7 @@ device_list:
       storm_control__multicast: null
       storm_control__unknown_unicast: null
     description: 'Customer: Test-VLAN2'
+    __typename: InterfaceType
     enabled: false
     id: '183189'
     ip_addresses: [ ]
@@ -40,6 +44,7 @@ device_list:
     tags: [ ]
     type: VIRTUAL
     untagged_vlan:
+      __typename: VLANType
       id: '1159'
       name: TEST-VLAN2
       vid: 150
@@ -52,6 +57,7 @@ device_list:
       storm_control__multicast: null
       storm_control__unknown_unicast: null
     description: 'Customer: Test-VLAN'
+    __typename: InterfaceType
     enabled: true
     id: '183188'
     ip_addresses: [ ]
@@ -64,16 +70,20 @@ device_list:
     tags: [ ]
     type: VIRTUAL
     untagged_vlan:
+      __typename: VLANType
       id: '1153'
       name: TEST-VLAN
       vid: 139
     vrf: null
   name: TEST0001
   platform:
+    __typename: PlatformType
     manufacturer:
+      __typename: ManufacturerType
       slug: juniper
     slug: junos-21-4r3-s5-4
   primary_ip4:
+    __typename: IPAddressType
     address: 45.139.136.10/32
   serial: 4242
   staticroute_set: []
