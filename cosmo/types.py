@@ -1,4 +1,5 @@
 import abc
+import ipaddress
 from collections.abc import Iterable
 from .common import without_keys
 from typing import Self, Iterator, Any
@@ -51,6 +52,8 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
         return cls._getNetboxType(), cls
 
     def getParent(self, target_type=None) -> Self | None:
+        if '__parent' not in self.keys():
+            return None
         if not target_type:
             return self['__parent']
         else:
@@ -62,6 +65,13 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
                 else:
                     instance = instance['__parent']
             return instance
+
+    def __eq__(self, other):
+        if "id" in self.keys():
+            return self["id"] == other["id"]
+        else:
+            # cannot compare, id is missing
+            return False
 
     def __repr__(self):
         return self._getNetboxType()
@@ -77,6 +87,9 @@ class DeviceType(AbstractNetboxType):
 
     def getInterfaces(self):
         return self['interfaces']
+
+    def getName(self):
+        return self["name"]
 
 
 class DeviceTypeType(AbstractNetboxType):
@@ -118,13 +131,14 @@ class InterfaceType(AbstractNetboxType):
         return self['name']
 
     def getUntaggedVLAN(self):
-        return self["untagged_vlan"]
+        if "untagged_vlan" in self.keys():
+            return self["untagged_vlan"]
 
     def getTaggedVLANS(self):
         return self["tagged_vlans"]
 
     def enabled(self):
-        if self["enabled"]:
+        if "enabled" in self.keys() and self["enabled"]:
             return True
         return False
 
@@ -145,6 +159,7 @@ class InterfaceType(AbstractNetboxType):
 
     def spitInterfacePathWith(self, d: dict) -> dict:
         # does not check for config correctness! do your checks 1st O:-)
+        # TODO: move me in manufacturer strategy?
         if self.isSubInterface():
             return {
                 self.getName().split('.')[0]: {
@@ -172,13 +187,15 @@ class InterfaceType(AbstractNetboxType):
         return False
 
     def getMTU(self):
-        return self["mtu"]
+        if "mtu" in self.keys():
+            return self["mtu"]
 
     def getTags(self) -> list[TagType]:
         return self["tags"]
 
     def getDescription(self):
-        return self["description"]
+        if "description" in self.keys():
+            return self["description"]
 
     def hasDescription(self):
         return self.getDescription() != '' and self.getDescription() is not None
@@ -187,6 +204,7 @@ class InterfaceType(AbstractNetboxType):
         return self.get("type", '')
 
     def getAssociatedType(self):
+        # TODO: move me in manufacturer strategy?
         my_type = self.getRawType().lower()
         authorized_types = [ "lag", "loopback", "virtual", "access" ]
         if "base" in my_type:
@@ -199,6 +217,10 @@ class InterfaceType(AbstractNetboxType):
         elif my_type in authorized_types:
             return my_type
 
+    def getAssociatedDevice(self) -> DeviceType | None:
+        if "device" in self.keys():
+            return self["device"]
+
 
 class VRFType(AbstractNetboxType):
     pass
@@ -208,12 +230,47 @@ class VLANType(AbstractNetboxType):
     def getVID(self):
         return self["vid"]
 
+    def getInterfacesAsTagged(self) -> list[InterfaceType]:
+        if "interfaces_as_tagged" in self.keys():
+            return self["interfaces_as_tagged"]
+        return []
+
+    def getInterfacesAsUntagged(self) -> list[InterfaceType]:
+        if "interfaces_as_untagged" in self.keys():
+            return self["interfaces_as_untagged"]
+        return []
+
+
+class L2VPNTerminationType(AbstractNetboxType):
+    def getAssignedObject(self) -> InterfaceType|VLANType:
+        return self["assigned_object"]
+
+    def getId(self):
+        return self['id']
+
+
 class L2VPNType(AbstractNetboxType):
     def getName(self) -> str:
         return self["name"]
+
+    def getType(self) -> str:
+        return self["type"]
+
+    def getL2VPNTerminationTypeList(self) -> list[L2VPNTerminationType]:
+        return self['terminations']
+
+    def getTerminations(self) -> list[InterfaceType|VLANType]:
+        return list(map(lambda t: t.getAssignedObject(), self.getL2VPNTerminationTypeList()))
+
+class RouteTargetType(AbstractNetboxType):
+    pass
 
 class CosmoLoopbackType(AbstractNetboxType):
     # TODO: refactor me for greater code reuse! (see netbox_v4.py)
     # this is an artificial type that we create in cosmo
     # it does not exist in netbox
-    pass
+    def getIpv4(self) -> str | None:
+        return self["ipv4"]
+
+    def getIpv6(self) -> str | None:
+        return self["ipv6"]

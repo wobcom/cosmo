@@ -411,10 +411,12 @@ class RouterSerializer:
         )
         self.device['l2vpn_list'] = self.l2vpn_list
         self.device['vrf_list'] = self.vrfs
-        self.device['loopback_list'] = self.loopbacks
         # breakpoint()
+        visitor = RouterDeviceExporterVisitor(
+            {k: CosmoLoopbackType(v) for k, v in self.loopbacks.items()}
+        )
         for value in iter(DeviceType(self.device)):
-            new = RouterDeviceExporterVisitor().accept(value)
+            new = visitor.accept(value)
             if new:
                 device_stub = my_merger.merge(device_stub, new)
         return deepsort(device_stub)

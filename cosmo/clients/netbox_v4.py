@@ -52,6 +52,8 @@ class ConnectedDevicesDataQuery(ParallelQuery):
                           address
                         }
                         interfaces {
+                          id
+                          name
                           __typename
                           ip_addresses {
                             __typename
@@ -169,12 +171,35 @@ class L2VPNDataQuery(ParallelQuery):
                     ... on VLANType {
                       __typename
                       id
+                      name
+                      interfaces_as_tagged {
+                         id
+                         name
+                         __typename
+                         device {
+                            __typename
+                            id
+                            name
+                         }
+                      }
+                      interfaces_as_untagged {
+                         id
+                         name
+                         __typename
+                         device {
+                            __typename
+                            id
+                            name
+                         }
+                      }
                     }
                     ... on InterfaceType {
                       __typename
                       id
+                      name
                       device {
                         __typename
+                        id
                         name
                       }
                     }
@@ -339,6 +364,7 @@ class DeviceDataQuery(ParallelQuery):
                     __typename
                     id
                     mtu
+                    name
                   }
                   custom_fields
                 }
