@@ -1,5 +1,6 @@
 device_list:
 - device_type:
+    __typename: DeviceTypeType
     slug: mx204
   id: '1999'
   interfaces:
@@ -11,6 +12,7 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '192862'
@@ -33,12 +35,15 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '32402'
     ip_addresses:
     - address: 62.176.224.243/32
+      __typename: IPAddressType
     - address: 2a01:580:6000::23/128
+      __typename: IPAddressType
     lag: null
     mac_address: null
     mode: null
@@ -57,6 +62,7 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: 'test iface'
     enabled: true
     id: '2000'
@@ -79,12 +85,15 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '2004'
     ip_addresses:
     - address: 62.176.251.48/31
+      __typename: IPAddressType
     - address: 2a01:581:1:a::20/127
+      __typename: IPAddressType
     lag: null
     mac_address: null
     mode: null
@@ -97,18 +106,32 @@ device_list:
     type: VIRTUAL
     untagged_vlan: null
     vrf:
+      description: Test VRF
+      export_targets:
+      - name: target:9136:111000000
+        __typename: RouteTargetType
       id: '399'
+      import_targets:
+      - name: target:9136:111000000
+        __typename: RouteTargetType
+      name: L3VPN-TEST
+      rd: null
+      __typename: VRFType
   name: TEST0001
   platform:
+    __typename: PlatformType
     manufacturer:
+      __typename: ManufacturerType
       slug: juniper
     slug: junos-21-4r3-s5-4
   primary_ip4:
+    __typename: IPAddressType
     address: 10.120.130.10/24
   serial: 4242
   staticroute_set:
   - interface: null
     metric: null
+    __typename: CosmoStaticRouteType
     next_hop:
       address: 10.30.0.154/30
     prefix:
@@ -120,6 +143,7 @@ device_list:
   - interface:
       name: et-0/0/2.0
     next_hop: null
+    __typename: CosmoStaticRouteType
     metric: 100
     prefix:
       family:
@@ -128,15 +152,7 @@ device_list:
     vrf:
       name: L3VPN-TEST
 l2vpn_list: []
-vrf_list:
-- description: Test VRF
-  export_targets:
-  - name: target:9136:111000000
-  id: '399'
-  import_targets:
-  - name: target:9136:111000000
-  name: L3VPN-TEST
-  rd: null
+vrf_list: []
 loopbacks:
   TEST0001:
     ipv4: 45.139.136.10/32

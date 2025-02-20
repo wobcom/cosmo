@@ -108,6 +108,17 @@ class LoopbackDataQuery(ParallelQuery):
                   vrf {
                     __typename
                     id
+                    name
+                    description
+                    rd
+                    export_targets {
+                      __typename
+                      name
+                    }
+                    import_targets {
+                      __typename
+                      name
+                    }
                   },
                   ip_addresses {
                     __typename
@@ -259,6 +270,8 @@ class StaticRouteQuery(ParallelQuery):
         for d in data['device_list']:
             device_static_routes = list(filter(lambda sr: str(sr['device']['id']) == d['id'], query_data))
             d['staticroute_set'] = device_static_routes
+            for e in d['staticroute_set']:
+                e['__typename'] = "CosmoStaticRouteType"
 
         return data
 
@@ -333,6 +346,17 @@ class DeviceDataQuery(ParallelQuery):
                   vrf {
                     __typename
                     id
+                    name
+                    description
+                    rd
+                    export_targets {
+                      __typename
+                      name
+                    }
+                    import_targets {
+                      __typename
+                      name
+                    }
                   }
                   lag {
                     __typename
@@ -405,7 +429,6 @@ class NetboxV4Strategy:
             )
 
         queries.extend([
-            VrfDataQuery(self.client, device_list=device_list),
             L2VPNDataQuery(self.client, device_list=device_list),
             StaticRouteQuery(self.client, device_list=device_list),
             DeviceMACQuery(self.client, device_list=device_list),

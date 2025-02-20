@@ -399,7 +399,6 @@ class RouterSerializer:
             ["override"]
         )
         self.device['l2vpn_list'] = self.l2vpn_list
-        self.device['vrf_list'] = self.vrfs
         # breakpoint()
         visitor = RouterDeviceExporterVisitor(
             {k: CosmoLoopbackType(v) for k, v in self.loopbacks.items()}

@@ -134,8 +134,32 @@ class TagType(AbstractNetboxType):
     def getTagValue(self):
         return self.getTagComponents()[1]
 
+
+class RouteTargetType(AbstractNetboxType):
+    # RT is present in VRFs
+    def getName(self):
+        return self["name"]
+
+
 class VRFType(AbstractNetboxType):
-    pass
+    def getName(self) -> str:
+        return self["name"]
+
+    def getID(self) -> str:
+        return self["id"]
+
+    def getDescription(self) -> str:
+        return self["description"]
+
+    def getExportTargets(self) -> list[RouteTargetType]:
+        return self["export_targets"]
+
+    def getImportTargets(self) -> list[RouteTargetType]:
+        return self["import_targets"]
+
+    def getRouteDistinguisher(self) -> str:
+        return self["rd"]
+
 
 class InterfaceType(AbstractNetboxType):
     def __repr__(self):
@@ -284,8 +308,31 @@ class L2VPNType(AbstractNetboxType):
     def getTerminations(self) -> list[InterfaceType|VLANType]:
         return list(map(lambda t: t.getAssignedObject(), self.getL2VPNTerminationTypeList()))
 
-class RouteTargetType(AbstractNetboxType):
-    pass
+
+class CosmoStaticRouteType(AbstractNetboxType):
+    # TODO: fixme
+    # hacky! does not respect usual workflow
+    def getNextHop(self) -> IPAddressType|None:
+        if self["next_hop"]:
+            return IPAddressType(self["next_hop"])
+
+    def getInterface(self) -> InterfaceType|None:
+        if self["interface"]:
+            return InterfaceType(self["interface"])
+
+    def getPrefixFamily(self) -> int:
+        return self["prefix"]["family"]["value"]
+
+    def getPrefix(self) -> str:
+        return self["prefix"]["prefix"]
+
+    def getMetric(self) -> int|None:
+        return self["metric"]
+
+    def getVRF(self) -> VRFType|None:
+        if self["vrf"]:
+            return VRFType(self["vrf"])
+
 
 class CosmoLoopbackType(AbstractNetboxType):
     # TODO: refactor me for greater code reuse! (see netbox_v4.py)

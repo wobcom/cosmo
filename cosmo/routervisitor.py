@@ -6,7 +6,7 @@ from functools import singledispatchmethod
 from cosmo.common import head, InterfaceSerializationError
 from cosmo.manufacturers import AbstractManufacturer
 from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
-    L2VPNTerminationType, IPAddressType
+    L2VPNTerminationType, IPAddressType, CosmoStaticRouteType
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
 
@@ -233,6 +233,76 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                 self._interfaces_key: {
                     **o.spitInterfacePathWith(self.processInterfaceCommon(o))
                 }
+            }
+
+    def getRouterId(self, o: DeviceType) -> str:
+        return str(ipaddress.ip_interface(self.loopbacks_by_device[o.getName()].getIpv4()).ip)
+
+    @accept.register
+    def _(self, o: VRFType):
+        parent_interface = o.getParent(InterfaceType)
+        router_id = self.getRouterId(o.getParent(DeviceType))
+        if o.getRouteDistinguisher():
+            rd = router_id + ":" + o.getRouteDistinguisher()
+        elif len(o.getExportTargets()):
+            rd = router_id + ":" + o.getID()
+        else:
+            rd = None
+        return {
+            self._vrf_key: {
+                o.getName(): {
+                    "interfaces": [ parent_interface.getName() ],
+                    "description": o.getDescription(),
+                    "instance_type": "vrf",
+                    "route_distinguisher": rd,
+                    "import_targets": [target.getName() for target in o.getImportTargets()],
+                    "export_targets": [target.getName() for target in o.getExportTargets()],
+                }
+            }
+        }
+
+    @staticmethod
+    def processStaticRouteCommon(o: CosmoStaticRouteType):
+        next_hop = None
+        if o.getNextHop():
+            next_hop = str(o.getNextHop().getIPInterfaceObject().ip)
+        elif o.getInterface():
+            next_hop = o.getInterface().getName()
+        if o.getPrefixFamily() == 4:
+            table = f"{o.getVRF().getName()}.inet.0"
+        else:
+            table = f"{o.getVRF().getName()}.inet6.0"
+        return {
+            "routing_options": {
+                "rib": {
+                    table: {
+                        "static": {
+                            o.getPrefix(): {
+                                               "next_hop": next_hop,
+                                           } | (
+                                               {"metric": o.getMetric()} if o.getMetric() else {}
+                                           )
+                        }
+                    }
+                }
+            }
+        }
+
+    @accept.register
+    def _(self, o: CosmoStaticRouteType):
+        if o.getVRF():
+            return {
+                # vrf-wide static route
+                self._vrf_key: {
+                    o.getVRF().getName(): {
+                        **self.processStaticRouteCommon(o)
+                    }
+                }
+            }
+        else:
+            return {
+                # device-wide static route
+                **self.processStaticRouteCommon(o)
             }
 
     def processUntaggedVLAN(self, o: VLANType):
