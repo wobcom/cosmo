@@ -141,6 +141,25 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             }
         } | optional_l2circuits
 
+    def processLagMember(self, o: InterfaceType):
+        return {
+            self._interfaces_key: {
+                **o.spitInterfacePathWith({
+                    "type": "lag",
+                } | self.processInterfaceCommon(o))
+            }
+        }
+
+    def processInterfaceLagInfo(self, o: InterfaceType):
+        return {
+            self._interfaces_key: {
+                **o.getParent(InterfaceType).spitInterfacePathWith({
+                    "type": "lag_member",
+                    "lag_parent": o.getName(),
+                })
+            }
+        }
+
     @accept.register
     def _(self, o: InterfaceType):
         if isinstance(o.getParent(), VLANType):
@@ -150,6 +169,10 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             return self.processL2VPNTerminationInterface(o)
         if o.isSubInterface():
             return self.processSubInterface(o)
+        if o.isLagInterface():
+            return self.processLagMember(o)
+        if type(o.getParent()) == InterfaceType: # interface in interface is lag info
+            return self.processInterfaceLagInfo(o)
         else:
             return {
                 self._interfaces_key: {
