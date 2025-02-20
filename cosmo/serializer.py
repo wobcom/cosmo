@@ -7,22 +7,11 @@ from collections import defaultdict
 
 from deepmerge import Merger
 
-from cosmo.common import deepsort
+from cosmo.common import deepsort, DeviceSerializationError, InterfaceSerializationError
 from cosmo.types import DeviceType, L2VPNType, VRFType, CosmoLoopbackType
 from cosmo.switchvisitor import SwitchDeviceExporterVisitor
 from cosmo.routervisitor import RouterDeviceExporterVisitor
 
-
-class AbstractRecoverableError(Exception, abc.ABC):
-    pass
-
-
-class DeviceSerializationError(AbstractRecoverableError):
-    pass
-
-
-class InterfaceSerializationError(AbstractRecoverableError):
-    pass
 
 
 class Tags:

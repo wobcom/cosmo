@@ -1,3 +1,17 @@
+import abc
+
+class AbstractRecoverableError(Exception, abc.ABC):
+    pass
+
+
+class DeviceSerializationError(AbstractRecoverableError):
+    pass
+
+
+class InterfaceSerializationError(AbstractRecoverableError):
+    pass
+
+
 def head(l):
     return None if not l else l[0]
 

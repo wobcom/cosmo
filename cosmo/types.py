@@ -1,6 +1,8 @@
 import abc
 import ipaddress
 from collections.abc import Iterable
+from ipaddress import IPv4Interface, IPv6Interface
+
 from .common import without_keys
 from typing import Self, Iterator, Any
 
@@ -112,6 +114,16 @@ class IPAddressType(AbstractNetboxType):
     def getIPAddress(self) -> str:
         return self["address"]
 
+    def getIPInterfaceObject(self) -> IPv4Interface|IPv6Interface:
+        return ipaddress.ip_interface(self.getIPAddress())
+
+    def isGlobal(self) -> bool:
+        return self.getIPInterfaceObject().is_global
+
+    def getRole(self) -> str:
+        if "role" in self:
+            return self["role"]
+
 
 class TagType(AbstractNetboxType):
     _delimiter = ':'
@@ -122,6 +134,8 @@ class TagType(AbstractNetboxType):
     def getTagValue(self):
         return self.getTagComponents()[1]
 
+class VRFType(AbstractNetboxType):
+    pass
 
 class InterfaceType(AbstractNetboxType):
     def __repr__(self):
@@ -156,6 +170,10 @@ class InterfaceType(AbstractNetboxType):
         if "." in self.getName():
             return True
         return False
+
+    def getVRF(self) -> VRFType|None:
+        if "vrf" in self:
+            return self["vrf"]
 
     def spitInterfacePathWith(self, d: dict) -> dict:
         # does not check for config correctness! do your checks 1st O:-)
@@ -217,13 +235,17 @@ class InterfaceType(AbstractNetboxType):
         elif my_type in authorized_types:
             return my_type
 
+    def isLoopback(self):
+        return self.getAssociatedType() == "loopback"
+
     def getAssociatedDevice(self) -> DeviceType | None:
         if "device" in self.keys():
             return self["device"]
 
-
-class VRFType(AbstractNetboxType):
-    pass
+    def getIPAddresses(self) -> list[IPAddressType]:
+        if "ip_addresses" in self:
+            return self["ip_addresses"]
+        return []
 
 
 class VLANType(AbstractNetboxType):

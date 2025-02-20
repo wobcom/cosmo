@@ -9,8 +9,8 @@ import argparse
 
 from cosmo.clients.netbox import NetboxClient
 from cosmo.log import info
-from cosmo.serializer import RouterSerializer, SwitchSerializer, AbstractRecoverableError, RouterSerializerConfig
-
+from cosmo.serializer import RouterSerializer, SwitchSerializer, RouterSerializerConfig
+from cosmo.common import AbstractRecoverableError
 
 
 

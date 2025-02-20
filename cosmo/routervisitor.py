@@ -3,10 +3,10 @@ import re
 import warnings
 from functools import singledispatchmethod
 
-from cosmo.common import head
+from cosmo.common import head, InterfaceSerializationError
 from cosmo.manufacturers import AbstractManufacturer
 from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
-    L2VPNTerminationType
+    L2VPNTerminationType, IPAddressType
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
 
@@ -20,6 +20,15 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
     def __init__(self, loopbacks_by_device: dict[str, CosmoLoopbackType], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.loopbacks_by_device = loopbacks_by_device
+        self.allow_private_ips = False
+
+    def allowPrivateIPs(self):
+        self.allow_private_ips = True
+        return self
+
+    def disallowPrivateIPs(self):
+        self.allow_private_ips = False
+        return self
 
     @singledispatchmethod
     def accept(self, o):
@@ -35,6 +44,52 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                 manufacturer.getRoutingInstanceName(): {
                     "description": self._mgmt_vrf_name,
                 }
+            }
+        }
+
+    @accept.register
+    def _(self, o: IPAddressType):
+        manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
+        parent_interface = o.getParent(InterfaceType)
+        if not parent_interface:
+            return
+        if manufacturer.isManagementInterface(parent_interface) and not o.isGlobal() and not self.allow_private_ips:
+            raise InterfaceSerializationError(
+                f"Private IP {o.getIPAddress()} used on interface {parent_interface.getName()}"
+                f"in default VRF for device {o.getParent(DeviceType).getName()}. Did you forget to configure a VRF?"
+            )
+        if (
+                parent_interface.isLoopback()
+                and not o.getIPInterfaceObject().network.prefixlen == o.getIPInterfaceObject().max_prefixlen
+        ):
+            raise InterfaceSerializationError(f"IP {o.getIPAddress()} is not a valid loopback IP address.")
+        version = {4: "inet", 6: "inet6"}[o.getIPInterfaceObject().version]
+        role = {}
+        if o.getRole() and o.getRole().lower() == "secondary":
+            role = {"secondary": True}
+        elif any(
+                [
+                    (
+                            str(addr.getRole()).lower() == "secondary"
+                            # primary and secondary are per network
+                            # IP can only be primary if another address is in the same network and marked as secondary
+                            and o.getIPInterfaceObject().network == addr.getIPInterfaceObject().network
+                    )
+                    for addr in parent_interface.getIPAddresses()
+                ]
+        ):
+            role = {"primary": True}
+        return {
+            self._interfaces_key: {
+                **parent_interface.spitInterfacePathWith({
+                    "families": {
+                        version: {
+                            "address": {
+                               o.getIPInterfaceObject().with_prefixlen: role
+                            }
+                        }
+                    }
+                })
             }
         }
 
