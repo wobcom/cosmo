@@ -252,9 +252,34 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                 }
             }
 
+    def processFecTag(self, o: TagType):
+        parent_interface = o.getParent(InterfaceType)
+        fecs = ["off", "rs", "baser"]
+        if o.getTagValue() not in fecs:
+            warnings.warn(
+                f"FEC mode {o.getTagValue()} on interface "
+                f"{parent_interface.getName()} is not known, ignoring"
+            )
+        else:
+            return {
+                self._interfaces_key: {
+                    **parent_interface.spitInterfacePathWith({
+                        "gigether": {
+                            "fec": {
+                                "off": "none",
+                                "baser": "fec74",
+                                "rs": "fec91",
+                            }[o.getTagValue()]
+                        }
+                    })
+                }
+            }
+
     @accept.register
     def _(self, o: TagType):
         if o.getTagName() == "autoneg":
             return self.processAutonegTag(o)
         if o.getTagName() == "speed":
             return self.processSpeedTag(o)
+        if o.getTagName() == "fec":
+            return self.processFecTag(o)
