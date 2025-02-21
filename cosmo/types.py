@@ -68,9 +68,13 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
                     instance = instance['__parent']
             return instance
 
-    def __eq__(self, other):
+    def getID(self):
         if "id" in self.keys():
-            return self["id"] == other["id"]
+            return self["id"]
+
+    def __eq__(self, other):
+        if self.getID():
+            return self.getID() == other.getID()
         else:
             # cannot compare, id is missing
             return False
@@ -144,9 +148,6 @@ class RouteTargetType(AbstractNetboxType):
 class VRFType(AbstractNetboxType):
     def getName(self) -> str:
         return self["name"]
-
-    def getID(self) -> str:
-        return self["id"]
 
     def getDescription(self) -> str:
         return self["description"]
@@ -296,6 +297,9 @@ class L2VPNTerminationType(AbstractNetboxType):
 
 
 class L2VPNType(AbstractNetboxType):
+    def getIdentifier(self):
+        return self["identifier"]
+
     def getName(self) -> str:
         return self["name"]
 

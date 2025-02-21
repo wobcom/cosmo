@@ -1,17 +1,22 @@
 device_list:
 - device_type:
+    __typename: DeviceTypeType
     slug: mx204
   id: '1886'
+  __typename: DeviceType
   interfaces:
   - custom_fields:
       inner_tag: null
       outer_tag: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '32373'
     ip_addresses: []
     lag:
       id: '32570'
+      name: ae0
+      __typename: InterfaceType
     mac_address: null
     mode: null
     mtu: null
@@ -24,12 +29,15 @@ device_list:
   - custom_fields:
       inner_tag: null
       outer_tag: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '32374'
     ip_addresses: []
     lag:
+      __typename: InterfaceType
       id: '32570'
+      name: ae0
     mac_address: null
     mode: null
     mtu: null
@@ -46,6 +54,7 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '32570'
@@ -67,6 +76,7 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: MPLS-EVPN-TRANSFER
     enabled: true
     id: '183167'
@@ -80,32 +90,41 @@ device_list:
     tags: []
     type: VIRTUAL
     untagged_vlan:
+      __typename: VLANType
       id: '1074'
       name: MPLS-EVPN-TRANSFER
       vid: 338
     vrf: null
   name: TEST0001
   platform:
+    __typename: PlatformType
     manufacturer:
+      __typename: ManufacturerType
       slug: juniper
     slug: junos-21-4r3-s5-4
   primary_ip4:
+    __typename: IPAddressType
     address: 45.139.136.11/32
   serial: CT702
   staticroute_set: []
 - device_type:
+    __typename: DeviceTypeType
     slug: mx204
+  __typename: DeviceType
   id: '2194'
   interfaces:
   - custom_fields:
       inner_tag: null
       outer_tag: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '37617'
     ip_addresses: []
     lag:
+      __typename: InterfaceType
       id: '37630'
+      name: ae0
     mac_address: null
     mode: null
     mtu: null
@@ -118,12 +137,15 @@ device_list:
   - custom_fields:
       inner_tag: null
       outer_tag: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '37618'
     ip_addresses: []
     lag:
+      __typename: InterfaceType
       id: '37630'
+      name: ae0
     mac_address: null
     mode: null
     mtu: null
@@ -140,6 +162,7 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '37630'
@@ -161,6 +184,7 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: MPLS-EVPN-TRANSFER
     enabled: true
     id: '183191'
@@ -174,38 +198,51 @@ device_list:
     tags: []
     type: VIRTUAL
     untagged_vlan:
+      __typename: VLANType
       id: '1074'
       name: MPLS-EVPN-TRANSFER
       vid: 338
     vrf: null
   name: TEST0002
   platform:
+    __typename: PlatformType
     manufacturer:
+      __typename: ManufacturerType
       slug: juniper
     slug: junos-21-4r3-s5-4
   primary_ip4:
+    __typename: IPAddressType
     address: 45.139.136.10/32
   serial: ''
   staticroute_set: []
 l2vpn_list:
 - id: '34'
+  __typename: L2VPNType
   identifier: 338
   name: 'WAN: VS_MPLS_EVPN'
   terminations:
   - assigned_object:
       __typename: InterfaceType
       device:
+        __typename: DeviceType
         interfaces: []
         name: TEST0002
+        id: '2194'
       id: '183191'
+      name: ae0.338
     id: '849'
+    __typename: L2VPNTerminationType
   - assigned_object:
       __typename: InterfaceType
       device:
+        __typename: DeviceType
         interfaces: []
         name: TEST0001
+        id: '1886'
       id: '183167'
+      name: ae0.338
     id: '850'
+    __typename: L2VPNTerminationType
   type: mpls-evpn
 
 vrf_list: []

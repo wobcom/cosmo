@@ -17,8 +17,9 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
     _l2circuits_key = "l2circuits"
     _vpws_authorized_terminations_n = 2
 
-    def __init__(self, loopbacks_by_device: dict[str, CosmoLoopbackType], *args, **kwargs):
+    def __init__(self, loopbacks_by_device: dict[str, CosmoLoopbackType], my_asn: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.my_asn = my_asn
         self.loopbacks_by_device = loopbacks_by_device
         self.allow_private_ips = False
 
@@ -44,6 +45,9 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                 manufacturer.getRoutingInstanceName(): {
                     "description": self._mgmt_vrf_name,
                 }
+            },
+            self._l2circuits_key: {
+                # this one should always exist
             }
         }
 
@@ -117,10 +121,6 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
     def _(self, o: CosmoLoopbackType):
         pass
 
-    @accept.register
-    def _(self, o: VRFType):
-        pass
-
     @staticmethod
     def processInterfaceCommon(o: InterfaceType):
         return {
@@ -177,24 +177,43 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             }
         }
 
+    def processL2vpnMplsEvpnTerminationInterface(self, o: InterfaceType):
+        parent_l2vpn = o.getParent(L2VPNType)
+        return {
+            self._vrf_key: {
+                parent_l2vpn.getName().replace("WAN: ", ""): {
+                    "interfaces": [ o.getName() ],
+                    "description": f"MPLS-EVPN: {parent_l2vpn.getName().replace('WAN: VS_', '')}",
+                    "instance_type": "evpn",
+                    "protocols": {
+                        "evpn": {},
+                    },
+                    "route_distinguisher": f"{self.my_asn}:{str(parent_l2vpn.getIdentifier())}",
+                    "vrf_target": f"target:1:{str(parent_l2vpn.getIdentifier())}",
+                }
+            }
+        }
+
     def processL2VPNTerminationInterface(self, o: InterfaceType):
         # TODO: guard: check it belongs to current device
         parent_l2vpn = o.getParent(L2VPNType)
-        optional_l2circuits = {}
+        optional_attrs = {}
         if not o.isSubInterface():
             return
         encap_type = self.getAssociatedEncapType(parent_l2vpn)
         if not encap_type:
             return
         if parent_l2vpn.getType().lower() in ["evpl", "epl"]:
-            optional_l2circuits = self.processL2vpnEplEvplTerminationInterface(o)
+            optional_attrs = self.processL2vpnEplEvplTerminationInterface(o)
+        elif parent_l2vpn.getType().lower() in ["mpls-evpn", "mpls_evpn"]:
+            optional_attrs = self.processL2vpnMplsEvpnTerminationInterface(o)
         return {
             self._interfaces_key: {
                 **o.spitInterfacePathWith({
                     "encapsulation": encap_type,
                 })
             }
-        } | optional_l2circuits
+        } | optional_attrs
 
     def processLagMember(self, o: InterfaceType):
         return {

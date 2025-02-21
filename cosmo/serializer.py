@@ -401,7 +401,8 @@ class RouterSerializer:
         self.device['l2vpn_list'] = self.l2vpn_list
         # breakpoint()
         visitor = RouterDeviceExporterVisitor(
-            {k: CosmoLoopbackType(v) for k, v in self.loopbacks.items()}
+            {k: CosmoLoopbackType(v) for k, v in self.loopbacks.items()},
+            9136,
         )
         for value in iter(DeviceType(self.device)):
             new = visitor.accept(value)
