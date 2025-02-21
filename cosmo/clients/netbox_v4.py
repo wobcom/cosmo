@@ -208,6 +208,18 @@ class L2VPNDataQuery(ParallelQuery):
                       __typename
                       id
                       name
+                      untagged_vlan {
+                        __typename
+                        id
+                        name
+                        vid
+                       }
+                      tagged_vlans {
+                        __typename
+                        id
+                        name
+                        vid
+                      }
                       device {
                         __typename
                         id

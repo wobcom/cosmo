@@ -118,6 +118,12 @@ l2vpn_list:
         id: '17649'
       id: '191150'
       name: 'ifp-0/0/4.7'
+      tagged_vlans: [ ]
+      untagged_vlan:
+        __typename: VLANType
+        id: '3293'
+        name: TEST-VLAN
+        vid: 7
     id: '944'
     __typename: L2VPNTerminationType
   - assigned_object:
@@ -128,6 +134,12 @@ l2vpn_list:
         id: '17649'
       id: '191151'
       name: 'ifp-0/0/5.7'
+      tagged_vlans: [ ]
+      untagged_vlan:
+        __typename: VLANType
+        id: '3293'
+        name: TEST-VLAN
+        vid: 7
     id: '945'
     __typename: L2VPNTerminationType
   type: EVPL

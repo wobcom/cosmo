@@ -85,6 +85,9 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
 
 # POJO style store
 class DeviceType(AbstractNetboxType):
+    def __repr__(self):
+        return super().__repr__() + f"({self.getName()})"
+
     def getDeviceType(self):
         return self['device_type']
 
@@ -173,8 +176,10 @@ class InterfaceType(AbstractNetboxType):
         if "untagged_vlan" in self.keys():
             return self["untagged_vlan"]
 
-    def getTaggedVLANS(self):
-        return self["tagged_vlans"]
+    def getTaggedVLANS(self) -> list:
+        if "tagged_vlans" in self.keys():
+            return self["tagged_vlans"]
+        return []
 
     def enabled(self):
         if "enabled" in self.keys() and self["enabled"]:

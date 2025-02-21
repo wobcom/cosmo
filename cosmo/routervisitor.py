@@ -135,10 +135,15 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             warnings.warn(f"Sub interface {o.getName()} does not have a access VLAN configured, skipping...")
 
     @staticmethod
-    def getAssociatedEncapType(l2vpn: L2VPNType) -> str|None:
+    def getAssociatedEncapType(o: InterfaceType | VLANType) -> str|None:
         # TODO: move me in manufacturer strategy?
-        l2vpn_type = l2vpn.getType().lower()
-        if l2vpn_type in ["vpws", "evpl"]:
+        l2vpn_type = o.getParent(L2VPNType).getType().lower()
+        is_eligible_for_vlan_encap = False
+        if isinstance(o, VLANType):
+            is_eligible_for_vlan_encap = True
+        elif isinstance(o, InterfaceType) and (len(o.getTaggedVLANS()) or o.getUntaggedVLAN()):
+            is_eligible_for_vlan_encap = True
+        if l2vpn_type in ["vpws", "evpl"] and is_eligible_for_vlan_encap:
             return "vlan-ccc"
         elif l2vpn_type in ["mpls-evpn", "mpls_evpn", "vxlan-evpn", "vxlan_evpn"]:
             return "vlan-bridge"
@@ -194,24 +199,66 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             }
         }
 
+    def processL2vpnVpwsTerminationInterface(self, o: InterfaceType):
+        parent_l2vpn = o.getParent(L2VPNType)
+        # find local end
+        local = next(filter(
+            lambda i: (
+                isinstance(i, InterfaceType)
+                and i.getAssociatedDevice() == o.getParent(DeviceType)
+            ),
+            parent_l2vpn.getTerminations()
+        ))
+        # remote end is the other one
+        remote = next(filter(
+            lambda i: i != local,
+            parent_l2vpn.getTerminations()
+        ))
+        breakpoint()
+        return {
+            self._vrf_key: {
+                parent_l2vpn.getName().replace("WAN: ", ""): {
+                    "interfaces": [ o.getName() ],
+                    "description": f"VPWS: {parent_l2vpn.getName().replace('WAN: VS_', '')}",
+                    "instance_type": "evpn-vpws",
+                    "route-distinguisher": f"{self.my_asn}:{str(parent_l2vpn.getIdentifier())}",
+                    "vrf-target": f"target:1:{str(parent_l2vpn.getIdentifier())}",
+                    "protocols": {
+                        "evpn": {
+                            "interfaces": {
+                                o.getName(): {
+                                    "vpws_service_id": {
+                                        "local": int(local.getID()),
+                                        "remote": int(remote.getID()),
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     def processL2VPNTerminationInterface(self, o: InterfaceType):
         # TODO: guard: check it belongs to current device
         parent_l2vpn = o.getParent(L2VPNType)
         optional_attrs = {}
+        encapsulation = {}
         if not o.isSubInterface():
             return
-        encap_type = self.getAssociatedEncapType(parent_l2vpn)
-        if not encap_type:
-            return
-        if parent_l2vpn.getType().lower() in ["evpl", "epl"]:
+        encap_type = self.getAssociatedEncapType(o)
+        if encap_type:
+            encapsulation = {"encapsulation": encap_type}
+        l2vpn_type = parent_l2vpn.getType().lower()
+        if l2vpn_type in ["evpl", "epl"]:
             optional_attrs = self.processL2vpnEplEvplTerminationInterface(o)
-        elif parent_l2vpn.getType().lower() in ["mpls-evpn", "mpls_evpn"]:
+        elif l2vpn_type in ["mpls-evpn", "mpls_evpn"]:
             optional_attrs = self.processL2vpnMplsEvpnTerminationInterface(o)
+        elif l2vpn_type in ["vpws"]:
+            optional_attrs = self.processL2vpnVpwsTerminationInterface(o)
         return {
             self._interfaces_key: {
-                **o.spitInterfacePathWith({
-                    "encapsulation": encap_type,
-                })
+                **o.spitInterfacePathWith({} | encapsulation)
             }
         } | optional_attrs
 
@@ -343,7 +390,7 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
 
     def processL2VPNTerminationVLAN(self, o: VLANType):
         encapsulation = {}
-        encap_type = self.getAssociatedEncapType(o.getParent(L2VPNType))
+        encap_type = self.getAssociatedEncapType(o)
         if encap_type:
             encapsulation = {"encapsulation": encap_type}
         linked_interface = head(
