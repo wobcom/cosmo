@@ -323,6 +323,9 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                     "route_distinguisher": rd,
                     "import_targets": [target.getName() for target in o.getImportTargets()],
                     "export_targets": [target.getName() for target in o.getExportTargets()],
+                    "routing_options": {
+                        # should always have this key present
+                    },
                 }
             }
         }
