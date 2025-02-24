@@ -35,12 +35,12 @@ class ObjCache:
         self.hits = 0
 
     def associate(self, o: object, v: object):
-        self._obj_cache[id(o)] = v
+        self._obj_cache[o] = v
 
     def get(self, o: object):
-        if id(o) in self._obj_cache.keys():
+        if o in self._obj_cache.keys():
             self.hits += 1
-            return self._obj_cache[id(o)]
+            return self._obj_cache[o]
         return None
 
     def getHits(self):

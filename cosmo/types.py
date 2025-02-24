@@ -79,6 +79,24 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
             # cannot compare, id is missing
             return False
 
+    @classmethod
+    def tuplize(cls, o):
+        if isinstance(o, list) or isinstance(o, set):
+            return tuple(cls.tuplize(i) for i in o)
+        elif isinstance(o, dict):
+            return tuple(cls.tuplize(v) for k, v in without_keys(o, "__parent").items())
+        else:
+            return o
+
+    def __hash__(self):
+        non_recursive_clone = without_keys(self, "__parent")
+        return hash(
+            (
+                frozenset(non_recursive_clone),
+                frozenset(self.tuplize(list(non_recursive_clone.values()))),
+            )
+        )
+
     def __repr__(self):
         return self._getNetboxType()
 
