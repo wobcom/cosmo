@@ -1,5 +1,6 @@
 device_list:
 - device_type:
+    __typename: DeviceTypeType
     slug: S9600-72XC
   id: '17799'
   interfaces:
@@ -10,6 +11,7 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '191940'
@@ -23,21 +25,37 @@ device_list:
     tags:
     - name: speed:1g
       slug: speed1g
+      __typename: TagType
     type: A_25GBASE_X_SFP28
     untagged_vlan: null
     vrf: null
     parent: null
     connected_endpoints:
     - device:
+        name: ''
+        __typename: DeviceType
         primary_ip4:
+          __typename: IPAddressType
           address: 10.128.6.12/29
         interfaces:
         - ip_addresses: []
+          id: ''
+          name: ''
+          __typename: InterfaceType
         - ip_addresses:
           - address: 10.1.0.1/28
+            __typename: IPAddressType
           - address: 10.1.0.2/28
+            __typename: IPAddressType
+          id: ''
+          name: ''
+          __typename: InterfaceType
         - ip_addresses:
           - address: 10.128.6.12/29
+            __typename: IPAddressType
+          id: ''
+          name: ''
+          __typename: InterfaceType
   - custom_fields:
       bpdufilter: false
       inner_tag: null
@@ -45,24 +63,33 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '192117'
     ip_addresses: []
     lag: null
     mac_address: null
-    mode: null
+    mode: ACCESS
     mtu: 1500
     name: ifp-0/1/2.3
     tagged_vlans: []
     tags:
     - name: bgp:cpe
       slug: bgpcpe
+      __typename: TagType
     type: VIRTUAL
-    untagged_vlan: null
+    untagged_vlan:
+      __typename: VLANType
+      id: '1003'
+      name: TEST-VLAN3
+      vid: 3
     vrf: null
     parent:
+      __typename: InterfaceType
       id: '191940'
+      name: "ifp-0/1/2"
+      mtu: null
   - custom_fields:
       bpdufilter: false
       inner_tag: null
@@ -70,25 +97,44 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '192118'
     ip_addresses: []
     lag: null
     mac_address: null
-    mode: null
+    mode: ACCESS
     mtu: 1500
     name: ifp-0/1/2.4
     tagged_vlans: []
     tags:
     - name: bgp:cpe
       slug: bgpcpe
+      __typename: TagType
     type: VIRTUAL
-    untagged_vlan: null
+    untagged_vlan:
+      __typename: VLANType
+      id: '1004'
+      name: TEST-VLAN4
+      vid: 4
     vrf:
+      __typename: VRFType
+      description: ''
+      export_targets:
+        - name: target:9136:407
+          __typename: RouteTargetType
       id: '407'
+      import_targets:
+        - name: target:9136:407
+          __typename: RouteTargetType
+      name: L3VPN
+      rd: null
     parent:
+      __typename: InterfaceType
       id: '191940'
+      name: "ifp-0/1/2"
+      mtu: null
   - custom_fields:
       bpdufilter: false
       inner_tag: null
@@ -96,6 +142,7 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '192046'
@@ -118,11 +165,13 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '192047'
     ip_addresses:
       - address: 45.139.136.10/32
+        __typename: IPAddressType
     lag: null
     mac_address: null
     mode: null
@@ -136,23 +185,18 @@ device_list:
     parent: null
   name: TEST0001
   platform:
+    __typename: PlatformType
     manufacturer:
+      __typename: ManufacturerType
       slug: rtbrick
     slug: rtbrick-consolidated-bng-q2c-24-1-1-1
   primary_ip4:
+    __typename: IPAddressType
     address: 198.51.100.15/24
   serial: ''
   staticroute_set: []
 l2vpn_list: []
-vrf_list:
-- description: ''
-  export_targets:
-  - name: target:9136:407
-  id: '407'
-  import_targets:
-  - name: target:9136:407
-  name: L3VPN
-  rd: null
+vrf_list: []
 loopbacks:
   TEST0001:
     ipv4: 45.139.136.10/32

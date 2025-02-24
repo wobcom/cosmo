@@ -2,6 +2,7 @@ import ipaddress
 import re
 import warnings
 from functools import singledispatchmethod
+from ipaddress import IPv4Interface, IPv6Interface
 
 from cosmo.common import head, InterfaceSerializationError
 from cosmo.manufacturers import AbstractManufacturer
@@ -292,7 +293,8 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             return self.processSubInterface(o)
         if o.isLagInterface():
             return self.processLagMember(o)
-        if type(o.getParent()) == InterfaceType: # interface in interface is lag info
+        # interface in interface is lag info
+        if type(o.getParent()) == InterfaceType and "lag" in o.getParent().keys() and o.getParent()["lag"] == o:
             return self.processInterfaceLagInfo(o)
         else:
             return {
@@ -469,6 +471,75 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                 }
             }
 
+    def processBgpCpeTag(self, o: TagType):
+        # TODO: replace all that with another visitor(?) would be nicer to read
+        linked_interface = o.getParent(InterfaceType)
+        group_name = "CPE_" + linked_interface.getName().replace(".", "-").replace("/","-")
+        vrf_name = "default"
+        policy_v4 = {
+            "import_list": []
+        }
+        policy_v6 = {
+            "import_list": []
+        }
+        if linked_interface.getVRF():
+            vrf_name = linked_interface.getVRF().getName()
+        if vrf_name == "default":
+            policy_v4["export"] = "DEFAULT_V4"
+            policy_v6["export"] = "DEFAULT_V6"
+        if linked_interface.hasParentInterface():
+            parent_interface = next(filter(
+                lambda interface: interface == linked_interface["parent"],
+                o.getParent(DeviceType).getInterfaces()
+            ))
+            cpe = head(parent_interface.getConnectedEndpoints())
+            if not cpe:
+                warnings.warn(
+                    f"Interface {linked_interface.getName()} has bgp:cpe tag "
+                    "on it without a connected device, skipping..."
+                )
+            else:
+                cpe = DeviceType(cpe["device"])
+                for i in cpe.getInterfaces():
+                    for a in i.getIPAddresses():
+                        if cpe["primary_ip4"] and a.getIPAddress() == cpe["primary_ip4"].getIPAddress():
+                            # skip primary ip4
+                            continue
+                        else:
+                            net = a.getIPInterfaceObject()
+                            if isinstance(net, IPv6Interface) and not net.network.with_prefixlen in policy_v6["import_list"]:
+                                policy_v6["import_list"].append(net.network.with_prefixlen)
+                            elif isinstance(net, IPv4Interface) and not net.network.with_prefixlen in policy_v4["import_list"]:
+                                policy_v4["import_list"].append(net.network.with_prefixlen)
+        return {
+            self._vrf_key: {
+                vrf_name: {
+                    "protocols": {
+                        "bgp": {
+                            "groups": {
+                                group_name: {
+                                    "any_as": True,
+                                    "link_local_nexthop_only": True,
+                                    "neighbors": [
+                                        {"interface": linked_interface.getName()}
+                                    ],
+                                    "family": {
+                                        "ipv4_unicast": {
+                                            "extended_nexthop": True,
+                                            "policy": policy_v4,
+                                        },
+                                        "ipv6_unicast": {
+                                            "policy": policy_v6,
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     @accept.register
     def _(self, o: TagType):
         if o.getTagName() == "autoneg":
@@ -477,3 +548,6 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             return self.processSpeedTag(o)
         if o.getTagName() == "fec":
             return self.processFecTag(o)
+        if o.getTagName() == "bgp" and o.getTagValue() == "cpe":
+            return self.processBgpCpeTag(o)
+

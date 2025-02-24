@@ -73,7 +73,7 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
             return self["id"]
 
     def __eq__(self, other):
-        if self.getID():
+        if self.getID() and other:
             return self.getID() == other.getID()
         else:
             # cannot compare, id is missing
@@ -94,8 +94,10 @@ class DeviceType(AbstractNetboxType):
     def getPlatform(self):
         return self['platform']
 
-    def getInterfaces(self):
-        return self['interfaces']
+    def getInterfaces(self) -> list["InterfaceType"]:
+        if "interfaces" in self:
+            return self['interfaces']
+        return []
 
     def getName(self):
         return self["name"]
@@ -275,6 +277,16 @@ class InterfaceType(AbstractNetboxType):
     def getIPAddresses(self) -> list[IPAddressType]:
         if "ip_addresses" in self:
             return self["ip_addresses"]
+        return []
+
+    def hasParentInterface(self) -> bool:
+        if "parent" in self and self["parent"]:
+            return True
+        return False
+
+    def getConnectedEndpoints(self) -> list[DeviceType]:
+        if "connected_endpoints" in self:
+            return self["connected_endpoints"]
         return []
 
 
