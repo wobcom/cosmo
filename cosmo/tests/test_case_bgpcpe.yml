@@ -33,7 +33,6 @@ device_list:
     connected_endpoints:
     - device:
         name: ''
-        __typename: DeviceType
         primary_ip4:
           __typename: IPAddressType
           address: 10.128.6.12/29

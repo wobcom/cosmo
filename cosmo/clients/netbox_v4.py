@@ -46,7 +46,6 @@ class ConnectedDevicesDataQuery(ParallelQuery):
                       __typename
                       name
                       device {
-                        __typename
                         primary_ip4 {
                           __typename
                           address

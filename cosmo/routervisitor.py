@@ -5,6 +5,7 @@ from functools import singledispatchmethod
 from ipaddress import IPv4Interface, IPv6Interface
 
 from cosmo.common import head, InterfaceSerializationError
+from cosmo.cperoutervisitor import CpeRouterExporterVisitor
 from cosmo.manufacturers import AbstractManufacturer
 from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
     L2VPNTerminationType, IPAddressType, CosmoStaticRouteType
@@ -472,7 +473,6 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             }
 
     def processBgpCpeTag(self, o: TagType):
-        # TODO: replace all that with another visitor(?) would be nicer to read
         linked_interface = o.getParent(InterfaceType)
         group_name = "CPE_" + linked_interface.getName().replace(".", "-").replace("/","-")
         vrf_name = "default"
@@ -500,17 +500,18 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                 )
             else:
                 cpe = DeviceType(cpe["device"])
-                for i in cpe.getInterfaces():
-                    for a in i.getIPAddresses():
-                        if cpe["primary_ip4"] and a.getIPAddress() == cpe["primary_ip4"].getIPAddress():
-                            # skip primary ip4
-                            continue
-                        else:
-                            net = a.getIPInterfaceObject()
-                            if isinstance(net, IPv6Interface) and not net.network.with_prefixlen in policy_v6["import_list"]:
-                                policy_v6["import_list"].append(net.network.with_prefixlen)
-                            elif isinstance(net, IPv4Interface) and not net.network.with_prefixlen in policy_v4["import_list"]:
-                                policy_v4["import_list"].append(net.network.with_prefixlen)
+                v4_import, v6_import = set(), set() # unique
+                for item in iter(cpe):
+                    ret = CpeRouterExporterVisitor().accept(item)
+                    if not ret:
+                        continue
+                    af, prefix = ret
+                    if af and af is IPv4Interface:
+                        v4_import.add(prefix)
+                    elif af and af is IPv6Interface:
+                        v6_import.add(prefix)
+                policy_v4["import_list"] = list(v4_import)
+                policy_v6["import_list"] = list(v6_import)
         return {
             self._vrf_key: {
                 vrf_name: {
