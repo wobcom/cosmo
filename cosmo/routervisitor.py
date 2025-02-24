@@ -60,7 +60,7 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             return
         if manufacturer.isManagementInterface(parent_interface) and not o.isGlobal() and not self.allow_private_ips:
             raise InterfaceSerializationError(
-                f"Private IP {o.getIPAddress()} used on interface {parent_interface.getName()}"
+                f"Private IP {o.getIPAddress()} used on interface {parent_interface.getName()} "
                 f"in default VRF for device {o.getParent(DeviceType).getName()}. Did you forget to configure a VRF?"
             )
         if (
@@ -540,6 +540,49 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             }
         }
 
+    def processPolicerTag(self, o: TagType):
+        parent_interface = o.getParent(InterfaceType)
+        policer_in, policer_out = {}, {}
+        if o.getTagName() in ["policer_in", "policer"]:
+            policer_in = {
+                "input": f"POLICER_{o.getTagValue()}"
+            }
+        if o.getTagName() in ["policer_out", "policer"]:
+            policer_out = {
+                "output": f"POLICER_{o.getTagValue()}"
+            }
+        return {
+            self._interfaces_key: {
+                **parent_interface.spitInterfacePathWith({
+                    "policer": {} | policer_in | policer_out
+                })
+            }
+        }
+
+    def processEdgeTag(self, o: TagType):
+        parent_interface = o.getParent(InterfaceType)
+        optional_sampling = {}
+        if not any([
+            t.getTagName() == "disable_sampling" or (t.getTagName() == "edge" and t.getTagValue() == "customer")
+            for t in parent_interface.getTags()
+        ]):
+            optional_sampling = { "sampling": True }
+        return {
+            self._interfaces_key: {
+                **parent_interface.spitInterfacePathWith({
+                    "families": {
+                        "inet": {
+                            "filters": ["input-list [ EDGE_FILTER ]"],
+                            "policer": [] + (["arp POLICER_IXP_ARP"] if o.getTagValue() == "peering-ixp" else [])
+                        } | optional_sampling,
+                        "inet6": {
+                            "filters": ["input-list [ EDGE_FILTER_V6 ]"]
+                        } | optional_sampling,
+                    }
+                })
+            }
+        }
+
     @accept.register
     def _(self, o: TagType):
         if o.getTagName() == "autoneg":
@@ -550,4 +593,7 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             return self.processFecTag(o)
         if o.getTagName() == "bgp" and o.getTagValue() == "cpe":
             return self.processBgpCpeTag(o)
-
+        if o.getTagName() in ["policer", "policer_in", "policer_out"]:
+            return self.processPolicerTag(o)
+        if o.getTagName() == "edge":
+            return self.processEdgeTag(o)

@@ -55,7 +55,7 @@ class JuniperManufacturer(AbstractManufacturer):
     def getRoutingInstanceName():
         return "mgmt_junos"
     def isManagementInterface(self, o: InterfaceType):
-        return True
+        return len(o['ip_addresses']) >= 1 and o.getName() == "fxp0"
 
 
 class RtBrickManufacturer(AbstractManufacturer):
@@ -70,7 +70,7 @@ class RtBrickManufacturer(AbstractManufacturer):
     def getRoutingInstanceName():
         return "mgmt"
     def isManagementInterface(self, o: InterfaceType):
-        return True
+        return len(o['ip_addresses']) >= 1 and o.getName() == "ma1"
 
 
 class CumulusNetworksManufacturer(AbstractManufacturer):
