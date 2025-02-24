@@ -26,6 +26,25 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
             else:
                 yield v
 
+    def __hash__(self):
+        non_recursive_clone = without_keys(self, "__parent")
+        return hash(
+            (
+                frozenset(non_recursive_clone),
+                frozenset(self.tuplize(list(non_recursive_clone.values()))),
+            )
+        )
+
+    def __repr__(self):
+        return self._getNetboxType()
+
+    def __eq__(self, other):
+        if self.getID() and other:
+            return self.getID() == other.getID()
+        else:
+            # cannot compare, id is missing
+            return False
+
     def convert(self, item):
         if isinstance(item, dict):
             if "__typename" in item.keys():
@@ -72,13 +91,6 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
         if "id" in self.keys():
             return self["id"]
 
-    def __eq__(self, other):
-        if self.getID() and other:
-            return self.getID() == other.getID()
-        else:
-            # cannot compare, id is missing
-            return False
-
     @classmethod
     def tuplize(cls, o):
         if isinstance(o, list) or isinstance(o, set):
@@ -87,18 +99,6 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
             return tuple(cls.tuplize(v) for k, v in without_keys(o, "__parent").items())
         else:
             return o
-
-    def __hash__(self):
-        non_recursive_clone = without_keys(self, "__parent")
-        return hash(
-            (
-                frozenset(non_recursive_clone),
-                frozenset(self.tuplize(list(non_recursive_clone.values()))),
-            )
-        )
-
-    def __repr__(self):
-        return self._getNetboxType()
 
 
 # POJO style store
