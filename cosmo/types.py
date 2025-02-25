@@ -39,7 +39,7 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
         return self._getNetboxType()
 
     def __eq__(self, other):
-        if self.getID() and other:
+        if self.getID() and isinstance(other, AbstractNetboxType):
             return self.getID() == other.getID()
         else:
             # cannot compare, id is missing
