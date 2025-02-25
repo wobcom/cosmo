@@ -411,17 +411,23 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     @accept.register
     def _(self, o: TagType):
-        if o.getTagName() == "autoneg":
-            return self.processAutonegTag(o)
-        if o.getTagName() == "speed":
-            return self.processSpeedTag(o)
-        if o.getTagName() == "fec":
-            return self.processFecTag(o)
-        if o.getTagName() == "urpf":
-            return self.processUrpfTag(o)
-        if o.getTagName() == "bgp" and o.getTagValue() == "cpe":
-            return self.my_bgpcpe_exporter.accept(o)
-        if o.getTagName() in ["policer", "policer_in", "policer_out"]:
-            return self.processPolicerTag(o)
-        if o.getTagName() == "edge":
-            return self.processEdgeTag(o)
+        match o.getTagName():
+            case "autoneg":
+                return self.processAutonegTag(o)
+            case "speed":
+                return self.processSpeedTag(o)
+            case "fec":
+                return self.processFecTag(o)
+            case "urpf":
+                return self.processUrpfTag(o)
+            case "policer"|"policer_in"|"policer_out":
+                return self.processPolicerTag(o)
+            case "edge":
+                return self.processEdgeTag(o)
+            case "bgp":
+                if o.getTagValue() == "cpe":
+                    return self.my_bgpcpe_exporter.accept(o)
+                else:
+                    raise warnings.warn(f"unkown bgp tag {o.getTagValue()}")
+            case _:
+                raise warnings.warn(f"unknown tag {o.getTagName()}")
