@@ -2,23 +2,16 @@ import ipaddress
 import re
 import warnings
 from functools import singledispatchmethod
-from ipaddress import IPv4Interface, IPv6Interface
 
+from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import head, InterfaceSerializationError
-from cosmo.cperoutervisitor import CpeRouterExporterVisitor
 from cosmo.manufacturers import AbstractManufacturer
+from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
 from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
     L2VPNTerminationType, IPAddressType, CosmoStaticRouteType
-from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
 
-class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
-    _interfaces_key = "interfaces"
-    _vrf_key = "routing_instances"
-    _mgmt_vrf_name = "MGMT-ROUTING-INSTANCE"
-    _l2circuits_key = "l2circuits"
-    _vpws_authorized_terminations_n = 2
-
+class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     def __init__(self, loopbacks_by_device: dict[str, CosmoLoopbackType], my_asn: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.my_asn = my_asn
@@ -501,75 +494,6 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                 }
             }
 
-    def processBgpCpeTag(self, o: TagType):
-        linked_interface = o.getParent(InterfaceType)
-        group_name = "CPE_" + linked_interface.getName().replace(".", "-").replace("/","-")
-        vrf_name = "default"
-        policy_v4 = {
-            "import_list": []
-        }
-        policy_v6 = {
-            "import_list": []
-        }
-        if linked_interface.getVRF():
-            vrf_name = linked_interface.getVRF().getName()
-        if vrf_name == "default":
-            policy_v4["export"] = "DEFAULT_V4"
-            policy_v6["export"] = "DEFAULT_V6"
-        if linked_interface.hasParentInterface():
-            parent_interface = next(filter(
-                lambda interface: interface == linked_interface["parent"],
-                o.getParent(DeviceType).getInterfaces()
-            ))
-            cpe = head(parent_interface.getConnectedEndpoints())
-            if not cpe:
-                warnings.warn(
-                    f"Interface {linked_interface.getName()} has bgp:cpe tag "
-                    "on it without a connected device, skipping..."
-                )
-            else:
-                cpe = DeviceType(cpe["device"])
-                v4_import, v6_import = set(), set() # unique
-                for item in iter(cpe):
-                    ret = CpeRouterExporterVisitor().accept(item)
-                    if not ret:
-                        continue
-                    af, prefix = ret
-                    if af and af is IPv4Interface:
-                        v4_import.add(prefix)
-                    elif af and af is IPv6Interface:
-                        v6_import.add(prefix)
-                policy_v4["import_list"] = list(v4_import)
-                policy_v6["import_list"] = list(v6_import)
-        return {
-            self._vrf_key: {
-                vrf_name: {
-                    "protocols": {
-                        "bgp": {
-                            "groups": {
-                                group_name: {
-                                    "any_as": True,
-                                    "link_local_nexthop_only": True,
-                                    "neighbors": [
-                                        {"interface": linked_interface.getName()}
-                                    ],
-                                    "family": {
-                                        "ipv4_unicast": {
-                                            "extended_nexthop": True,
-                                            "policy": policy_v4,
-                                        },
-                                        "ipv6_unicast": {
-                                            "policy": policy_v6,
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
     def processPolicerTag(self, o: TagType):
         parent_interface = o.getParent(InterfaceType)
         policer_in, policer_out = {}, {}
@@ -622,7 +546,7 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         if o.getTagName() == "fec":
             return self.processFecTag(o)
         if o.getTagName() == "bgp" and o.getTagValue() == "cpe":
-            return self.processBgpCpeTag(o)
+            return RouterBgpCpeExporterVisitor().accept(o)
         if o.getTagName() in ["policer", "policer_in", "policer_out"]:
             return self.processPolicerTag(o)
         if o.getTagName() == "edge":
