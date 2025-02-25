@@ -15,7 +15,10 @@ from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, Ta
 class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     def __init__(self, loopbacks_by_device: dict[str, CosmoLoopbackType], my_asn: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Note: I have to use composition since singledispatchmethod does not work well with inheritance
         self.my_l2vpn_exporter = RouterL2VPNExporterVisitor(loopbacks_by_device=loopbacks_by_device, my_asn=my_asn)
+        self.my_l2vpn_validator = RouterL2VPNValidatorVisitor()
+        self.my_bgpcpe_exporter = RouterBgpCpeExporterVisitor()
         self.loopbacks_by_device = loopbacks_by_device
         self.allow_private_ips = False
 
@@ -33,8 +36,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     @accept.register
     def _(self, o: L2VPNType):
-        # Note: I have to use composition since singledispatchmethod does not work well with inheritance
-        return RouterL2VPNValidatorVisitor().accept(o)
+        return self.my_l2vpn_validator.accept(o)
 
     @accept.register
     def _(self, o: DeviceType):
@@ -374,7 +376,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         if o.getTagName() == "fec":
             return self.processFecTag(o)
         if o.getTagName() == "bgp" and o.getTagValue() == "cpe":
-            return RouterBgpCpeExporterVisitor().accept(o)
+            return self.my_bgpcpe_exporter.accept(o)
         if o.getTagName() in ["policer", "policer_in", "policer_out"]:
             return self.processPolicerTag(o)
         if o.getTagName() == "edge":
