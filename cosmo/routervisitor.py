@@ -2,7 +2,6 @@ import ipaddress
 import re
 import warnings
 from functools import singledispatchmethod
-from ipaddress import IPv4Interface, IPv6Interface
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import InterfaceSerializationError
@@ -375,7 +374,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         if o.getTagValue() == "disable": # do not process, urpf is disabled
             return
         if any(map( # any short-circuits
-            lambda i: isinstance(i.getIPInterfaceObject(), IPv4Interface),
+            lambda i: i.getIPInterfaceObject().version == 4,
             parent_interface.getIPAddresses()
         )):
             ipv4_rpf = {
@@ -386,7 +385,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 }
             }
         if any(map( # any short-circuits
-            lambda i: isinstance(i.getIPInterfaceObject(), IPv6Interface),
+            lambda i: i.getIPInterfaceObject().version == 6,
             parent_interface.getIPAddresses()
         )):
             ipv6_rpf = {
