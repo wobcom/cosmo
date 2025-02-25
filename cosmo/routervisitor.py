@@ -133,8 +133,22 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
 
     @staticmethod
     def processSubInterface(o: InterfaceType):
-        if not o.getUntaggedVLAN():
-            warnings.warn(f"Sub interface {o.getName()} does not have a access VLAN configured, skipping...")
+        # easy checks first, narrow down afterward
+        if not o.getUntaggedVLAN() and not o.getUnitNumber() == 0:
+            # costlier checks it is then
+            device = o.getParent(DeviceType)
+            parent_interface = next(filter(
+                lambda i: i.getName() == o.getSubInterfaceParentInterfaceName(),
+                device.getInterfaces()
+            ))
+            all_parent_sub_interfaces = list(filter(
+                lambda i: i.getName().startswith(parent_interface.getName()) and i.isSubInterface(),
+                device.getInterfaces()
+            ))
+            parent_interface_type = parent_interface.getAssociatedType()
+            # cases where no VLAN is authorized: we have only one sub interface, or it's a loopback or virtual
+            if len(all_parent_sub_interfaces) > 1 and parent_interface_type not in [ "loopback", "virtual" ]:
+                warnings.warn(f"Sub interface {o.getName()} does not have a access VLAN configured!")
 
     @staticmethod
     def getAssociatedEncapType(o: InterfaceType | VLANType) -> str|None:
@@ -418,7 +432,11 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         if isinstance(o.getParent(), L2VPNTerminationType):
             return self.processL2VPNTerminationVLAN(o)
         parent_interface = o.getParent(InterfaceType)
-        if parent_interface and o == parent_interface.getUntaggedVLAN():
+        if (
+                parent_interface and o == parent_interface.getUntaggedVLAN()
+                # guard: skip VLAN processing if it is in L2VPN termination. should reappear in device.
+                and not isinstance(parent_interface.getParent(), L2VPNTerminationType)
+        ):
             return self.processUntaggedVLAN(o)
 
     def processAutonegTag(self, o: TagType):

@@ -221,6 +221,18 @@ class InterfaceType(AbstractNetboxType):
             return True
         return False
 
+    def getUnitNumber(self) -> int|None:
+        ret = None
+        if self.isSubInterface():
+            ret = int(self.getName().split('.')[1])
+        return ret
+
+    def getSubInterfaceParentInterfaceName(self) -> str|None:
+        ret = None
+        if self.isSubInterface():
+            ret = self.getName().split('.')[0]
+        return ret
+
     def getVRF(self) -> VRFType|None:
         if "vrf" in self:
             return self["vrf"]
@@ -230,9 +242,9 @@ class InterfaceType(AbstractNetboxType):
         # TODO: move me in manufacturer strategy?
         if self.isSubInterface():
             return {
-                self.getName().split('.')[0]: {
+                self.getSubInterfaceParentInterfaceName(): {
                     "units": {
-                        int(self.getName().split('.')[1]): {
+                        self.getUnitNumber(): {
                             **d
                         }
                     }
