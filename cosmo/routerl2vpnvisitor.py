@@ -48,12 +48,17 @@ class RouterL2VPNExporterVisitor(AbstractRouterExporterVisitor):
         # TODO: move me in manufacturer strategy?
         l2vpn_type = o.getParent(L2VPNType).getType().lower()
         is_eligible_for_vlan_encap = False
+        is_eligible_for_ethernet_ccc_encap = False
         if isinstance(o, VLANType):
             is_eligible_for_vlan_encap = True
         elif isinstance(o, InterfaceType) and (len(o.getTaggedVLANS()) or o.getUntaggedVLAN()):
             is_eligible_for_vlan_encap = True
+        elif isinstance(o, InterfaceType) and not (len(o.getTaggedVLANS()) or o.getUntaggedVLAN()):
+            is_eligible_for_ethernet_ccc_encap = True
         if l2vpn_type in ["vpws", "evpl"] and is_eligible_for_vlan_encap:
             return "vlan-ccc"
+        elif l2vpn_type in ["vpws", "epl", "evpl"] and is_eligible_for_ethernet_ccc_encap:
+            return "ethernet-ccc"
         elif l2vpn_type in ["mpls-evpn", "mpls_evpn", "vxlan-evpn", "vxlan_evpn"]:
             return "vlan-bridge"
 
