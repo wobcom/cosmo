@@ -319,6 +319,11 @@ class InterfaceType(AbstractNetboxType):
             return self["connected_endpoints"]
         return []
 
+    def getCustomFields(self) -> dict:
+        if "custom_fields" in self:
+            return dict(self["custom_fields"])
+        return {}
+
 
 class VLANType(AbstractNetboxType):
     def getVID(self):

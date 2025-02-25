@@ -211,6 +211,9 @@ def test_router_ips():
     assert unit_v6['families']['inet6']['rpf_check']['mode'] == 'strict'
     assert 'inet' not in unit_v6['families']
 
+    # router advertisement
+    assert unit_v6['families']['inet6']['ipv6_ra'] == True
+
 
 def test_router_case_mpls_evpn():
     sd = get_router_sd_from_path("./test_case_mpls_evpn.yaml")

@@ -38,6 +38,7 @@ device_list:
       - custom_fields:
           inner_tag: null
           outer_tag: null
+          ipv6_ra: YES
         __typename: InterfaceType
         description: 'Customer: Test-Port'
         enabled: true

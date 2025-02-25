@@ -70,8 +70,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 and not o.getIPInterfaceObject().network.prefixlen == o.getIPInterfaceObject().max_prefixlen
         ):
             raise InterfaceSerializationError(f"IP {o.getIPAddress()} is not a valid loopback IP address.")
-        version = {4: "inet", 6: "inet6"}[o.getIPInterfaceObject().version]
+        ip_version = o.getIPInterfaceObject().version
         role = {}
+        ipv6_ra = {}
         if o.getRole() and o.getRole().lower() == "secondary":
             role = {"secondary": True}
         elif any(
@@ -86,15 +87,17 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 ]
         ):
             role = {"primary": True}
+        if parent_interface.getCustomFields().get("ipv6_ra", False) and ip_version == 6:
+            ipv6_ra = { "ipv6_ra": True }
         return {
             self._interfaces_key: {
                 **parent_interface.spitInterfacePathWith({
                     "families": {
-                        version: {
+                        {4: "inet", 6: "inet6"}[ip_version]: {
                             "address": {
                                o.getIPInterfaceObject().with_prefixlen: role
                             }
-                        }
+                        } | ipv6_ra
                     }
                 })
             }
