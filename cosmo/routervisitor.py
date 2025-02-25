@@ -446,6 +446,24 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             }
         }
 
+    def processBgpUnnumberedTag(self, o: TagType):
+        parent_interface = o.getParent(InterfaceType)
+        opt_unnumbered_interface = {}
+        if parent_interface.getVRF():
+            loopback_interface = head(filter(
+                lambda i: i.getName().startswith('lo') and i.getVRF() == parent_interface.getVRF(),
+                parent_interface.getParent(DeviceType).getInterfaces()
+            ))
+            opt_unnumbered_interface = {"unnumbered_interface": loopback_interface.getName()}
+        return {
+            self._interfaces_key: {
+                **parent_interface.spitInterfacePathWith({
+                    "unnumbered": True,
+                    **opt_unnumbered_interface
+                })
+            }
+        }
+
     @accept.register
     def _(self, o: TagType):
         match o.getTagName():
@@ -465,6 +483,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 return self.processEdgeTag(o)
             case "core":
                 return self.processCoreTag(o)
+            case "unnumbered":
+                return self.processBgpUnnumberedTag(o)
             case "bgp":
                 if o.getTagValue() == "cpe":
                     return self.my_bgpcpe_exporter.accept(o)
