@@ -436,6 +436,16 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             }
         }
 
+    def processDhcpTag(self, o: TagType):
+        parent_interface = o.getParent(InterfaceType)
+        return {
+            self._interfaces_key: {
+                **parent_interface.spitInterfacePathWith({
+                    "dhcp_profile": o.getTagValue(),
+                })
+            }
+        }
+
     @accept.register
     def _(self, o: TagType):
         match o.getTagName():
@@ -449,6 +459,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 return self.processUrpfTag(o)
             case "policer"|"policer_in"|"policer_out":
                 return self.processPolicerTag(o)
+            case "dhcp":
+                return self.processDhcpTag(o)
             case "edge":
                 return self.processEdgeTag(o)
             case "core":
