@@ -7,6 +7,7 @@ from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import head, InterfaceSerializationError
 from cosmo.manufacturers import AbstractManufacturer
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
+from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor
 from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
     L2VPNTerminationType, IPAddressType, CosmoStaticRouteType
 
@@ -29,6 +30,11 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
+
+    @accept.register
+    def _(self, o: L2VPNType):
+        # Note: I have to use composition since singledispatchmethod does not work well with inheritance
+        return RouterL2VPNValidatorVisitor().accept(o)
 
     @accept.register
     def _(self, o: DeviceType):
@@ -91,26 +97,6 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 })
             }
         }
-
-    def isCompliantWANL2VPN(self, o: L2VPNType) -> bool:
-        terminations = o.getTerminations()
-        if o.getType().lower() == "vpws" and len(terminations) != self._vpws_authorized_terminations_n:
-            warnings.warn(
-                "VPWS circuits are only allowed to have two terminations. "
-                f"{o.getName()} has {len(terminations)} terminations, ignoring..."
-            )
-            return False
-        if any([not isinstance(t, (InterfaceType, VLANType)) for t in terminations]):
-            warnings.warn(f"Found unsupported L2VPN termination in {o.getName()}, ignoring...")
-            return False
-        if o.getType().lower() == "vpws" and any([not isinstance(t, InterfaceType) for t in terminations]):
-            return False
-        return True
-
-    @accept.register
-    def _(self, o: L2VPNType):
-        if not o.getName().startswith("WAN") and self.isCompliantWANL2VPN(o):
-            return
 
     @accept.register
     def _(self, o: CosmoLoopbackType):
