@@ -5,18 +5,11 @@ from cosmo.types import DeviceType, InterfaceType
 
 
 class AbstractManufacturer(ABC):
-    _device_cache = ObjCache()
-
     @classmethod
     def getManufacturerFor(cls, device: DeviceType):
-        if cls._device_cache.get(device):
-            manufacturer_class = cls._device_cache.get(device)
-            return manufacturer_class()
-        else:
-            for c in AbstractManufacturer.__subclasses__():
-                if c.isCompatibleWith(device):
-                    cls._device_cache.associate(device, c)
-                    return c()
+        for c in AbstractManufacturer.__subclasses__():
+            if c.isCompatibleWith(device):
+                return c()
 
     @classmethod
     def isCompatibleWith(cls, device: DeviceType):
