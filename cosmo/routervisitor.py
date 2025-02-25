@@ -4,7 +4,7 @@ import warnings
 from functools import singledispatchmethod
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import InterfaceSerializationError
+from cosmo.common import InterfaceSerializationError, head
 from cosmo.manufacturers import AbstractManufacturer
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
 from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor, RouterL2VPNExporterVisitor
@@ -409,6 +409,33 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             }
         }
 
+    def processCoreTag(self, o: TagType):
+        interface = o.getParent(InterfaceType)
+        parent_interface = head(list(filter( # as in, netbox parent
+            lambda i: i.getName() == interface.getSubInterfaceParentInterfaceName(),
+            interface.getParent(DeviceType).getInterfaces()
+        )))
+        sonderlocke = any(map(
+            lambda i: i.getTagName() == "sonderlocke" and i.getTagValue() == "mtu", interface.getTags()
+        ))
+        parent_mtu = parent_interface.getMTU() if parent_interface else None
+        mtu = interface.getMTU() or parent_mtu
+        if not sonderlocke and mtu is not None and mtu not in self._allowed_core_mtus:
+            warnings.warn(
+                f"Interface {interface.getName()} on device {interface.getParent(DeviceType).getName()} "
+                f"has MTU {mtu} set, which is not one of the allowed values for core interfaces."
+            )
+        return {
+            self._interfaces_key: {
+                **interface.spitInterfacePathWith({
+                    "families": {
+                        "iso": {},
+                        "mpls": {},
+                    }
+                })
+            }
+        }
+
     @accept.register
     def _(self, o: TagType):
         match o.getTagName():
@@ -424,6 +451,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 return self.processPolicerTag(o)
             case "edge":
                 return self.processEdgeTag(o)
+            case "core":
+                return self.processCoreTag(o)
             case "bgp":
                 if o.getTagValue() == "cpe":
                     return self.my_bgpcpe_exporter.accept(o)

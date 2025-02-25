@@ -12,6 +12,7 @@ class InterfaceSerializationError(AbstractRecoverableError):
     pass
 
 
+# next() can raise StopIteration, so that's why I use this function
 def head(l):
     return None if not l else l[0]
 
