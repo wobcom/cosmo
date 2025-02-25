@@ -9,6 +9,24 @@ device_list:
           inner_tag: null
           outer_tag: null
         __typename: InterfaceType
+        description: "management interface"
+        enabled: true
+        id: '49837'
+        ip_addresses:
+          - address: 192.168.1.23/24
+            role: null
+            __typename: IPAddressType
+        lag: null
+        mac_address: 94:BF:41:41:41:F9
+        mode: null
+        mtu: 1500
+        name: fxp0.0
+        tagged_vlans: [ ]
+        untagged_vlan: null
+      - custom_fields:
+          inner_tag: null
+          outer_tag: null
+        __typename: InterfaceType
         description: 'Customer: Test-Port'
         enabled: true
         id: '30747'

@@ -54,17 +54,45 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             }
         }
 
+    def processMgmtInterfaceIPAddress(self, o: IPAddressType):
+        manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
+        return {
+            self._vrf_key: {
+                manufacturer.getRoutingInstanceName(): {
+                    "routing_options": {
+                        "rib": {
+                            f"{manufacturer.getRoutingInstanceName()}.inet.0": {
+                                "static": {
+                                    "0.0.0.0/0": {
+                                        "next_hop": next(iter(
+                                            o.getIPInterfaceObject().network.hosts()
+                                        )).compressed
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     @accept.register
     def _(self, o: IPAddressType):
         manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
         parent_interface = o.getParent(InterfaceType)
+        optional_attrs = {}
         if not parent_interface:
             return
-        if manufacturer.isManagementInterface(parent_interface) and not o.isGlobal() and not self.allow_private_ips:
+        if not (o.isGlobal() or
+                self.allow_private_ips or
+                parent_interface.getVRF() or
+                manufacturer.isManagementInterface(parent_interface)):
             raise InterfaceSerializationError(
                 f"Private IP {o.getIPAddress()} used on interface {parent_interface.getName()} "
                 f"in default VRF for device {o.getParent(DeviceType).getName()}. Did you forget to configure a VRF?"
             )
+        if manufacturer.isManagementInterface(parent_interface) and parent_interface.isSubInterface():
+            optional_attrs = self.processMgmtInterfaceIPAddress(o)
         if (
                 parent_interface.isLoopback()
                 and not o.getIPInterfaceObject().network.prefixlen == o.getIPInterfaceObject().max_prefixlen
@@ -101,7 +129,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                     }
                 })
             }
-        }
+        } | optional_attrs
 
     @accept.register
     def _(self, o: CosmoLoopbackType):

@@ -196,6 +196,12 @@ def test_router_ips():
 
     unit_v4 = sd['interfaces']['ifp-0/0/2']['units'][0]
     unit_v6 = sd['interfaces']['ifp-0/0/3']['units'][0]
+    mgmt_v4 = sd['interfaces']['fxp0']['units'][0]
+    mgtm_routing_instance_rib = sd['routing_instances']['mgmt_junos']['routing_options']['rib']['mgmt_junos.inet.0']
+
+
+    assert mgmt_v4['families']['inet']['address']['192.168.1.23/24'] == {}
+    assert mgtm_routing_instance_rib['static']['0.0.0.0/0']['next_hop'] == "192.168.1.1"
 
     assert unit_v4['families']['inet']['address']['45.139.138.1/29'] == {}
     assert unit_v4['families']['inet']['address']['45.139.138.8/29'] == {"primary": True}
