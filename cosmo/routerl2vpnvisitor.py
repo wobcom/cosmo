@@ -152,6 +152,43 @@ class RouterL2VPNExporterVisitor(AbstractRouterExporterVisitor):
             }
         }
 
+    def processL2vpnVxlanTerminationInterface(self, o: InterfaceType):
+        def spitNameForInterfaces(int_or_vlan: InterfaceType|VLANType):
+            if isinstance(int_or_vlan, InterfaceType):
+                return int_or_vlan.getName()
+        parent_l2vpn = o.getParent(L2VPNType)
+        vlan_id = None
+        if o.getUntaggedVLAN():
+            vlan_id = o.getUntaggedVLAN().getVID()
+        return {
+            self._vrf_key: {
+                parent_l2vpn.getName().replace("WAN: ", ""): {
+                    "description": f"Virtual Switch {parent_l2vpn.getName().replace('WAN: VS_', '')}",
+                    "instance-type": "virtual-switch",
+                    "route_distinguisher": f"{self.my_asn}:{str(parent_l2vpn.getIdentifier())}",
+                    "vrf_target": f"target:1:{str(parent_l2vpn.getIdentifier())}",
+                    "protocols": {
+                        "evpn": {
+                            "vni": [ parent_l2vpn.getIdentifier() ]
+                        }
+                    },
+                    "bridge_domains": [
+                        {
+                            # I have to do this, otherwise deepmerge will assume non-uniqueness and we'll have
+                            # duplicated bridge_domains. this is because we're within a dict within a list.
+                            "interfaces": [ spitNameForInterfaces(iov) for iov in parent_l2vpn.getTerminations() ],
+                            "vlan_id": vlan_id,
+                            "name": parent_l2vpn.getName(),
+                            "vxlan": {
+                                "ingress_node_replication": True,
+                                "vni": parent_l2vpn.getIdentifier(),
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+
     def processL2VPNTerminationInterface(self, o: InterfaceType):
         parent_l2vpn = o.getParent(L2VPNType)
         device = parent_l2vpn.getParent(DeviceType)
@@ -171,6 +208,8 @@ class RouterL2VPNExporterVisitor(AbstractRouterExporterVisitor):
             optional_attrs = self.processL2vpnEplEvplTerminationInterface(o)
         elif l2vpn_type in ["mpls-evpn", "mpls_evpn"]:
             optional_attrs = self.processL2vpnMplsEvpnTerminationInterface(o)
+        elif l2vpn_type in ["vxlan-evpn", "vxlan_evpn"]:
+            optional_attrs = self.processL2vpnVxlanTerminationInterface(o)
         elif l2vpn_type in ["vpws"]:
             optional_attrs = self.processL2vpnVpwsTerminationInterface(o)
         return {
