@@ -511,6 +511,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 return self.processEdgeTag(o)
             case "core":
                 return self.processCoreTag(o)
+            case "sonderlocke":
+                pass # ignore, as it is treated in "core" tag handler
             case "unnumbered":
                 return self.processBgpUnnumberedTag(o)
             case "bgp":
