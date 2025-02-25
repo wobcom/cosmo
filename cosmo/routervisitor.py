@@ -256,8 +256,12 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         }
 
     def processL2VPNTerminationInterface(self, o: InterfaceType):
-        # TODO: guard: check it belongs to current device
         parent_l2vpn = o.getParent(L2VPNType)
+        device = parent_l2vpn.getParent(DeviceType)
+        # guard: processed L2VPN should have at least one termination belonging to current device
+        # if no termination passes this test, then L2VPN is not processed.
+        if not o in device.getInterfaces():
+            return
         optional_attrs = {}
         encapsulation = {}
         if not o.isSubInterface():
@@ -409,6 +413,13 @@ class RouterDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             }
 
     def processL2VPNTerminationVLAN(self, o: VLANType):
+        parent_l2vpn = o.getParent(L2VPNType)
+        device = parent_l2vpn.getParent(DeviceType)
+        # guard: processed L2VPN should have at least one termination belonging to current device
+        # if no termination passes this test, then L2VPN is not processed.
+        if (o.getInterfacesAsUntagged() not in device.getInterfaces() or
+                o.getInterfacesAsTagged() not in device.getInterfaces()):
+            return
         encapsulation = {}
         encap_type = self.getAssociatedEncapType(o)
         if encap_type:
