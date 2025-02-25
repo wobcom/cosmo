@@ -4,10 +4,10 @@ import warnings
 from functools import singledispatchmethod
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import head, InterfaceSerializationError
+from cosmo.common import InterfaceSerializationError
 from cosmo.manufacturers import AbstractManufacturer
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
-from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor
+from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor, RouterL2VPNExporterVisitor
 from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
     L2VPNTerminationType, IPAddressType, CosmoStaticRouteType
 
@@ -15,7 +15,7 @@ from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, Ta
 class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     def __init__(self, loopbacks_by_device: dict[str, CosmoLoopbackType], my_asn: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.my_asn = my_asn
+        self.my_l2vpn_exporter = RouterL2VPNExporterVisitor(loopbacks_by_device=loopbacks_by_device, my_asn=my_asn)
         self.loopbacks_by_device = loopbacks_by_device
         self.allow_private_ips = False
 
@@ -129,138 +129,6 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             if len(all_parent_sub_interfaces) > 1 and parent_interface_type not in [ "loopback", "virtual" ]:
                 warnings.warn(f"Sub interface {o.getName()} does not have a access VLAN configured!")
 
-    @staticmethod
-    def getAssociatedEncapType(o: InterfaceType | VLANType) -> str|None:
-        # TODO: move me in manufacturer strategy?
-        l2vpn_type = o.getParent(L2VPNType).getType().lower()
-        is_eligible_for_vlan_encap = False
-        if isinstance(o, VLANType):
-            is_eligible_for_vlan_encap = True
-        elif isinstance(o, InterfaceType) and (len(o.getTaggedVLANS()) or o.getUntaggedVLAN()):
-            is_eligible_for_vlan_encap = True
-        if l2vpn_type in ["vpws", "evpl"] and is_eligible_for_vlan_encap:
-            return "vlan-ccc"
-        elif l2vpn_type in ["mpls-evpn", "mpls_evpn", "vxlan-evpn", "vxlan_evpn"]:
-            return "vlan-bridge"
-
-    def processL2vpnEplEvplTerminationInterface(self, o: InterfaceType):
-        parent_l2vpn = o.getParent(L2VPNType)
-        # find local end
-        local = next(filter(
-            lambda i: (
-                    isinstance(i, InterfaceType)
-                    and i == o
-            ),
-            parent_l2vpn.getTerminations()
-        ))
-        # remote end is the other one
-        remote = next(filter(
-            lambda i: i != local,
-            parent_l2vpn.getTerminations()
-        ))
-        # + l2circuits
-        remote_end_loopback = self.loopbacks_by_device.get(remote.getAssociatedDevice().getName())
-        return {
-            self._l2circuits_key: {
-                parent_l2vpn.getName().replace("WAN: ", ""): {
-                    "interfaces": {
-                        o.getName(): {
-                            "local_label": 1_000_000 + int(local.getParent(L2VPNTerminationType).getId()),
-                            "remote_label": 1_000_000 + int(remote.getParent(L2VPNTerminationType).getId()),
-                            "remote_ip": str(ipaddress.ip_interface(remote_end_loopback.getIpv4()).ip),
-                        }
-                    },
-                    "description": f"{parent_l2vpn.getType().upper()}: "
-                                   f"{parent_l2vpn.getName().replace('WAN: ', '')} "
-                                   f"via {remote.getAssociatedDevice().getName()}",
-                }
-            }
-        }
-
-    def processL2vpnMplsEvpnTerminationInterface(self, o: InterfaceType):
-        parent_l2vpn = o.getParent(L2VPNType)
-        return {
-            self._vrf_key: {
-                parent_l2vpn.getName().replace("WAN: ", ""): {
-                    "interfaces": [ o.getName() ],
-                    "description": f"MPLS-EVPN: {parent_l2vpn.getName().replace('WAN: VS_', '')}",
-                    "instance_type": "evpn",
-                    "protocols": {
-                        "evpn": {},
-                    },
-                    "route_distinguisher": f"{self.my_asn}:{str(parent_l2vpn.getIdentifier())}",
-                    "vrf_target": f"target:1:{str(parent_l2vpn.getIdentifier())}",
-                }
-            }
-        }
-
-    def processL2vpnVpwsTerminationInterface(self, o: InterfaceType):
-        parent_l2vpn = o.getParent(L2VPNType)
-        # find local end
-        local = next(filter(
-            lambda i: (
-                isinstance(i, InterfaceType)
-                and i.getAssociatedDevice() == o.getParent(DeviceType)
-            ),
-            parent_l2vpn.getTerminations()
-        ))
-        # remote end is the other one
-        remote = next(filter(
-            lambda i: i != local,
-            parent_l2vpn.getTerminations()
-        ))
-        breakpoint()
-        return {
-            self._vrf_key: {
-                parent_l2vpn.getName().replace("WAN: ", ""): {
-                    "interfaces": [ o.getName() ],
-                    "description": f"VPWS: {parent_l2vpn.getName().replace('WAN: VS_', '')}",
-                    "instance_type": "evpn-vpws",
-                    "route-distinguisher": f"{self.my_asn}:{str(parent_l2vpn.getIdentifier())}",
-                    "vrf-target": f"target:1:{str(parent_l2vpn.getIdentifier())}",
-                    "protocols": {
-                        "evpn": {
-                            "interfaces": {
-                                o.getName(): {
-                                    "vpws_service_id": {
-                                        "local": int(local.getID()),
-                                        "remote": int(remote.getID()),
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-    def processL2VPNTerminationInterface(self, o: InterfaceType):
-        parent_l2vpn = o.getParent(L2VPNType)
-        device = parent_l2vpn.getParent(DeviceType)
-        # guard: processed L2VPN should have at least one termination belonging to current device
-        # if no termination passes this test, then L2VPN is not processed.
-        if not o in device.getInterfaces():
-            return
-        optional_attrs = {}
-        encapsulation = {}
-        if not o.isSubInterface():
-            return
-        encap_type = self.getAssociatedEncapType(o)
-        if encap_type:
-            encapsulation = {"encapsulation": encap_type}
-        l2vpn_type = parent_l2vpn.getType().lower()
-        if l2vpn_type in ["evpl", "epl"]:
-            optional_attrs = self.processL2vpnEplEvplTerminationInterface(o)
-        elif l2vpn_type in ["mpls-evpn", "mpls_evpn"]:
-            optional_attrs = self.processL2vpnMplsEvpnTerminationInterface(o)
-        elif l2vpn_type in ["vpws"]:
-            optional_attrs = self.processL2vpnVpwsTerminationInterface(o)
-        return {
-            self._interfaces_key: {
-                **o.spitInterfacePathWith({} | encapsulation)
-            }
-        } | optional_attrs
-
     def processLagMember(self, o: InterfaceType):
         return {
             self._interfaces_key: {
@@ -286,7 +154,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             # guard: do not process VLAN interface info
             return
         if isinstance(o.getParent(), L2VPNTerminationType):
-            return self.processL2VPNTerminationInterface(o)
+            return self.my_l2vpn_exporter.accept(o)
         if o.isSubInterface():
             return self.processSubInterface(o)
         if o.isLagInterface():
@@ -391,36 +259,10 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 }
             }
 
-    def processL2VPNTerminationVLAN(self, o: VLANType):
-        parent_l2vpn = o.getParent(L2VPNType)
-        device = parent_l2vpn.getParent(DeviceType)
-        # guard: processed L2VPN should have at least one termination belonging to current device
-        # if no termination passes this test, then L2VPN is not processed.
-        if (o.getInterfacesAsUntagged() not in device.getInterfaces() or
-                o.getInterfacesAsTagged() not in device.getInterfaces()):
-            return
-        encapsulation = {}
-        encap_type = self.getAssociatedEncapType(o)
-        if encap_type:
-            encapsulation = {"encapsulation": encap_type}
-        linked_interface = head(
-            list(
-                filter(
-                    lambda i: i.getParent(DeviceType) == o.getParent(DeviceType),
-                    o.getInterfacesAsTagged()
-                )
-            )
-        )
-        return {
-            self._interfaces_key: {
-                **linked_interface.spitInterfacePathWith({} | encapsulation)
-            }
-        }
-
     @accept.register
     def _(self, o: VLANType):
         if isinstance(o.getParent(), L2VPNTerminationType):
-            return self.processL2VPNTerminationVLAN(o)
+            return self.my_l2vpn_exporter.accept(o)
         parent_interface = o.getParent(InterfaceType)
         if (
                 parent_interface and o == parent_interface.getUntaggedVLAN()
