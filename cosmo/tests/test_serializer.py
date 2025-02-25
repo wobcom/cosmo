@@ -205,6 +205,12 @@ def test_router_ips():
     assert unit_v6['families']['inet6']['address']['2a0e:b941:2::40/122'] == {"primary": True}
     assert unit_v6['families']['inet6']['address']['2a0e:b941:2::41/122'] == {"secondary": True}
 
+    # reverse path filtering
+    assert unit_v4['families']['inet']['rpf_check']['mode'] == 'loose'
+    assert 'inet6' not in unit_v4['families']
+    assert unit_v6['families']['inet6']['rpf_check']['mode'] == 'strict'
+    assert 'inet' not in unit_v6['families']
+
 
 def test_router_case_mpls_evpn():
     sd = get_router_sd_from_path("./test_case_mpls_evpn.yaml")

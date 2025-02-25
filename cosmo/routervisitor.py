@@ -2,6 +2,7 @@ import ipaddress
 import re
 import warnings
 from functools import singledispatchmethod
+from ipaddress import IPv4Interface, IPv6Interface
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import InterfaceSerializationError
@@ -367,6 +368,45 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             }
         }
 
+    def processUrpfTag(self, o: TagType):
+        parent_interface = o.getParent(InterfaceType)
+        ipv6_rpf = {}
+        ipv4_rpf = {}
+        if o.getTagValue() == "disable": # do not process, urpf is disabled
+            return
+        if any(map( # any short-circuits
+            lambda i: isinstance(i.getIPInterfaceObject(), IPv4Interface),
+            parent_interface.getIPAddresses()
+        )):
+            ipv4_rpf = {
+                "inet": {
+                    "rpf_check": {
+                        "mode": o.getTagValue()
+                    }
+                }
+            }
+        if any(map( # any short-circuits
+            lambda i: isinstance(i.getIPInterfaceObject(), IPv6Interface),
+            parent_interface.getIPAddresses()
+        )):
+            ipv6_rpf = {
+                "inet6": {
+                    "rpf_check": {
+                        "mode": o.getTagValue()
+                    }
+                }
+            }
+        if not len(ipv4_rpf)+len(ipv6_rpf):
+            return
+        return {
+            self._interfaces_key: {
+                **parent_interface.spitInterfacePathWith({
+                    "families": {
+                    } | ipv6_rpf | ipv4_rpf
+                })
+            }
+        }
+
     @accept.register
     def _(self, o: TagType):
         if o.getTagName() == "autoneg":
@@ -375,6 +415,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             return self.processSpeedTag(o)
         if o.getTagName() == "fec":
             return self.processFecTag(o)
+        if o.getTagName() == "urpf":
+            return self.processUrpfTag(o)
         if o.getTagName() == "bgp" and o.getTagValue() == "cpe":
             return self.my_bgpcpe_exporter.accept(o)
         if o.getTagName() in ["policer", "policer_in", "policer_out"]:

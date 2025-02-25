@@ -28,7 +28,10 @@ device_list:
         mtu: null
         name: ifp-0/0/2.0
         tagged_vlans: [ ]
-        tags: [ ]
+        tags:
+          - name: urpf:loose
+            slug: urpf:loose
+            __typename: TagType
         type: A_100GBASE_X_QSFP28
         untagged_vlan: null
         vrf: null
@@ -55,7 +58,10 @@ device_list:
         mtu: null
         name: ifp-0/0/3.0
         tagged_vlans: [ ]
-        tags: [ ]
+        tags:
+          - name: urpf:strict
+            slug: urpf:strict
+            __typename: TagType
         type: A_100GBASE_X_QSFP28
         untagged_vlan: null
         vrf: null
