@@ -494,7 +494,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     @accept.register
     def _(self, o: TagType):
-        match o.getTagName():
+        match o.getTagName().lower():
             case "autoneg":
                 return self.processAutonegTag(o)
             case "speed":
@@ -517,6 +517,6 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 if o.getTagValue() == "cpe":
                     return self.my_bgpcpe_exporter.accept(o)
                 else:
-                    raise warnings.warn(f"unkown bgp tag {o.getTagValue()}")
+                    warnings.warn(f"unkown bgp tag {o.getTagValue()}")
             case _:
-                raise warnings.warn(f"unknown tag {o.getTagName()}")
+                warnings.warn(f"unknown tag {o.getTagName()}")
