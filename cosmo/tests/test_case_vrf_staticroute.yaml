@@ -103,6 +103,7 @@ device_list:
     tags:
     - name: core
       slug: core
+      __typename: TagType
     type: VIRTUAL
     untagged_vlan: null
     vrf:
