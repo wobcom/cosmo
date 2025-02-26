@@ -522,10 +522,10 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         parent_interface = o.getParent(InterfaceType)
         opt_unnumbered_interface = {}
         if parent_interface.getVRF():
-            loopback_interface = head(filter(
+            loopback_interface = head(list(filter(
                 lambda i: i.getName().startswith('lo') and i.getVRF() == parent_interface.getVRF(),
                 parent_interface.getParent(DeviceType).getInterfaces()
-            ))
+            )))
             opt_unnumbered_interface = {"unnumbered_interface": loopback_interface.getName()}
         return {
             self._interfaces_key: {
@@ -557,6 +557,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 return self.processCoreTag(o)
             case "sonderlocke":
                 pass # ignore, as it is treated in "core" tag handler
+            case "access":
+                pass # ignore, as it is processed in getAssociatedType()
             case "unnumbered":
                 return self.processBgpUnnumberedTag(o)
             case "bgp":
