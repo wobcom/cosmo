@@ -212,9 +212,13 @@ class RouterL2VPNExporterVisitor(AbstractRouterExporterVisitor):
             optional_attrs = self.processL2vpnVxlanTerminationInterface(o)
         elif l2vpn_type in ["vpws"]:
             optional_attrs = self.processL2vpnVpwsTerminationInterface(o)
+        interface_attr = o.spitInterfacePathWith(encapsulation)
+        if encap_type == "ethernet-ccc" and o.isSubInterface():
+            # ethernet-ccc encapsulation attr is always on interface, not unit
+            interface_attr = {o.getSubInterfaceParentInterfaceName(): encapsulation}
         return {
             self._interfaces_key: {
-                **o.spitInterfacePathWith({} | encapsulation)
+                **interface_attr
             }
         } | optional_attrs
 
