@@ -151,10 +151,10 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     @staticmethod
     def processInterfaceCommon(o: InterfaceType):
         return {
-            "type": o.getAssociatedType(),
         } | ({"shutdown": True} if not o.enabled() else {}) \
           | ({"description": o.getDescription()} if o.getDescription() else {}) \
-          | ({"mtu": o.getMTU()} if o.getMTU() else {})
+          | ({"mtu": o.getMTU()} if o.getMTU() else {}) \
+          | ({"type": o.getAssociatedType()} if not o.isSubInterface() else {})
 
     def processSubInterface(self, o: InterfaceType):
         # easy checks first, narrow down afterward
