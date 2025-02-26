@@ -179,8 +179,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         return {
             self._interfaces_key: {
                 **o.spitInterfacePathWith({
-                    "type": "lag",
-                } | self.processInterfaceCommon(o))
+                    **self.processInterfaceCommon(o),
+                    "type": "lag", # dict priority
+                })
             }
         }
 
@@ -198,6 +199,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     def _(self, o: InterfaceType):
         if isinstance(o.getParent(), VLANType):
             # guard: do not process VLAN interface info
+            return
+        if type(o.getParent()) == InterfaceType and "parent" in o.getParent().keys() and o.getParent()["parent"] == o:
+            # guard: do not process child interface if in "parent" info
             return
         if isinstance(o.getParent(), L2VPNTerminationType):
             return self.my_l2vpn_exporter.accept(o)
