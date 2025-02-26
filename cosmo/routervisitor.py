@@ -109,6 +109,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         if (
                 parent_interface.isLoopback()
                 and not o.getIPInterfaceObject().network.prefixlen == o.getIPInterfaceObject().max_prefixlen
+                and not parent_interface.getVRF() # only force /32 loopback in default vrf
         ):
             raise InterfaceSerializationError(f"IP {o.getIPAddress()} is not a valid loopback IP address.")
         ip_version = o.getIPInterfaceObject().version
