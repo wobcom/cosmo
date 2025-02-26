@@ -150,9 +150,19 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     @staticmethod
     def processInterfaceCommon(o: InterfaceType):
+        description = o.getDescription()
+        edge_tag = head(list(filter(lambda t: t.getTagName().lower() == "edge", o.getTags())))
+        if edge_tag:
+            match edge_tag.getTagValue():
+                case "customer":
+                    description = f"Customer: {description}"
+                case "upstream":
+                    description = f"Transit: {description}"
+                case _:
+                    description = f"Peering: {description}"
         return {
         } | ({"shutdown": True} if not o.enabled() else {}) \
-          | ({"description": o.getDescription()} if o.getDescription() else {}) \
+          | ({"description": description} if o.getDescription() else {}) \
           | ({"mtu": o.getMTU()} if o.getMTU() else {}) \
           | ({"type": o.getAssociatedType()} if not o.isSubInterface() else {})
 
