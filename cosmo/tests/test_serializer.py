@@ -128,10 +128,12 @@ def test_router_physical_interface():
 def test_router_logical_interface():
     [sd] = get_router_sd_from_path("./test_case_2.yaml")
 
-    assert len(sd['interfaces']['et-0/0/0']['units']) == 1
+    assert len(sd['interfaces']['et-0/0/0']['units']) == 2
 
     assert 139 in sd['interfaces']['et-0/0/0']['units']
-    assert 150 not in sd['interfaces']['et-0/0/0']['units']
+    assert 150 in sd['interfaces']['et-0/0/0']['units']
+    # should be present but shut down
+    assert sd['interfaces']['et-0/0/0']['units'][150]['shutdown']
 
     unit = sd['interfaces']['et-0/0/0']['units'][139]
 
