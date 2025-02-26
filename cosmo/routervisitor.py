@@ -394,19 +394,21 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     def processEdgeTag(self, o: TagType):
         parent_interface = o.getParent(InterfaceType)
         optional_sampling = {}
+        optional_arp_policer = {}
         if not any([
             t.getTagName() == "disable_sampling" or (t.getTagName() == "edge" and t.getTagValue() == "customer")
             for t in parent_interface.getTags()
         ]):
             optional_sampling = { "sampling": True }
+        if o.getTagValue() == "peering-ixp":
+            optional_arp_policer = { "policer": ["arp POLICER_IXP_ARP"]}
         return {
             self._interfaces_key: {
                 **parent_interface.spitInterfacePathWith({
                     "families": {
                         "inet": {
                             "filters": ["input-list [ EDGE_FILTER ]"],
-                            "policer": [] + (["arp POLICER_IXP_ARP"] if o.getTagValue() == "peering-ixp" else [])
-                        } | optional_sampling,
+                        } | optional_sampling | optional_arp_policer,
                         "inet6": {
                             "filters": ["input-list [ EDGE_FILTER_V6 ]"]
                         } | optional_sampling,
