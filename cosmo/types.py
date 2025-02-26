@@ -102,6 +102,16 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
 
 
 # POJO style store
+# why so many getters, you ask? the answer is simple:
+# netbox developers like to change their data structure
+# every quarter. so, instead of having a billion attribute
+# names in the code to change each time it happens,
+# you just have to change the attribute name in
+# the getter method and voilà.
+# that's also why you abstain from directly addressing
+# attributes in the visitors.
+# as a bonus, we can also have tiny bits of logic in
+# the getters to deduplicate utility code
 class DeviceType(AbstractNetboxType):
     def __repr__(self):
         return super().__repr__() + f"({self.getName()})"
