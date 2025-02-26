@@ -54,7 +54,13 @@ class RouterL2VPNExporterVisitor(AbstractRouterExporterVisitor):
         elif isinstance(o, InterfaceType) and (len(o.getTaggedVLANS()) or o.getUntaggedVLAN()):
             is_eligible_for_vlan_encap = True
         elif isinstance(o, InterfaceType) and not (len(o.getTaggedVLANS()) or o.getUntaggedVLAN()):
-            is_eligible_for_ethernet_ccc_encap = True
+            my_root_name = o.getSubInterfaceParentInterfaceName() if o.isSubInterface() else o.getName()
+            sub_units = list(filter( # costlier check it is then
+                lambda i: i.getName().startswith(my_root_name) and i.isSubInterface(),
+                o.getParent(DeviceType).getInterfaces()
+            ))
+            if len(sub_units) == 1: # we can use ethernet ccc encap only when there's 1 sub interface
+                is_eligible_for_ethernet_ccc_encap = True
         if l2vpn_type in ["vpws", "evpl"] and is_eligible_for_vlan_encap:
             return "vlan-ccc"
         elif l2vpn_type in ["vpws", "epl", "evpl"] and is_eligible_for_ethernet_ccc_encap:
