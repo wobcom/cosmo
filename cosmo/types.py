@@ -276,7 +276,9 @@ class InterfaceType(AbstractNetboxType):
             return self["mtu"]
 
     def getTags(self) -> list[TagType]:
-        return self["tags"]
+        if "tags" in self:
+            return self["tags"]
+        return []
 
     def getDescription(self):
         if "description" in self.keys():
