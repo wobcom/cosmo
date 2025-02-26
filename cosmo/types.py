@@ -198,6 +198,10 @@ class InterfaceType(AbstractNetboxType):
     def getName(self) -> str:
         return self['name']
 
+    def getMACAddress(self) -> str|None:
+        if "mac_address" in self:
+            return self['mac_address']
+
     def getUntaggedVLAN(self):
         cf = self.getCustomFields()
         if "untagged_vlan" in self.keys() and self["untagged_vlan"]:
