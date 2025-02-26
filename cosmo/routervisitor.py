@@ -96,6 +96,11 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         optional_attrs = {}
         if not parent_interface:
             return
+        if not parent_interface.isSubInterface():
+            raise InterfaceSerializationError(
+                f"You seem to have configured an IP directly on interface {parent_interface.getName()}. "
+                f"This is forbidden. Please make a sub-interface, assign the IP(s) on it and retry!"
+            )
         if not (o.isGlobal() or
                 self.allow_private_ips or
                 parent_interface.getVRF() or
