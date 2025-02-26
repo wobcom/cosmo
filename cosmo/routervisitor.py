@@ -513,7 +513,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         return {
             self._interfaces_key: {
                 **parent_interface.spitInterfacePathWith({
-                    "dhcp_profile": o.getTagValue(),
+                    "dhcp_profile": [ o.getTagValue() ],
                 })
             }
         }
