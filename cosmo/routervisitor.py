@@ -9,7 +9,7 @@ from cosmo.manufacturers import AbstractManufacturer
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
 from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor, RouterL2VPNExporterVisitor
 from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
-    L2VPNTerminationType, IPAddressType, CosmoStaticRouteType
+    L2VPNTerminationType, IPAddressType, CosmoStaticRouteType, DeviceTypeType, PlatformType
 
 
 class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
@@ -44,6 +44,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             return
         manufacturer = AbstractManufacturer.getManufacturerFor(o)
         return {
+            "serial": o.getSerial(),
             self._vrf_key: {
                 manufacturer.getRoutingInstanceName(): {
                     "description": self._mgmt_vrf_name,
@@ -52,6 +53,18 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             self._l2circuits_key: {
                 # this one should always exist
             }
+        }
+
+    @accept.register
+    def _(self, o: DeviceTypeType):
+        return {
+            "device_model": o.getSlug(),
+        }
+
+    @accept.register
+    def _(self, o: PlatformType):
+        return {
+            "platform": o.getSlug(),
         }
 
     def processMgmtInterfaceIPAddress(self, o: IPAddressType):

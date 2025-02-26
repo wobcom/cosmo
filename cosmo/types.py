@@ -120,9 +120,14 @@ class DeviceType(AbstractNetboxType):
     def getName(self):
         return self["name"]
 
+    def getSerial(self) -> str|None:
+        if "serial" in self and self["serial"]:
+            return self["serial"]
+
 
 class DeviceTypeType(AbstractNetboxType):
-    pass
+    def getSlug(self) -> str:
+        return self["slug"]
 
 
 class PlatformType(AbstractNetboxType):
