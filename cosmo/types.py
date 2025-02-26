@@ -207,9 +207,9 @@ class InterfaceType(AbstractNetboxType):
         return []
 
     def enabled(self):
-        if "enabled" in self.keys() and self["enabled"]:
-            return True
-        return False
+        if "enabled" in self.keys() and not self["enabled"]:
+            return False
+        return True
 
     def isLagMember(self):
         if "lag" in self.keys() and self["lag"]:
