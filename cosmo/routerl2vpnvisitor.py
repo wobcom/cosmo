@@ -24,13 +24,17 @@ class RouterL2VPNValidatorVisitor(AbstractRouterExporterVisitor):
             warnings.warn(f"Found unsupported L2VPN termination in {o.getName()}, ignoring...")
             return False
         if o.getType().lower() == "vpws" and any([not isinstance(t, InterfaceType) for t in terminations]):
+            warnings.warn(
+                f"Found non-interface termination in L2VPN {o.getName()}, ignoring... "
+                f"VPWS only supports interface terminations."
+            )
             return False
         return True
 
     @accept.register
     def _(self, o: L2VPNType):
-        if not o.getName().startswith("WAN") and self.isCompliantWANL2VPN(o):
-            return
+        if o.getName().startswith("WAN"):
+            self.isCompliantWANL2VPN(o)
 
 
 class RouterL2VPNExporterVisitor(AbstractRouterExporterVisitor):

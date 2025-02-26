@@ -66,44 +66,66 @@ def test_l2vpn_errors():
             l2vpn_list=y['l2vpn_list'],
             vrfs=y['vrf_list'],
             loopbacks=y['loopbacks']
-        )
+        ).serialize()
 
     template = _yaml_load("./test_case_l2x_err_template.yaml")
 
     vpws_incorrect_terminations = copy.deepcopy(template)
     vpws_incorrect_terminations['l2vpn_list'].append({
+        '__typename': 'L2VPNType',
         'id': '53',
         'identifier': None,
         'name': 'WAN: incorrect VPWS',
         'type': 'VPWS',
         'terminations': [
-            {}, {}, {}]})
+            {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': {}
+            }, {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': {}
+            }, {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': {}
+            }]})
     with pytest.warns(UserWarning, match="VPWS circuits are only allowed to have two terminations"):
         serialize(vpws_incorrect_terminations)
 
     unsupported_type_terminations = copy.deepcopy(template)
     unsupported_type_terminations['l2vpn_list'].append({
+        '__typename': 'L2VPNType',
         'id': '54',
         'identifier': None,
         'name': 'WAN: unsupported termination types 1',
         'type': 'VPWS',
         'terminations': [
-            {'assigned_object': None},
-            {'assigned_object': {'__typename': None}}]})
+            {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': None
+            },
+            {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': {}
+            }]})
     with pytest.warns(UserWarning, match="Found unsupported L2VPN termination in"):
         serialize(unsupported_type_terminations)
 
     vpws_non_interface_term = copy.deepcopy(template)
     vpws_non_interface_term['l2vpn_list'].append({
+        '__typename': 'L2VPNType',
         'id': '54',
         'identifier': None,
         'name': 'WAN: WAN: unsupported termination types 2',
         'type': 'VPWS',
         'terminations': [
-            {'assigned_object': {
+            {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': {
                 '__typename': "VLANType"
             }},
-            {'assigned_object': {
+            {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': {
                 '__typename': "VLANType"
             }}]})
     with pytest.warns(UserWarning, match="Found non-interface termination in L2VPN"):
