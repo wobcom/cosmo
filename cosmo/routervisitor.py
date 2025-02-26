@@ -152,9 +152,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     def processInterfaceCommon(o: InterfaceType):
         return {
             "type": o.getAssociatedType(),
-            "description": o.getDescription(),
-            "mtu": o.getMTU(),
-        } | ({"shutdown": True} if not o.enabled() else {})
+        } | ({"shutdown": True} if not o.enabled() else {}) \
+          | ({"description": o.getDescription()} if o.getDescription() else {}) \
+          | ({"mtu": o.getMTU()} if o.getMTU() else {})
 
     @staticmethod
     def processSubInterface(o: InterfaceType):
