@@ -305,13 +305,13 @@ class InterfaceType(AbstractNetboxType):
         # TODO: move me in manufacturer strategy?
         my_type = self.getRawType().lower()
         authorized_types = [ "lag", "loopback", "virtual", "access" ]
-        if "base" in my_type:
-            return "physical"
-        elif (
-            "lag" == my_type and
-            any([tag.getTagName() == "access" for tag in self.getTags()])
-        ):
+        access = any([tag.getTagName() == "access" for tag in self.getTags()])
+        if access and "lag" == my_type:
             return "lag-access"
+        elif access:
+            return "access"
+        elif "base" in my_type:
+            return "physical"
         elif my_type in authorized_types:
             return my_type
 
