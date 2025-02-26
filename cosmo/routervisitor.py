@@ -225,9 +225,6 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         if isinstance(o.getParent(), VLANType):
             # guard: do not process VLAN interface info
             return
-        if type(o.getParent()) == InterfaceType and "parent" in o.getParent().keys() and o.getParent()["parent"] == o:
-            # guard: do not process child interface if in "parent" info
-            return
         if isinstance(o.getParent(), L2VPNTerminationType):
             return self.my_l2vpn_exporter.accept(o)
         if o.isSubInterface():
@@ -235,8 +232,10 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         if o.isLagInterface():
             return self.processLagMember(o)
         # interface in interface is lag info
-        if type(o.getParent()) == InterfaceType and "lag" in o.getParent().keys() and o.getParent()["lag"] == o:
-            return self.processInterfaceLagInfo(o)
+        if type(o.getParent()) == InterfaceType:
+            if "lag" in o.getParent().keys() and o.getParent()["lag"] == o:
+                return self.processInterfaceLagInfo(o)
+            return # guard: do not process (can be connected_endpoint, parent, etc...)
         else:
             return {
                 self._interfaces_key: {
