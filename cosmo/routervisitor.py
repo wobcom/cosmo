@@ -183,10 +183,19 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             # cases where no VLAN is authorized: we have only one sub interface, or it's a loopback or virtual
             if len(all_parent_sub_interfaces) > 1 and parent_interface_type not in [ "loopback", "virtual" ]:
                 warnings.warn(f"Sub interface {o.getName()} does not have a access VLAN configured!")
+        # specific outer_tag case -> we cannot process the "virtual" untagged vlan
+        # via type hinting / visitor, since it does not exist in the composite
+        # tree, and is only represent by outer_tag CF.
+        # outer_tag should only appear on a sub-interface, hence why we process it
+        # through this specific case.
+        optional_interface_attrs = {}
+        if "outer_tag" in o.getCustomFields() and o.getUntaggedVLAN():
+            optional_interface_attrs = { "vlan": o.getUntaggedVLAN().getVID() }
         return {
             self._interfaces_key: {
                 **o.spitInterfacePathWith({
-                    **self.processInterfaceCommon(o)
+                    **self.processInterfaceCommon(o),
+                    **optional_interface_attrs,
                 })
             }
         }

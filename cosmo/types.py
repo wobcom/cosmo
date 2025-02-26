@@ -198,8 +198,18 @@ class InterfaceType(AbstractNetboxType):
         return self['name']
 
     def getUntaggedVLAN(self):
-        if "untagged_vlan" in self.keys():
+        cf = self.getCustomFields()
+        if "untagged_vlan" in self.keys() and self["untagged_vlan"]:
             return self["untagged_vlan"]
+        elif "outer_tag" in cf.keys() and cf["outer_tag"]:
+            # outer_tag should not be used with untagged vlan
+            # untagged_vlan has priority over outer_tag
+            # we have to build the VLANType object in the case of
+            # outer_tag usage, since there's no native type in netbox
+            return VLANType({
+                "vid": int(cf["outer_tag"]),
+                "interfaces_as_untagged": [ self ]
+            })
 
     def getTaggedVLANS(self) -> list:
         if "tagged_vlans" in self.keys():

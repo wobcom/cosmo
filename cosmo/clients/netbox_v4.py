@@ -207,6 +207,7 @@ class L2VPNDataQuery(ParallelQuery):
                       __typename
                       id
                       name
+                      custom_fields
                       untagged_vlan {
                         __typename
                         id
