@@ -63,7 +63,10 @@ class RtBrickManufacturer(AbstractManufacturer):
     def getRoutingInstanceName():
         return "mgmt"
     def isManagementInterface(self, o: InterfaceType):
-        return len(o['ip_addresses']) >= 1 and o.getName().startswith("ma1")
+        return len(o['ip_addresses']) >= 1 and (
+            o.getName().startswith("ma1") or
+            o.getName().startswith("bmc0")
+        )
 
 
 class CumulusNetworksManufacturer(AbstractManufacturer):
