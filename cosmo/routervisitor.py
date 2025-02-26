@@ -156,8 +156,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
           | ({"description": o.getDescription()} if o.getDescription() else {}) \
           | ({"mtu": o.getMTU()} if o.getMTU() else {})
 
-    @staticmethod
-    def processSubInterface(o: InterfaceType):
+    def processSubInterface(self, o: InterfaceType):
         # easy checks first, narrow down afterward
         if not o.getUntaggedVLAN() and not o.getUnitNumber() == 0:
             # costlier checks it is then
@@ -174,6 +173,13 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             # cases where no VLAN is authorized: we have only one sub interface, or it's a loopback or virtual
             if len(all_parent_sub_interfaces) > 1 and parent_interface_type not in [ "loopback", "virtual" ]:
                 warnings.warn(f"Sub interface {o.getName()} does not have a access VLAN configured!")
+        return {
+            self._interfaces_key: {
+                **o.spitInterfacePathWith({
+                    **self.processInterfaceCommon(o)
+                })
+            }
+        }
 
     def processLagMember(self, o: InterfaceType):
         return {
