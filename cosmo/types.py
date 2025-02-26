@@ -120,9 +120,10 @@ class DeviceType(AbstractNetboxType):
     def getName(self):
         return self["name"]
 
-    def getSerial(self) -> str|None:
+    def getSerial(self) -> str:
         if "serial" in self and self["serial"]:
             return self["serial"]
+        return ""
 
 
 class DeviceTypeType(AbstractNetboxType):
