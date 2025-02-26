@@ -536,6 +536,16 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             }
         }
 
+    def processAccessTag(self, o: TagType):
+        parent_interface = o.getParent(InterfaceType)
+        return {
+            self._interfaces_key: {
+                **parent_interface.spitInterfacePathWith({
+                    "port_profile": [ o.getTagValue() ]
+                })
+            }
+        }
+
     @accept.register
     def _(self, o: TagType):
         match o.getTagName().lower():
@@ -558,7 +568,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             case "sonderlocke":
                 pass # ignore, as it is treated in "core" tag handler
             case "access":
-                pass # ignore, as it is processed in getAssociatedType()
+                return self.processAccessTag(o)
             case "unnumbered":
                 return self.processBgpUnnumberedTag(o)
             case "bgp":
