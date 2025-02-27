@@ -23,7 +23,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                 self._interfaces_key: {
                     parent_interface.getName(): {
                         "vrf": "mgmt",
-                        "mtu": 1_500 if not parent_interface.getMTU() else parent_interface.getMTU(),
+                        "mtu": parent_interface.getMTU() or 1_500,
                         "address": o.getIPAddress(),
                         "gateway": next(
                             ipaddress.ip_network(o.getIPAddress(),strict=False).hosts()
