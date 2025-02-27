@@ -5,6 +5,7 @@ import warnings
 import abc
 from collections import defaultdict
 
+from cosmo.common import deepsort
 
 class AbstractRecoverableError(Exception, abc.ABC):
     pass
@@ -708,7 +709,7 @@ class RouterSerializer:
         device_stub[f"routing_instances"] = self.routing_instances
         device_stub[f"l2circuits"] = l2circuits
 
-        return device_stub
+        return deepsort(device_stub)
 
 
 class SwitchSerializer:
@@ -796,4 +797,4 @@ class SwitchSerializer:
 
         device_stub["cumulus__device_interfaces"] = interfaces
 
-        return device_stub
+        return deepsort(device_stub)
