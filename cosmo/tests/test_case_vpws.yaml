@@ -153,7 +153,6 @@ l2vpn_list:
     id: '866'
     __typename: L2VPNTerminationType
   type: VPWS
-vrf_list: []
 loopbacks:
   TEST0002:
     ipv4: 45.139.136.10/32

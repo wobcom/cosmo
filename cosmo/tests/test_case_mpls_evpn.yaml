@@ -245,7 +245,6 @@ l2vpn_list:
     __typename: L2VPNTerminationType
   type: mpls-evpn
 
-vrf_list: []
 loopbacks:
   TEST0001:
     ipv4: "45.139.136.11/32"

@@ -74,7 +74,8 @@ def main() -> int:
             if device['name'] in cosmo_configuration['devices']['router']:
 
                 router_serializer_cfg = RouterSerializerConfig(cosmo_configuration.get("router_serializer_configuration", {}))
-                serializer = RouterSerializer(router_serializer_cfg, device, cosmo_data['l2vpn_list'], [], cosmo_data["loopbacks"])
+                serializer = RouterSerializer(router_serializer_cfg, device, cosmo_data['l2vpn_list'],
+                                              cosmo_data["loopbacks"])
                 content = serializer.serialize()
             elif device['name'] in cosmo_configuration['devices']['switch']:
                 serializer = SwitchSerializer(device)

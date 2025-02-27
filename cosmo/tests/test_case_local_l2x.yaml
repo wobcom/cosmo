@@ -143,7 +143,6 @@ l2vpn_list:
     id: '945'
     __typename: L2VPNTerminationType
   type: EVPL
-vrf_list: []
 loopbacks:
   TEST0001:
     ipv4: 45.139.136.10/32

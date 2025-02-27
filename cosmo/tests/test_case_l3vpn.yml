@@ -123,7 +123,6 @@ device_list:
   serial: ''
   staticroute_set: []
 l2vpn_list: []
-vrf_list: []
 # This has some double use and gets put into NetboxClient and RouterSerializer.
 # Therefore it has the same data twice in different formats.
 loopback_interface_list:

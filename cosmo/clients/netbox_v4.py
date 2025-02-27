@@ -241,37 +241,6 @@ class L2VPNDataQuery(ParallelQuery):
         }
 
 
-class VrfDataQuery(ParallelQuery):
-    def _fetch_data(self, kwargs):
-        query_template = Template('''
-            query {
-                vrf_list {
-                    __typename
-                    id
-                    name
-                    description
-                    rd
-                    export_targets {
-                      __typename
-                      name
-                    }
-                    import_targets {
-                      __typename
-                      name
-                    }
-                }
-            }
-        ''')
-
-        return self.client.query(query_template.substitute())['data']
-
-    def _merge_into(self, data: dict, query_data):
-        return {
-            **data,
-            **query_data,
-        }
-
-
 class StaticRouteQuery(ParallelQuery):
 
     def _fetch_data(self, kwargs):

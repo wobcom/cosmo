@@ -25,7 +25,7 @@ class RouterSerializerConfig:
 
 
 class RouterSerializer:
-    def __init__(self, cfg, device, l2vpn_list, vrfs, loopbacks):
+    def __init__(self, cfg, device, l2vpn_list, loopbacks):
         try:
             match device["platform"]["manufacturer"]["slug"]:
                 case 'juniper':
@@ -45,7 +45,6 @@ class RouterSerializer:
         self.cfg = cfg
         self.device = device
         self.l2vpn_list = l2vpn_list
-        self.vrfs = vrfs
         self.loopbacks = loopbacks
 
         self.l2vpns = {}

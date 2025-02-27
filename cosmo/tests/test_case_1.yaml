@@ -61,7 +61,6 @@ device_list:
   serial: 4242
   staticroute_set: []
 l2vpn_list: []
-vrf_list: []
 loopbacks:
   TEST0001:
     ipv4: 45.139.136.10/32
