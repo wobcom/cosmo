@@ -241,12 +241,11 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             if "lag" in o.getParent().keys() and o.getParent()["lag"] == o:
                 return self.processLagMember(o)
             return # guard: do not process (can be connected_endpoint, parent, etc...)
-        else:
-            return {
-                self._interfaces_key: {
-                    **o.spitInterfacePathWith(self.processInterfaceCommon(o))
-                }
+        return {
+            self._interfaces_key: {
+                **o.spitInterfacePathWith(self.processInterfaceCommon(o))
             }
+        }
 
     def getRouterId(self, o: DeviceType) -> str:
         return str(ipaddress.ip_interface(self.loopbacks_by_device[o.getName()].getIpv4()).ip)
