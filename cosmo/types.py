@@ -268,8 +268,21 @@ class InterfaceType(AbstractNetboxType):
             return self["vrf"]
 
     def spitInterfacePathWith(self, d: dict) -> dict:
-        # does not check for config correctness! do your checks 1st O:-)
-        # TODO: move me in manufacturer strategy?
+        """
+        Outputs the dictionary d within a dictionary representing
+        the interface path (i.e directly the interface name if it's
+        a normal interface, or the unit number within unit within
+        the parent interface if it's a sub-interface).
+        This is delegated to the InterfaceType object since it
+        knows best what kind of interface it is, and it allows
+        us to do code deduplication from the clients of InterfaceType.
+        Config correctness checks (sub-interface authorized,
+        correct property for interface etc) need to be handled by
+        the caller. This is only a "formatting" function.
+        """
+        # TODO: move me in manufacturer strategy if we need to add
+        #  router manufacturers with different sub-interface logic.
+        #  given this is specific to juniper and rtbrick manufacturers.
         if self.isSubInterface():
             return {
                 self.getSubInterfaceParentInterfaceName(): {
