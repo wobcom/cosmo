@@ -1,5 +1,6 @@
 import abc
 import ipaddress
+import warnings
 from collections.abc import Iterable
 from ipaddress import IPv4Interface, IPv6Interface
 
@@ -198,10 +199,12 @@ class InterfaceType(AbstractNetboxType):
     def getUntaggedVLAN(self):
         cf = self.getCustomFields()
         if "untagged_vlan" in self.keys() and self["untagged_vlan"]:
+            if cf.get("outer_tag"):
+                warnings.warn(f"{self} has untagged {self['untagged_vlan']} and outer_tag "
+                              f"{cf.get('outer_tag')}! outer_tag should not be used with "
+                              f"untagged_vlan. Please fix data source.")
             return self["untagged_vlan"]
-        elif "outer_tag" in cf.keys() and cf["outer_tag"]:
-            # outer_tag should not be used with untagged vlan
-            # untagged_vlan has priority over outer_tag
+        elif cf.get("outer_tag"):
             # we have to build the VLANType object in the case of
             # outer_tag usage, since there's no native type in netbox
             return VLANType({
@@ -333,6 +336,9 @@ class InterfaceType(AbstractNetboxType):
 
 
 class VLANType(AbstractNetboxType):
+    def __repr__(self):
+        return f"{super().__repr__()}({self.getVID()})"
+
     def getVID(self):
         return self["vid"]
 

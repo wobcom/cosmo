@@ -25,7 +25,6 @@ device_list:
   - custom_fields:
       bpdufilter: false
       inner_tag: null
-      outer_tag: 7
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
@@ -86,11 +85,7 @@ device_list:
     tagged_vlans: []
     tags: []
     type: VIRTUAL
-    untagged_vlan:
-      __typename: VLANType
-      id: '3293'
-      name: TEST-VLAN
-      vid: 7
+    untagged_vlan: null
     vrf: null
   name: TEST0001
   platform:

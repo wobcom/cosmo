@@ -58,7 +58,6 @@ device_list:
   - custom_fields:
       bpdufilter: false
       inner_tag: null
-      outer_tag: 3
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
@@ -112,11 +111,7 @@ device_list:
       slug: bgpcpe
       __typename: TagType
     type: VIRTUAL
-    untagged_vlan:
-      __typename: VLANType
-      id: '1004'
-      name: TEST-VLAN4
-      vid: 4
+    untagged_vlan: null
     vrf:
       __typename: VRFType
       description: ''
