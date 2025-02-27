@@ -88,8 +88,13 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
             return instance
 
     def getID(self):
-        if "id" in self.keys():
-            return self["id"]
+        return self.get("id")
+
+    def getName(self):
+        return self.get("name")
+
+    def getSlug(self):
+        return self.get("slug")
 
     @classmethod
     def tuplize(cls, o):
@@ -123,34 +128,23 @@ class DeviceType(AbstractNetboxType):
         return self['platform']
 
     def getInterfaces(self) -> list["InterfaceType"]:
-        if "interfaces" in self:
-            return self['interfaces']
-        return []
-
-    def getName(self):
-        return self["name"]
+        return self.get('interfaces', [])
 
     def getSerial(self) -> str:
-        if "serial" in self and self["serial"]:
-            return self["serial"]
-        return ""
+        return self.get("serial", "")
 
 
 class DeviceTypeType(AbstractNetboxType):
-    def getSlug(self) -> str:
-        return self["slug"]
+    pass
 
 
 class PlatformType(AbstractNetboxType):
     def getManufacturer(self):
         return self['manufacturer']
-    def getSlug(self):
-        return self['slug']
 
 
 class ManufacturerType(AbstractNetboxType):
-    def getSlug(self):
-        return self['slug']
+    pass
 
 
 class IPAddressType(AbstractNetboxType):
@@ -164,14 +158,12 @@ class IPAddressType(AbstractNetboxType):
         return self.getIPInterfaceObject().is_global
 
     def getRole(self) -> str:
-        if "role" in self:
-            return self["role"]
-
+        return self.get("role")
 
 class TagType(AbstractNetboxType):
     _delimiter = ':'
     def getTagComponents(self):
-        return self['name'].split(self._delimiter)
+        return self.get('name').split(self._delimiter)
     def getTagName(self):
         return self.getTagComponents()[0]
     def getTagValue(self):
@@ -179,15 +171,10 @@ class TagType(AbstractNetboxType):
 
 
 class RouteTargetType(AbstractNetboxType):
-    # RT is present in VRFs
-    def getName(self):
-        return self["name"]
+    pass
 
 
 class VRFType(AbstractNetboxType):
-    def getName(self) -> str:
-        return self["name"]
-
     def getDescription(self) -> str:
         return self["description"]
 
@@ -205,12 +192,8 @@ class InterfaceType(AbstractNetboxType):
     def __repr__(self):
         return super().__repr__() + f"({self.getName()})"
 
-    def getName(self) -> str:
-        return self['name']
-
     def getMACAddress(self) -> str|None:
-        if "mac_address" in self:
-            return self['mac_address']
+        return self.get("mac_address")
 
     def getUntaggedVLAN(self):
         cf = self.getCustomFields()
@@ -227,14 +210,10 @@ class InterfaceType(AbstractNetboxType):
             })
 
     def getTaggedVLANS(self) -> list:
-        if "tagged_vlans" in self.keys():
-            return self["tagged_vlans"]
-        return []
+        return self.get("tagged_vlans", [])
 
-    def enabled(self):
-        if "enabled" in self.keys() and not self["enabled"]:
-            return False
-        return True
+    def enabled(self) -> bool:
+        return bool(self.get("enabled", True))
 
     def isLagMember(self):
         if "lag" in self.keys() and self["lag"]:
@@ -247,9 +226,7 @@ class InterfaceType(AbstractNetboxType):
         return False
 
     def isSubInterface(self):
-        if "." in self.getName():
-            return True
-        return False
+        return "." in self.getName()
 
     def getUnitNumber(self) -> int|None:
         ret = None
@@ -264,8 +241,7 @@ class InterfaceType(AbstractNetboxType):
         return ret
 
     def getVRF(self) -> VRFType|None:
-        if "vrf" in self:
-            return self["vrf"]
+        return self.get("vrf")
 
     def spitInterfacePathWith(self, d: dict) -> dict:
         """
@@ -301,8 +277,7 @@ class InterfaceType(AbstractNetboxType):
             }
 
     def getMode(self) -> str|None:
-        if "mode" in self:
-            return self["mode"]
+        return self.get("mode")
 
     def isInAccessMode(self):
         if self.getMode() and self.getMode().lower() == "access":
@@ -310,17 +285,13 @@ class InterfaceType(AbstractNetboxType):
         return False
 
     def getMTU(self):
-        if "mtu" in self.keys():
-            return self["mtu"]
+        return self.get("mtu")
 
     def getTags(self) -> list[TagType]:
-        if "tags" in self:
-            return self["tags"]
-        return []
+        return self.get("tags", [])
 
     def getDescription(self):
-        if "description" in self.keys():
-            return self["description"]
+        return self.get("description")
 
     def hasDescription(self):
         return self.getDescription() != '' and self.getDescription() is not None
@@ -346,28 +317,19 @@ class InterfaceType(AbstractNetboxType):
         return self.getAssociatedType() == "loopback"
 
     def getAssociatedDevice(self) -> DeviceType | None:
-        if "device" in self.keys():
-            return self["device"]
+        return self.get("device")
 
     def getIPAddresses(self) -> list[IPAddressType]:
-        if "ip_addresses" in self:
-            return self["ip_addresses"]
-        return []
+        return self.get("ip_addresses", [])
 
     def hasParentInterface(self) -> bool:
-        if "parent" in self and self["parent"]:
-            return True
-        return False
+        return bool(self.get("parent"))
 
     def getConnectedEndpoints(self) -> list[DeviceType]:
-        if "connected_endpoints" in self:
-            return self["connected_endpoints"]
-        return []
+        return self.get("connected_endpoints", [])
 
     def getCustomFields(self) -> dict:
-        if "custom_fields" in self:
-            return dict(self["custom_fields"])
-        return {}
+        return dict(self.get("custom_fields", {}))
 
 
 class VLANType(AbstractNetboxType):
@@ -375,30 +337,20 @@ class VLANType(AbstractNetboxType):
         return self["vid"]
 
     def getInterfacesAsTagged(self) -> list[InterfaceType]:
-        if "interfaces_as_tagged" in self.keys():
-            return self["interfaces_as_tagged"]
-        return []
+        return self.get("interfaces_as_tagged", [])
 
     def getInterfacesAsUntagged(self) -> list[InterfaceType]:
-        if "interfaces_as_untagged" in self.keys():
-            return self["interfaces_as_untagged"]
-        return []
+        return self.get("interfaces_as_untagged", [])
 
 
 class L2VPNTerminationType(AbstractNetboxType):
     def getAssignedObject(self) -> InterfaceType|VLANType:
         return self["assigned_object"]
 
-    def getId(self):
-        return self['id']
-
 
 class L2VPNType(AbstractNetboxType):
     def getIdentifier(self):
         return self["identifier"]
-
-    def getName(self) -> str:
-        return self["name"]
 
     def getType(self) -> str:
         return self["type"]

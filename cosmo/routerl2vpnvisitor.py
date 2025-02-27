@@ -94,8 +94,8 @@ class RouterL2VPNExporterVisitor(AbstractRouterExporterVisitor):
                 parent_l2vpn.getName().replace("WAN: ", ""): {
                     "interfaces": {
                         o.getName(): {
-                            "local_label": 1_000_000 + int(local.getParent(L2VPNTerminationType).getId()),
-                            "remote_label": 1_000_000 + int(remote.getParent(L2VPNTerminationType).getId()),
+                            "local_label": 1_000_000 + int(local.getParent(L2VPNTerminationType).getID()),
+                            "remote_label": 1_000_000 + int(remote.getParent(L2VPNTerminationType).getID()),
                             "remote_ip": str(ipaddress.ip_interface(remote_end_loopback.getIpv4()).ip),
                         }
                     },
