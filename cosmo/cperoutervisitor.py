@@ -5,6 +5,13 @@ from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
 
 class CpeRouterExporterVisitor(AbstractNoopNetboxTypesVisitor):
+    """
+    This visitor creates a list of networks which are exported from the router
+    via unnumbered bgp. We allow all configured IP networks on a CPE to be
+    exported. By definition the primary IP is our management IP and this IP
+    should not be allowed to be exported via BGP from the router.
+    """
+
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
