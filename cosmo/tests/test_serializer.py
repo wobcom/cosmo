@@ -88,7 +88,7 @@ def test_l2vpn_errors():
                 '__typename': 'L2VPNTerminationType',
                 'assigned_object': {}
             }]})
-    with pytest.warns(UserWarning, match="VPWS circuits are only allowed to have two terminations"):
+    with pytest.warns(UserWarning, match="VPWS circuits are only allowed to have 2 terminations"):
         serialize(vpws_incorrect_terminations)
 
     unsupported_type_terminations = copy.deepcopy(template)

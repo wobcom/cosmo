@@ -16,7 +16,8 @@ class RouterL2VPNValidatorVisitor(AbstractRouterExporterVisitor):
         terminations = o.getTerminations()
         if o.getType().lower() == "vpws" and len(terminations) != self._vpws_authorized_terminations_n:
             warnings.warn(
-                "VPWS circuits are only allowed to have two terminations. "
+                f"VPWS circuits are only allowed to have "
+                f"{self._vpws_authorized_terminations_n} terminations. "
                 f"{o.getName()} has {len(terminations)} terminations, ignoring..."
             )
             return False
