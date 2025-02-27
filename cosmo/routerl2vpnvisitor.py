@@ -8,16 +8,22 @@ from cosmo.types import L2VPNType, InterfaceType, VLANType, CosmoLoopbackType, L
 
 
 class RouterL2VPNValidatorVisitor(AbstractRouterExporterVisitor):
+    _ptp_types = ["vpws", "epl", "evpl"]
+    _ptp_authorized_terminations_n = 2
+
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
 
     def isCompliantWANL2VPN(self, o: L2VPNType) -> bool:
         terminations = o.getTerminations()
-        if o.getType().lower() == "vpws" and len(terminations) != self._vpws_authorized_terminations_n:
+        if (
+                o.getType().lower() in self._ptp_types
+                and len(terminations) != self._ptp_authorized_terminations_n
+        ):
             warnings.warn(
-                f"VPWS circuits are only allowed to have "
-                f"{self._vpws_authorized_terminations_n} terminations. "
+                f"{o.getType().upper()} circuits are only allowed to have "
+                f"{self._ptp_authorized_terminations_n} terminations. "
                 f"{o.getName()} has {len(terminations)} terminations, ignoring..."
             )
             return False
@@ -27,7 +33,7 @@ class RouterL2VPNValidatorVisitor(AbstractRouterExporterVisitor):
         if o.getType().lower() == "vpws" and any([not isinstance(t, InterfaceType) for t in terminations]):
             warnings.warn(
                 f"Found non-interface termination in L2VPN {o.getName()}, ignoring... "
-                f"VPWS only supports interface terminations."
+                f"{o.getType().upper()} only supports interface terminations."
             )
             return False
         return True
