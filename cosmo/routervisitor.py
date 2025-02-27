@@ -77,9 +77,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                             f"{manufacturer.getRoutingInstanceName()}.inet.0": {
                                 "static": {
                                     "0.0.0.0/0": {
-                                        "next_hop": next(iter(
-                                            o.getIPInterfaceObject().network.hosts()
-                                        )).compressed
+                                        "next_hop": str(o.getIPInterfaceObject().network[1]),
                                     }
                                 }
                             }
