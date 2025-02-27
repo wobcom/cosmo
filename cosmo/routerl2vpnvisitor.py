@@ -38,10 +38,10 @@ class RouterL2VPNValidatorVisitor(AbstractRouterExporterVisitor):
 
 
 class RouterL2VPNExporterVisitor(AbstractRouterExporterVisitor):
-    def __init__(self, *args, loopbacks_by_device: dict[str, CosmoLoopbackType], my_asn: int, **kwargs):
+    def __init__(self, *args, loopbacks_by_device: dict[str, CosmoLoopbackType], asn: int, **kwargs):
         super().__init__(*args, **kwargs)
         self.loopbacks_by_device = loopbacks_by_device
-        self.my_asn = my_asn
+        self.asn = asn
 
     @singledispatchmethod
     def accept(self, o):
@@ -58,9 +58,9 @@ class RouterL2VPNExporterVisitor(AbstractRouterExporterVisitor):
         elif isinstance(o, InterfaceType) and (len(o.getTaggedVLANS()) or o.getUntaggedVLAN()):
             is_eligible_for_vlan_encap = True
         elif isinstance(o, InterfaceType) and not (len(o.getTaggedVLANS()) or o.getUntaggedVLAN()):
-            my_root_name = o.getSubInterfaceParentInterfaceName() if o.isSubInterface() else o.getName()
+            root_name = o.getSubInterfaceParentInterfaceName() if o.isSubInterface() else o.getName()
             sub_units = list(filter( # costlier check it is then
-                lambda i: i.getName().startswith(my_root_name) and i.isSubInterface(),
+                lambda i: i.getName().startswith(root_name) and i.isSubInterface(),
                 o.getParent(DeviceType).getInterfaces()
             ))
             if len(sub_units) == 1: # we can use ethernet ccc encap only when there's 1 sub interface
@@ -117,7 +117,7 @@ class RouterL2VPNExporterVisitor(AbstractRouterExporterVisitor):
                     "protocols": {
                         "evpn": {},
                     },
-                    "route_distinguisher": f"{self.my_asn}:{str(parent_l2vpn.getIdentifier())}",
+                    "route_distinguisher": f"{self.asn}:{str(parent_l2vpn.getIdentifier())}",
                     "vrf_target": f"target:1:{str(parent_l2vpn.getIdentifier())}",
                 }
             }
@@ -144,7 +144,7 @@ class RouterL2VPNExporterVisitor(AbstractRouterExporterVisitor):
                     "interfaces": [ o.getName() ],
                     "description": f"VPWS: {parent_l2vpn.getName().replace('WAN: VS_', '')}",
                     "instance_type": "evpn-vpws",
-                    "route-distinguisher": f"{self.my_asn}:{str(parent_l2vpn.getIdentifier())}",
+                    "route-distinguisher": f"{self.asn}:{str(parent_l2vpn.getIdentifier())}",
                     "vrf-target": f"target:1:{str(parent_l2vpn.getIdentifier())}",
                     "protocols": {
                         "evpn": {
@@ -175,7 +175,7 @@ class RouterL2VPNExporterVisitor(AbstractRouterExporterVisitor):
                 parent_l2vpn.getName().replace("WAN: ", ""): {
                     "description": f"Virtual Switch {parent_l2vpn.getName().replace('WAN: VS_', '')}",
                     "instance-type": "virtual-switch",
-                    "route_distinguisher": f"{self.my_asn}:{str(parent_l2vpn.getIdentifier())}",
+                    "route_distinguisher": f"{self.asn}:{str(parent_l2vpn.getIdentifier())}",
                     "vrf_target": f"target:1:{str(parent_l2vpn.getIdentifier())}",
                     "protocols": {
                         "evpn": {

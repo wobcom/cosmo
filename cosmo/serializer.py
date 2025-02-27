@@ -56,7 +56,7 @@ class RouterSerializer:
         device_stub = {}
         # like always_merger but with append_unique strategy
         # for lists
-        my_merger = Merger(
+        merger = Merger(
             [
                 (list, ["append_unique"]),
                 (dict, ["merge"]),
@@ -69,12 +69,12 @@ class RouterSerializer:
         # breakpoint()
         visitor = RouterDeviceExporterVisitor(
             loopbacks_by_device={k: CosmoLoopbackType(v) for k, v in self.loopbacks.items()},
-            my_asn=9136,
+            asn=9136,
         )
         for value in iter(DeviceType(self.device)):
             new = visitor.accept(value)
             if new:
-                device_stub = my_merger.merge(device_stub, new)
+                device_stub = merger.merge(device_stub, new)
         return deepsort(device_stub)
 
 
@@ -86,7 +86,7 @@ class SwitchSerializer:
         device_stub = {}
         # like always_merger but with append_unique strategy
         # for lists
-        my_merger = Merger(
+        merger = Merger(
             [
                 (list, ["append_unique"]),
                 (dict, ["merge"]),
@@ -98,5 +98,5 @@ class SwitchSerializer:
         for value in iter(DeviceType(self.device)):
             new = SwitchDeviceExporterVisitor().accept(value)
             if new:
-                device_stub = my_merger.merge(device_stub, new)
+                device_stub = merger.merge(device_stub, new)
         return deepsort(device_stub)

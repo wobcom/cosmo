@@ -317,17 +317,17 @@ class InterfaceType(AbstractNetboxType):
 
     def getAssociatedType(self):
         # TODO: move me in manufacturer strategy?
-        my_type = self.getRawType().lower()
+        raw_type_l = self.getRawType().lower()
         authorized_types = [ "lag", "loopback", "virtual", "access" ]
         access = any([tag.getTagName() == "access" for tag in self.getTags()])
-        if access and "lag" == my_type:
+        if access and "lag" == raw_type_l:
             return "lag-access"
         elif access:
             return "access"
-        elif "base" in my_type:
+        elif "base" in raw_type_l:
             return "physical"
-        elif my_type in authorized_types:
-            return my_type
+        elif raw_type_l in authorized_types:
+            return raw_type_l
 
     def isLoopback(self):
         return self.getAssociatedType() == "loopback"

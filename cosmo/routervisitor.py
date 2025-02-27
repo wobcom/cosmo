@@ -13,12 +13,12 @@ from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, Ta
 
 
 class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
-    def __init__(self, loopbacks_by_device: dict[str, CosmoLoopbackType], my_asn: int, *args, **kwargs):
+    def __init__(self, loopbacks_by_device: dict[str, CosmoLoopbackType], asn: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Note: I have to use composition since singledispatchmethod does not work well with inheritance
-        self.my_l2vpn_exporter = RouterL2VPNExporterVisitor(loopbacks_by_device=loopbacks_by_device, my_asn=my_asn)
-        self.my_l2vpn_validator = RouterL2VPNValidatorVisitor()
-        self.my_bgpcpe_exporter = RouterBgpCpeExporterVisitor()
+        self.l2vpn_exporter = RouterL2VPNExporterVisitor(loopbacks_by_device=loopbacks_by_device, asn=asn)
+        self.l2vpn_validator = RouterL2VPNValidatorVisitor()
+        self.bgpcpe_exporter = RouterBgpCpeExporterVisitor()
         self.loopbacks_by_device = loopbacks_by_device
         self.allow_private_ips = False
 
@@ -36,7 +36,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     @accept.register
     def _(self, o: L2VPNType):
-        return self.my_l2vpn_validator.accept(o)
+        return self.l2vpn_validator.accept(o)
 
     @accept.register
     def _(self, o: DeviceType):
@@ -233,7 +233,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             # guard: do not process VLAN interface info
             return
         if isinstance(o.getParent(), L2VPNTerminationType):
-            return self.my_l2vpn_exporter.accept(o)
+            return self.l2vpn_exporter.accept(o)
         if o.isSubInterface():
             return self.processSubInterface(o)
         if o.isLagInterface():
@@ -343,7 +343,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     @accept.register
     def _(self, o: VLANType):
         if isinstance(o.getParent(), L2VPNTerminationType):
-            return self.my_l2vpn_exporter.accept(o)
+            return self.l2vpn_exporter.accept(o)
         parent_interface = o.getParent(InterfaceType)
         if (
                 parent_interface and o == parent_interface.getUntaggedVLAN()
@@ -579,7 +579,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 return self.processBgpUnnumberedTag(o)
             case "bgp":
                 if o.getTagValue() == "cpe":
-                    return self.my_bgpcpe_exporter.accept(o)
+                    return self.bgpcpe_exporter.accept(o)
                 else:
                     warnings.warn(f"unkown bgp tag {o.getTagValue()}")
             case _:
