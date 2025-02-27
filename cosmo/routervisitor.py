@@ -205,7 +205,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             }
         }
 
-    def processLagMember(self, o: InterfaceType):
+    def processInterfaceLagInfo(self, o: InterfaceType):
         return {
             self._interfaces_key: {
                 **o.spitInterfacePathWith({
@@ -215,7 +215,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             }
         }
 
-    def processInterfaceLagInfo(self, o: InterfaceType):
+    def processLagMember(self, o: InterfaceType):
         return {
             self._interfaces_key: {
                 **o.getParent(InterfaceType).spitInterfacePathWith({
@@ -235,11 +235,11 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         if o.isSubInterface():
             return self.processSubInterface(o)
         if o.isLagInterface():
-            return self.processLagMember(o)
+            return self.processInterfaceLagInfo(o)
         # interface in interface is lag info
         if type(o.getParent()) == InterfaceType:
             if "lag" in o.getParent().keys() and o.getParent()["lag"] == o:
-                return self.processInterfaceLagInfo(o)
+                return self.processLagMember(o)
             return # guard: do not process (can be connected_endpoint, parent, etc...)
         else:
             return {
