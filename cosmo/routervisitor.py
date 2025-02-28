@@ -3,6 +3,8 @@ import re
 import warnings
 from functools import singledispatchmethod
 
+import deepmerge
+
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import InterfaceSerializationError, head
 from cosmo.manufacturers import AbstractManufacturer
@@ -194,16 +196,26 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         # outer_tag should only appear on a sub-interface, hence why we process it
         # through this specific case.
         optional_interface_attrs = {}
+        optional_root_interface_attrs = {}
         if "outer_tag" in o.getCustomFields() and o.getUntaggedVLAN():
             optional_interface_attrs = { "vlan": o.getUntaggedVLAN().getVID() }
-        return {
+            if o.getUnitNumber() == 0: # native vlan
+                optional_root_interface_attrs = {
+                    self._interfaces_key: {
+                        o.getSubInterfaceParentInterfaceName(): {
+                            "native_vlan": o.getUntaggedVLAN().getVID()
+                        }
+                    }
+                }
+        return deepmerge.always_merger.merge({
             self._interfaces_key: {
                 **o.spitInterfacePathWith({
                     **self.processInterfaceCommon(o),
                     **optional_interface_attrs,
                 })
             }
-        }
+        }, optional_root_interface_attrs)
+
 
     def processInterfaceLagInfo(self, o: InterfaceType):
         return {
@@ -330,14 +342,23 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 "is mode ACCESS but has no untagged vlan, skipping"
             )
         elif parent_interface.isSubInterface() and parent_interface.enabled():
-            return {
+            optional_root_interface_attrs = {}
+            if parent_interface.getUnitNumber == 0:
+                optional_root_interface_attrs = {
+                    self._interfaces_key: {
+                        parent_interface.getSubInterfaceParentInterfaceName(): {
+                            "native_vlan": o.getVID()
+                        }
+                    }
+                }
+            return deepmerge.always_merger.merge({
                 self._interfaces_key: {
                     **parent_interface.spitInterfacePathWith({
                         **self.processInterfaceCommon(parent_interface),
                         "vlan": o.getVID()
                     }),
                 }
-            }
+            }, optional_root_interface_attrs)
 
     @accept.register
     def _(self, o: VLANType):
