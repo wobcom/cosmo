@@ -4,37 +4,40 @@ from functools import singledispatchmethod
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import head
+from cosmo.l2vpnhelpertypes import AbstractP2PL2VpnType, AbstractAnyToAnyL2VpnType
 from cosmo.types import L2VPNType, InterfaceType, VLANType, CosmoLoopbackType, L2VPNTerminationType, DeviceType
 
 
-class RouterL2VPNValidatorVisitor(AbstractRouterExporterVisitor):
-    _ptp_types = ["vpws", "epl", "evpl"]
-    _ptp_authorized_terminations_n = 2
+class AbstractL2VPNVisitor(AbstractRouterExporterVisitor):
+    _typename_to_type_object = {
+        c.getNetboxTypeName(): c() for c in [
+            *AbstractP2PL2VpnType.__subclasses__(),
+            *AbstractAnyToAnyL2VpnType.__subclasses__()
+        ]
+    }
 
+    @singledispatchmethod
+    def accept(self, o):
+        return super().accept(o)
+
+    def getAssociatedTypeObject(self, o: L2VPNType):
+        return self._typename_to_type_object.get(o.getType().lower())
+
+
+class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
 
     def isCompliantWANL2VPN(self, o: L2VPNType) -> bool:
         terminations = o.getTerminations()
-        if (
-                o.getType().lower() in self._ptp_types
-                and len(terminations) != self._ptp_authorized_terminations_n
-        ):
-            warnings.warn(
-                f"{o.getType().upper()} circuits are only allowed to have "
-                f"{self._ptp_authorized_terminations_n} terminations. "
-                f"{o.getName()} has {len(terminations)} terminations, ignoring..."
-            )
+        l2vpn_type = self.getAssociatedTypeObject(o)
+        if not l2vpn_type.isValidNumberOfTerminations(len(terminations)):
+            warnings.warn(l2vpn_type.getInvalidNumberOfTerminationsErrorMessage(len(terminations)))
             return False
-        if any([not isinstance(t, (InterfaceType, VLANType)) for t in terminations]):
-            warnings.warn(f"Found unsupported L2VPN termination in {o.getName()}, ignoring...")
-            return False
-        if o.getType().lower() == "vpws" and any([not isinstance(t, InterfaceType) for t in terminations]):
-            warnings.warn(
-                f"Found non-interface termination in L2VPN {o.getName()}, ignoring... "
-                f"{o.getType().upper()} only supports interface terminations."
-            )
+        if any([not isinstance(t, l2vpn_type.getAcceptedTerminationTypes()) for t in terminations]):
+            warnings.warn(f"Found unsupported L2VPN termination in \"{o.getName()}\". "
+                          f"Accepted types are: {l2vpn_type.getAcceptedTerminationTypes()}")
             return False
         return True
 
@@ -244,8 +247,12 @@ class RouterL2VPNExporterVisitor(AbstractRouterExporterVisitor):
         device = parent_l2vpn.getParent(DeviceType)
         # guard: processed L2VPN should have at least one termination belonging to current device
         # if no termination passes this test, then L2VPN is not processed.
-        if (o.getInterfacesAsUntagged() not in device.getInterfaces() or
-                o.getInterfacesAsTagged() not in device.getInterfaces()):
+        if not (
+                any(interface in o.getParent(DeviceType).getInterfaces() for interface in
+                    o.getInterfacesAsUntagged()) or
+                any(interface in o.getParent(DeviceType).getInterfaces() for interface in
+                    o.getInterfacesAsTagged())
+        ):
             return
         encapsulation = {}
         encap_type = self.getAssociatedEncapType(o)

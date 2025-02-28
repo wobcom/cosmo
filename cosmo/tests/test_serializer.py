@@ -118,7 +118,7 @@ def test_l2vpn_errors():
                 'assigned_object': {
                 '__typename': "VLANType"
             }}]})
-    with pytest.warns(UserWarning, match="Found non-interface termination in L2VPN"):
+    with pytest.warns(UserWarning, match="Found unsupported L2VPN termination in"):
         serialize(vpws_non_interface_term)
 
 
