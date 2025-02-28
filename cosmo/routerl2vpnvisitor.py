@@ -47,7 +47,7 @@ class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
             self.isCompliantWANL2VPN(o)
 
 
-class RouterL2VPNExporterVisitor(AbstractRouterExporterVisitor):
+class RouterL2VPNExporterVisitor(AbstractL2VPNVisitor):
     def __init__(self, *args, loopbacks_by_device: dict[str, CosmoLoopbackType], asn: int, **kwargs):
         super().__init__(*args, **kwargs)
         self.loopbacks_by_device = loopbacks_by_device
@@ -57,30 +57,10 @@ class RouterL2VPNExporterVisitor(AbstractRouterExporterVisitor):
     def accept(self, o):
         return super().accept(o)
 
-    @staticmethod
-    def getAssociatedEncapType(o: InterfaceType | VLANType) -> str|None:
+    def getAssociatedEncapType(self, o: InterfaceType | VLANType) -> str|None:
         # TODO: move me in manufacturer strategy?
-        l2vpn_type = o.getParent(L2VPNType).getType().lower()
-        is_eligible_for_vlan_encap = False
-        is_eligible_for_ethernet_ccc_encap = False
-        if isinstance(o, VLANType):
-            is_eligible_for_vlan_encap = True
-        elif isinstance(o, InterfaceType) and (len(o.getTaggedVLANS()) or o.getUntaggedVLAN()):
-            is_eligible_for_vlan_encap = True
-        elif isinstance(o, InterfaceType) and not (len(o.getTaggedVLANS()) or o.getUntaggedVLAN()):
-            root_name = o.getSubInterfaceParentInterfaceName() if o.isSubInterface() else o.getName()
-            sub_units = list(filter( # costlier check it is then
-                lambda i: i.getName().startswith(root_name) and i.isSubInterface(),
-                o.getParent(DeviceType).getInterfaces()
-            ))
-            if len(sub_units) == 1: # we can use ethernet ccc encap only when there's 1 sub interface
-                is_eligible_for_ethernet_ccc_encap = True
-        if l2vpn_type in ["vpws", "evpl"] and is_eligible_for_vlan_encap:
-            return "vlan-ccc"
-        elif l2vpn_type in ["vpws", "epl", "evpl"] and is_eligible_for_ethernet_ccc_encap:
-            return "ethernet-ccc"
-        elif l2vpn_type in ["mpls-evpn", "mpls_evpn", "vxlan-evpn", "vxlan_evpn"]:
-            return "vlan-bridge"
+        l2vpn_type = self.getAssociatedTypeObject(o.getParent(L2VPNType))
+        return l2vpn_type.getAssociatedEncapType(o)
 
     def processL2vpnEplEvplTerminationInterface(self, o: InterfaceType):
         parent_l2vpn = o.getParent(L2VPNType)
