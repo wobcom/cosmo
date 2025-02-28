@@ -128,18 +128,20 @@ class AbstractL2vpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
                 }
             }
         elif isinstance(o, VLANType):
-            linked_interface = head(
-                list(
+            linked_interfaces = list(
                     filter(
-                        lambda i: i.getParent(DeviceType) == o.getParent(DeviceType),
-                        o.getInterfacesAsTagged()
+                        lambda i: i.getAssociatedDevice() == o.getParent(DeviceType),
+                        [
+                            *o.getInterfacesAsUntagged(),
+                            *o.getInterfacesAsTagged(),
+                        ]
                     )
-                )
             )
+            interface_props = {}
+            for i in linked_interfaces:
+                interface_props = interface_props | i.spitInterfacePathWith(inner_info)
             return {
-                self._interfaces_key: {
-                    **linked_interface.spitInterfacePathWith(inner_info)
-                }
+                self._interfaces_key: interface_props
             }
 
 
@@ -370,10 +372,27 @@ class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVi
 
     def processTerminationCommon(self, o: InterfaceType|VLANType) -> dict|None:
         parent_l2vpn = o.getParent(L2VPNType)
+        interface_names = None
+        if isinstance(o, InterfaceType):
+            interface_names = [o.getName()]
+        elif isinstance(o, VLANType):
+            interface_names = list(map(
+                lambda i: i.getName(),
+                (
+                    filter(
+                        lambda i: i.getAssociatedDevice() == o.getParent(DeviceType),
+                        [
+                            *o.getInterfacesAsUntagged(),
+                            *o.getInterfacesAsTagged(),
+                        ]
+                    )
+                )
+            ))
+
         return {
             self._vrf_key: {
                 parent_l2vpn.getName().replace("WAN: ", ""): {
-                    "interfaces": [o.getName()],
+                    "interfaces": interface_names,
                     "description": f"MPLS-EVPN: {parent_l2vpn.getName().replace('WAN: VS_', '')}",
                     "instance_type": "evpn",
                     "protocols": {
