@@ -221,9 +221,6 @@ class EPLL2VpnTypeTerminationVisitor(EPLEVPLL2vpnTypeTraits, AbstractP2PL2VpnTyp
     def getAcceptedTerminationTypes():
         return InterfaceType
 
-    def processInterfaceTypeTermination(self, o: InterfaceType):
-        super().processInterfaceTypeTermination(o)
-
 
 # for MRO, common traits need to be 1st
 class EVPLL2VpnTypeTerminationVisitor(EPLEVPLL2vpnTypeTraits, AbstractP2PL2VpnTypeTerminationVisitor):
@@ -243,9 +240,6 @@ class EVPLL2VpnTypeTerminationVisitor(EPLEVPLL2vpnTypeTraits, AbstractP2PL2VpnTy
                                           | type[AbstractNetboxType]
                                           | None):
         return InterfaceType
-
-    def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
-        return super().processInterfaceTypeTermination(o)
 
 
 class VPWSL2VpnTypeTerminationVisitor(AbstractP2PL2VpnTypeTerminationVisitor):
