@@ -27,7 +27,9 @@ class AbstractL2VPNVisitor(AbstractRouterExporterVisitor):
 
     def getAssociatedTypeObject(self, o: L2VPNType):
         return self._typename_to_type_class.get(o.getType().lower())(
-            loopbacks_by_device=self.loopbacks_by_device, asn=self.asn
+            associated_l2vpn=o,
+            loopbacks_by_device=self.loopbacks_by_device,
+            asn=self.asn
         )
 
 

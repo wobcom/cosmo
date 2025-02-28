@@ -2,6 +2,7 @@ import ipaddress
 import warnings
 from abc import abstractmethod, ABCMeta
 from functools import singledispatchmethod
+from typing import Self
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import head
@@ -59,10 +60,15 @@ class VlanBridgeEncapTrait(AbstractEncapTrait, metaclass=ABCMeta):
 
 # FIXME simplify this!
 class AbstractL2vpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metaclass=ABCMeta):
-    def __init__(self, *args, loopbacks_by_device: dict[str, CosmoLoopbackType], asn: int, **kwargs):
+    def __init__(self, *args, associated_l2vpn: L2VPNType, loopbacks_by_device: dict[str, CosmoLoopbackType],
+                 asn: int, **kwargs):
         super().__init__(*args, **kwargs)
+        self.associated_l2vpn = associated_l2vpn
         self.loopbacks_by_device = loopbacks_by_device
         self.asn = asn
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.associated_l2vpn})"
 
     @staticmethod
     @abstractmethod
@@ -90,13 +96,14 @@ class AbstractL2vpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
         return f"{cls.getNetboxTypeName().upper()}: {i} is not a valid number of terminations, ignoring..."
 
 
-    def getAssociatedEncapType(self, o: AbstractNetboxType) -> str|None:
+    def getAssociatedEncapType(self, o: AbstractNetboxType, caller: Self=None) -> str|None:
         associated_encap = head(list(filter(
             lambda encap: encap is not None,
             [t().accept(o) for t in self.getAssociatedEncapTraits()]
         )))
         if associated_encap is None:
-            warnings.warn(f"couldn't find an encapsulation type for {type(o)}")
+            warnings.warn(f"couldn't find an encapsulation type for {o}"
+                          f"{f' called from {caller}' if caller else ''}")
         return associated_encap
 
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
@@ -108,7 +115,7 @@ class AbstractL2vpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
         return
 
     def spitInterfaceEncapFor(self, o: VLANType|InterfaceType):
-        encap_type = self.getAssociatedEncapType(o)
+        encap_type = self.getAssociatedEncapType(o, self)
         if encap_type == "ethernet-ccc" and isinstance(o, InterfaceType) and o.isSubInterface():
             return {  # ethernet-ccc is on physical interface
                 self._interfaces_key: {
