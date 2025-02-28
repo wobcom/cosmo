@@ -40,7 +40,8 @@ class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
         terminations = o.getTerminations()
         l2vpn_type = self.getAssociatedTypeObject(o)
         if not l2vpn_type.isValidNumberOfTerminations(len(terminations)):
-            warnings.warn(l2vpn_type.getInvalidNumberOfTerminationsErrorMessage(len(terminations)))
+            warnings.warn(f"for {o.getName()}: "
+                          f"{l2vpn_type.getInvalidNumberOfTerminationsErrorMessage(len(terminations))}")
             return False
         if any([not isinstance(t, l2vpn_type.getAcceptedTerminationTypes()) for t in terminations]):
             warnings.warn(f"Found unsupported L2VPN termination in \"{o.getName()}\". "

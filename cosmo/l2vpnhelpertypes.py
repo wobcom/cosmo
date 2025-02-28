@@ -157,7 +157,7 @@ class AbstractP2PL2VpnTypeTerminationVisitor(AbstractL2vpnTypeTerminationVisitor
 
 
 class AbstractAnyToAnyL2VpnTypeTerminationVisitor(AbstractL2vpnTypeTerminationVisitor, metaclass=ABCMeta):
-    _any_to_any_min_terminations_n = 2
+    _any_to_any_min_terminations_n = 1
 
     def isValidNumberOfTerminations(self, i: int):
         return i >= self._any_to_any_min_terminations_n
