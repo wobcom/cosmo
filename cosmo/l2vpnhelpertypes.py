@@ -374,7 +374,7 @@ class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVi
                                           | None):
         return InterfaceType, VLANType
 
-    def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
+    def processTerminationCommon(self, o: InterfaceType|VLANType) -> dict|None:
         parent_l2vpn = o.getParent(L2VPNType)
         return {
             self._vrf_key: {
@@ -391,6 +391,8 @@ class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVi
             }
         } | self.spitInterfaceEncapFor(o)
 
+    def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
+        return self.processTerminationCommon(o)
+
     def processVLANTypeTermination(self, o: VLANType) -> dict | None:
-        # TODO!!!
-        pass
+        return self.processTerminationCommon(o)
