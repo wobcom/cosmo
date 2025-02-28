@@ -62,9 +62,20 @@ class RouterL2VPNExporterVisitor(AbstractL2VPNVisitor):
     @accept.register
     def _(self, o: InterfaceType):
         l2vpn_type = self.getAssociatedTypeObject(o.getParent(L2VPNType))
-        return l2vpn_type.processInterfaceTypeTermination(o)
+        # guard: processed l2vpn should have at least 1 termination belonging
+        # to current device.
+        if o in o.getParent(DeviceType).getInterfaces():
+            return l2vpn_type.processInterfaceTypeTermination(o)
 
     @accept.register
     def _(self, o: VLANType):
         l2vpn_type = self.getAssociatedTypeObject(o.getParent(L2VPNType))
-        return l2vpn_type.processVLANTypeTermination(o)
+        # guard: processed l2vpn should have at least 1 termination belonging
+        # to current device. if no termination passes the test, then l2vpn
+        # is not processed.
+        device_interfaces = o.getParent(DeviceType).getInterfaces()
+        if (
+                o.getInterfacesAsUntagged() in device_interfaces or
+                o.getInterfacesAsTagged() in device_interfaces
+        ):
+            return l2vpn_type.processVLANTypeTermination(o)
