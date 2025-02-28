@@ -253,6 +253,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     @accept.register
     def _(self, o: VRFType):
         parent_interface = o.getParent(InterfaceType)
+        if not parent_interface.isSubInterface():
+            return # guard: do not process root interface
         router_id = self.getRouterId(o.getParent(DeviceType))
         if o.getRouteDistinguisher():
             rd = router_id + ":" + o.getRouteDistinguisher()
