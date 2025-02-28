@@ -100,11 +100,11 @@ class AbstractL2vpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
         return associated_encap
 
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
-        warnings.warn(f"{self.getNetboxTypeName()} L2VPN does not support {type(o)} terminations.")
+        warnings.warn(f"{self.getNetboxTypeName().upper()} L2VPN does not support {type(o)} terminations.")
         return
 
     def processVLANTypeTermination(self, o: VLANType) -> dict | None:
-        warnings.warn(f"{self.getNetboxTypeName()} L2VPN does not support {type(o)} terminations.")
+        warnings.warn(f"{self.getNetboxTypeName().upper()} L2VPN does not support {type(o)} terminations.")
         return
 
     def spitInterfaceEncapFor(self, o: VLANType|InterfaceType):
