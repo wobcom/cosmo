@@ -78,7 +78,7 @@ class RouterL2VPNExporterVisitor(AbstractL2VPNVisitor):
         # is not processed.
         device_interfaces = o.getParent(DeviceType).getInterfaces()
         if (
-                o.getInterfacesAsUntagged() in device_interfaces or
-                o.getInterfacesAsTagged() in device_interfaces
+            any(i in device_interfaces for i in o.getInterfacesAsUntagged()) or
+            any(i in device_interfaces for i in o.getInterfacesAsTagged())
         ):
             return l2vpn_type.processVLANTypeTermination(o)
