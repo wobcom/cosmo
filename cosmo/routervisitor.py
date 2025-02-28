@@ -169,7 +169,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
           | ({"description": description} if o.getDescription() else {}) \
           | ({"mtu": o.getMTU()} if o.getMTU() else {}) \
           | ({"type": o.getAssociatedType()} if not o.isSubInterface() else {}) \
-          | ({"mac_address": o.getMACAddress()} if o.getMACAddress() else {})
+          | ({"mac_address": o.getMACAddress()} if o.getMACAddress() and o.isSubInterface() else {})
 
     def processSubInterface(self, o: InterfaceType):
         # easy checks first, narrow down afterward
