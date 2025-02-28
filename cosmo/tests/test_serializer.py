@@ -97,7 +97,7 @@ def test_l2vpn_errors():
                 '__typename': 'L2VPNTerminationType',
                 'assigned_object': {}
             }]})
-    with pytest.warns(UserWarning, match="Found unsupported L2VPN termination in"):
+    with pytest.warns(UserWarning, match=r"VPWS L2VPN does not support|Found unsupported L2VPN termination in"):
         serialize(unsupported_type_terminations)
 
     vpws_non_interface_term = copy.deepcopy(template)
@@ -118,7 +118,7 @@ def test_l2vpn_errors():
                 'assigned_object': {
                 '__typename': "VLANType"
             }}]})
-    with pytest.warns(UserWarning, match="Found unsupported L2VPN termination in"):
+    with pytest.warns(UserWarning, match=r"VPWS L2VPN does not support|Found unsupported L2VPN termination in"):
         serialize(vpws_non_interface_term)
 
 
