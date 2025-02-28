@@ -24,6 +24,8 @@ class EthernetCccEncapTrait(AbstractEncapTrait, metaclass=ABCMeta):
 
     @accept.register
     def _(self, o: InterfaceType):
+        if len(o.getTaggedVLANS()) or o.getUntaggedVLAN():
+            return
         root_name = o.getSubInterfaceParentInterfaceName() if o.isSubInterface() else o.getName()
         sub_units = list(filter( # costlier check it is then
             lambda i: i.getName().startswith(root_name) and i.isSubInterface(),
@@ -95,15 +97,11 @@ class AbstractL2vpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
     def getInvalidNumberOfTerminationsErrorMessage(cls, i: int):
         return f"{cls.getNetboxTypeName().upper()}: {i} is not a valid number of terminations, ignoring..."
 
-
-    def getAssociatedEncapType(self, o: AbstractNetboxType, caller: Self=None) -> str|None:
+    def getAssociatedEncapType(self, o: AbstractNetboxType) -> str|None:
         associated_encap = head(list(filter(
             lambda encap: encap is not None,
             [t().accept(o) for t in self.getAssociatedEncapTraits()]
         )))
-        if associated_encap is None:
-            warnings.warn(f"couldn't find an encapsulation type for {o}"
-                          f"{f' called from {caller}' if caller else ''}")
         return associated_encap
 
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
@@ -115,21 +113,18 @@ class AbstractL2vpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
         return
 
     def spitInterfaceEncapFor(self, o: VLANType|InterfaceType):
-        encap_type = self.getAssociatedEncapType(o, self)
+        encap_type = self.getAssociatedEncapType(o)
+        inner_info = {"encapsulation": encap_type} if encap_type else {} # encap type is optional!
         if encap_type == "ethernet-ccc" and isinstance(o, InterfaceType) and o.isSubInterface():
             return {  # ethernet-ccc is on physical interface
                 self._interfaces_key: {
-                    o.getSubInterfaceParentInterfaceName(): {
-                        "encapsulation": encap_type
-                    }
+                    o.getSubInterfaceParentInterfaceName(): inner_info
                 }
             }
         elif isinstance(o, InterfaceType): # other types are on virtual interface
             return {
                 self._interfaces_key: {
-                    **o.spitInterfacePathWith({
-                        "encapsulation": encap_type
-                    })
+                    **o.spitInterfacePathWith(inner_info)
                 }
             }
         elif isinstance(o, VLANType):
@@ -143,9 +138,7 @@ class AbstractL2vpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
             )
             return {
                 self._interfaces_key: {
-                    **linked_interface.spitInterfacePathWith({
-                        "encapsulation": encap_type
-                    })
+                    **linked_interface.spitInterfacePathWith(inner_info)
                 }
             }
 
