@@ -11,13 +11,13 @@ from cosmo.types import InterfaceType, VLANType, AbstractNetboxType, DeviceType,
 
 
 # FIXME simplify this!
-class AbstractEncapTrait(metaclass=ABCMeta):
+class AbstractEncapCapability(metaclass=ABCMeta):
     @singledispatchmethod
     def accept(self, o):
         warnings.warn(f"cannot find suitable encapsulation for type {type(o)}")
 
 
-class EthernetCccEncapTrait(AbstractEncapTrait, metaclass=ABCMeta):
+class EthernetCccEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
@@ -35,7 +35,7 @@ class EthernetCccEncapTrait(AbstractEncapTrait, metaclass=ABCMeta):
             return "ethernet-ccc"
 
 
-class VlanCccEncapTrait(AbstractEncapTrait, metaclass=ABCMeta):
+class VlanCccEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
@@ -51,7 +51,7 @@ class VlanCccEncapTrait(AbstractEncapTrait, metaclass=ABCMeta):
             return "vlan-ccc"
 
 
-class VlanBridgeEncapTrait(AbstractEncapTrait, metaclass=ABCMeta):
+class VlanBridgeEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
@@ -87,7 +87,7 @@ class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
 
     @staticmethod
     @abstractmethod
-    def getAssociatedEncapTraits() -> list[type[AbstractEncapTrait]]:
+    def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
         pass
 
     @abstractmethod
@@ -98,12 +98,12 @@ class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
     def getInvalidNumberOfTerminationsErrorMessage(cls, i: int):
         return f"{cls.getNetboxTypeName().upper()}: {i} is not a valid number of terminations, ignoring..."
 
-    def getAssociatedEncapType(self, o: AbstractNetboxType) -> str|None:
-        associated_encap = head(list(filter(
+    def getChosenEncapType(self, o: AbstractNetboxType) -> str | None:
+        chosen_encap = head(list(filter(
             lambda encap: encap is not None,
-            [t().accept(o) for t in self.getAssociatedEncapTraits()]
+            [t().accept(o) for t in self.getSupportedEncapTraits()]
         )))
-        return associated_encap
+        return chosen_encap
 
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
         warnings.warn(f"{self.getNetboxTypeName().upper()} L2VPN does not support {type(o)} terminations.")
@@ -114,7 +114,7 @@ class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
         return
 
     def spitInterfaceEncapFor(self, o: VLANType|InterfaceType):
-        encap_type = self.getAssociatedEncapType(o)
+        encap_type = self.getChosenEncapType(o)
         inner_info = {"encapsulation": encap_type} if encap_type else {} # encap type is optional!
         if encap_type == "ethernet-ccc" and isinstance(o, InterfaceType) and o.isSubInterface():
             return {  # ethernet-ccc is on physical interface
@@ -210,10 +210,10 @@ class EPLEVPLL2VpnTypeTraits(AbstractL2VpnTypeTerminationVisitor, metaclass=ABCM
 # for MRO, common traits need to be 1st
 class EPLL2VpnTypeTerminationVisitor(EPLEVPLL2VpnTypeTraits, AbstractP2PL2VpnTypeTerminationVisitor):
     @staticmethod
-    def getAssociatedEncapTraits() -> list[type[AbstractEncapTrait]]:
+    def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
         return [ # order is important!
-            VlanCccEncapTrait,
-            EthernetCccEncapTrait,
+            VlanCccEncapCapability,
+            EthernetCccEncapCapability,
         ]
 
     @staticmethod
@@ -228,10 +228,10 @@ class EPLL2VpnTypeTerminationVisitor(EPLEVPLL2VpnTypeTraits, AbstractP2PL2VpnTyp
 # for MRO, common traits need to be 1st
 class EVPLL2VpnTypeTerminationVisitor(EPLEVPLL2VpnTypeTraits, AbstractP2PL2VpnTypeTerminationVisitor):
     @staticmethod
-    def getAssociatedEncapTraits() -> list[type[AbstractEncapTrait]]:
+    def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
         return [
-            VlanCccEncapTrait,
-            EthernetCccEncapTrait,
+            VlanCccEncapCapability,
+            EthernetCccEncapCapability,
         ]
 
     @staticmethod
@@ -247,10 +247,10 @@ class EVPLL2VpnTypeTerminationVisitor(EPLEVPLL2VpnTypeTraits, AbstractP2PL2VpnTy
 
 class VPWSL2VpnTypeTerminationVisitor(AbstractP2PL2VpnTypeTerminationVisitor):
     @staticmethod
-    def getAssociatedEncapTraits() -> list[type[AbstractEncapTrait]]:
+    def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
         return [
-            VlanCccEncapTrait,
-            EthernetCccEncapTrait,
+            VlanCccEncapCapability,
+            EthernetCccEncapCapability,
         ]
 
     @staticmethod
@@ -305,8 +305,8 @@ class VPWSL2VpnTypeTerminationVisitor(AbstractP2PL2VpnTypeTerminationVisitor):
 
 class VXLANEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVisitor):
     @staticmethod
-    def getAssociatedEncapTraits() -> list[type[AbstractEncapTrait]]:
-        return [ VlanBridgeEncapTrait ]
+    def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
+        return [VlanBridgeEncapCapability]
 
     @staticmethod
     def getNetboxTypeName() -> str:
@@ -358,8 +358,8 @@ class VXLANEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationV
 
 class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVisitor):
     @staticmethod
-    def getAssociatedEncapTraits() -> list[type[AbstractEncapTrait]]:
-        return [ VlanBridgeEncapTrait ]
+    def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
+        return [VlanBridgeEncapCapability]
 
     @staticmethod
     def getNetboxTypeName() -> str:
