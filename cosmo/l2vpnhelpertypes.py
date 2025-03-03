@@ -2,7 +2,7 @@ import ipaddress
 import warnings
 from abc import abstractmethod, ABCMeta
 from functools import singledispatchmethod
-from typing import Self
+from typing import TypeVar
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import head
@@ -61,6 +61,11 @@ class VlanBridgeEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
         return "vlan-bridge"
 
 
+
+
+# generic supported termination types. it's this shape so that it can be directly used by isinstance()
+T = TypeVar('T', tuple[type[AbstractNetboxType], type[AbstractNetboxType]], type[AbstractNetboxType], None)
+
 # FIXME simplify this!
 class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metaclass=ABCMeta):
     def __init__(self, *args, associated_l2vpn: L2VPNType, loopbacks_by_device: dict[str, CosmoLoopbackType],
@@ -80,9 +85,7 @@ class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
 
     @staticmethod
     @abstractmethod
-    def getAcceptedTerminationTypes() -> (tuple[type[AbstractNetboxType], type[AbstractNetboxType]]
-                                          | type[AbstractNetboxType]
-                                          | None):
+    def getAcceptedTerminationTypes() -> T:
         pass
 
     @staticmethod
@@ -221,7 +224,7 @@ class EPLL2VpnTypeTerminationVisitor(EPLEVPLL2VpnTypeTraits, AbstractP2PL2VpnTyp
         return "epl"
 
     @staticmethod
-    def getAcceptedTerminationTypes():
+    def getAcceptedTerminationTypes() -> T:
         return InterfaceType
 
 
@@ -239,9 +242,7 @@ class EVPLL2VpnTypeTerminationVisitor(EPLEVPLL2VpnTypeTraits, AbstractP2PL2VpnTy
         return "evpl"
 
     @staticmethod
-    def getAcceptedTerminationTypes() -> (tuple[type[AbstractNetboxType], type[AbstractNetboxType]]
-                                          | type[AbstractNetboxType]
-                                          | None):
+    def getAcceptedTerminationTypes() -> T:
         return InterfaceType
 
 
@@ -258,9 +259,7 @@ class VPWSL2VpnTypeTerminationVisitor(AbstractP2PL2VpnTypeTerminationVisitor):
         return "vpws"
 
     @staticmethod
-    def getAcceptedTerminationTypes() -> (tuple[type[AbstractNetboxType], type[AbstractNetboxType]]
-                                          | type[AbstractNetboxType]
-                                          | None):
+    def getAcceptedTerminationTypes() -> T:
         return InterfaceType
 
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
@@ -313,9 +312,7 @@ class VXLANEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationV
         return "vxlan"
 
     @staticmethod
-    def getAcceptedTerminationTypes() -> (tuple[type[AbstractNetboxType], type[AbstractNetboxType]]
-                                          | type[AbstractNetboxType]
-                                          | None):
+    def getAcceptedTerminationTypes() -> T:
         return VLANType
 
     def processVLANTypeTermination(self, o: VLANType) -> dict | None:
@@ -366,9 +363,7 @@ class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVi
         return "mpls-evpn" # no netbox3 retro-compatibility, sorry!
 
     @staticmethod
-    def getAcceptedTerminationTypes() -> (tuple[type[AbstractNetboxType], type[AbstractNetboxType]]
-                                          | type[AbstractNetboxType]
-                                          | None):
+    def getAcceptedTerminationTypes() -> T:
         return InterfaceType, VLANType
 
     def processTerminationCommon(self, o: InterfaceType|VLANType) -> dict|None:
