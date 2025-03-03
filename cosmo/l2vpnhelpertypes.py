@@ -175,8 +175,9 @@ class AbstractAnyToAnyL2VpnTypeTerminationVisitor(AbstractL2VpnTypeTerminationVi
                 f"{super().getInvalidNumberOfTerminationsErrorMessage(i)}")
 
 
-#                  v so that it does not appear in subclasses of any2any or p2p since we're enumerating from there
-class EPLEVPLL2VpnTypeTraits(AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta):
+#                                    |  so that it does not appear in subclasses of any2any
+#                                    v or p2p since we're enumerating from there
+class AbstractEPLEVPLL2VpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta):
     def processInterfaceTypeTermination(self, o: InterfaceType):
         parent_l2vpn = o.getParent(L2VPNType)
         local = next(filter(
@@ -210,8 +211,8 @@ class EPLEVPLL2VpnTypeTraits(AbstractL2VpnTypeTerminationVisitor, metaclass=ABCM
         } | self.spitInterfaceEncapFor(o)
 
 
-# for MRO, common traits need to be 1st
-class EPLL2VpnTypeTerminationVisitor(EPLEVPLL2VpnTypeTraits, AbstractP2PL2VpnTypeTerminationVisitor):
+# for MRO, common need to be 1st
+class EPLL2VpnTypeTerminationVisitorAbstract(AbstractEPLEVPLL2VpnTypeCommon, AbstractP2PL2VpnTypeTerminationVisitor):
     @staticmethod
     def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
         return [ # order is important!
@@ -228,8 +229,8 @@ class EPLL2VpnTypeTerminationVisitor(EPLEVPLL2VpnTypeTraits, AbstractP2PL2VpnTyp
         return InterfaceType
 
 
-# for MRO, common traits need to be 1st
-class EVPLL2VpnTypeTerminationVisitor(EPLEVPLL2VpnTypeTraits, AbstractP2PL2VpnTypeTerminationVisitor):
+# for MRO, common need to be 1st
+class EVPLL2VpnTypeTerminationVisitorAbstract(AbstractEPLEVPLL2VpnTypeCommon, AbstractP2PL2VpnTypeTerminationVisitor):
     @staticmethod
     def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
         return [
