@@ -61,7 +61,7 @@ class VlanBridgeEncapTrait(AbstractEncapTrait, metaclass=ABCMeta):
 
 
 # FIXME simplify this!
-class AbstractL2vpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metaclass=ABCMeta):
+class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metaclass=ABCMeta):
     def __init__(self, *args, associated_l2vpn: L2VPNType, loopbacks_by_device: dict[str, CosmoLoopbackType],
                  asn: int, **kwargs):
         super().__init__(*args, **kwargs)
@@ -145,7 +145,7 @@ class AbstractL2vpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
             }
 
 
-class AbstractP2PL2VpnTypeTerminationVisitor(AbstractL2vpnTypeTerminationVisitor, metaclass=ABCMeta):
+class AbstractP2PL2VpnTypeTerminationVisitor(AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta):
     _p2p_authorized_terminations_n = 2
 
     def isValidNumberOfTerminations(self, i: int):
@@ -158,7 +158,7 @@ class AbstractP2PL2VpnTypeTerminationVisitor(AbstractL2vpnTypeTerminationVisitor
                 f"{super().getInvalidNumberOfTerminationsErrorMessage(i)}")
 
 
-class AbstractAnyToAnyL2VpnTypeTerminationVisitor(AbstractL2vpnTypeTerminationVisitor, metaclass=ABCMeta):
+class AbstractAnyToAnyL2VpnTypeTerminationVisitor(AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta):
     _any_to_any_min_terminations_n = 1
 
     def isValidNumberOfTerminations(self, i: int):
@@ -172,7 +172,7 @@ class AbstractAnyToAnyL2VpnTypeTerminationVisitor(AbstractL2vpnTypeTerminationVi
 
 
 #                  v so that it does not appear in subclasses of any2any or p2p since we're enumerating from there
-class EPLEVPLL2vpnTypeTraits(AbstractL2vpnTypeTerminationVisitor, metaclass=ABCMeta):
+class EPLEVPLL2VpnTypeTraits(AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta):
     def processInterfaceTypeTermination(self, o: InterfaceType):
         parent_l2vpn = o.getParent(L2VPNType)
         local = next(filter(
@@ -207,7 +207,7 @@ class EPLEVPLL2vpnTypeTraits(AbstractL2vpnTypeTerminationVisitor, metaclass=ABCM
 
 
 # for MRO, common traits need to be 1st
-class EPLL2VpnTypeTerminationVisitor(EPLEVPLL2vpnTypeTraits, AbstractP2PL2VpnTypeTerminationVisitor):
+class EPLL2VpnTypeTerminationVisitor(EPLEVPLL2VpnTypeTraits, AbstractP2PL2VpnTypeTerminationVisitor):
     @staticmethod
     def getAssociatedEncapTraits() -> list[type[AbstractEncapTrait]]:
         return [ # order is important!
@@ -225,7 +225,7 @@ class EPLL2VpnTypeTerminationVisitor(EPLEVPLL2vpnTypeTraits, AbstractP2PL2VpnTyp
 
 
 # for MRO, common traits need to be 1st
-class EVPLL2VpnTypeTerminationVisitor(EPLEVPLL2vpnTypeTraits, AbstractP2PL2VpnTypeTerminationVisitor):
+class EVPLL2VpnTypeTerminationVisitor(EPLEVPLL2VpnTypeTraits, AbstractP2PL2VpnTypeTerminationVisitor):
     @staticmethod
     def getAssociatedEncapTraits() -> list[type[AbstractEncapTrait]]:
         return [
