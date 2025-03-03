@@ -1,7 +1,9 @@
 device_list:
 - device_type:
     slug: sn3420
+    __typename: DeviceTypeType
   id: '1718'
+  __typename: DeviceType
   interfaces:
   - custom_fields:
       bpdufilter: true
@@ -11,6 +13,7 @@ device_list:
       storm_control__multicast: null
       storm_control__unknown_unicast: null
     description: ''
+    __typename: InterfaceType
     enabled: true
     id: '37305'
     ip_addresses: []
@@ -28,11 +31,14 @@ device_list:
       inner_tag: null
       outer_tag: null
     description: ''
+    __typename: InterfaceType
     enabled: true
     id: '30335'
     ip_addresses: []
     lag:
+      __typename: InterfaceType
       id: '37305'
+      name: 'lag_42'
     mac_address: null
     mode: null
     mtu: null
@@ -46,10 +52,13 @@ device_list:
       inner_tag: null
       outer_tag: null
     description: ''
+    __typename: InterfaceType
     enabled: true
     id: '30336'
     ip_addresses: []
     lag:
+      __typename: InterfaceType
+      name: 'lag_42'
       id: '37305'
     mac_address: null
     mode: null
@@ -62,11 +71,14 @@ device_list:
     vrf: null
   name: TEST0001
   platform:
-    manufacturer: null
+    __typename: PlatformType
+    manufacturer:
+      __typename: ManufacturerType
+      slug: cumulus-networks
     slug: cumulus-linux-4-3
   primary_ip4:
+    __typename: IPAddressType
     address: 10.120.142.11/24
   serial: 4242
   staticroute_set: []
 l2vpn_list: []
-vrf_list: []

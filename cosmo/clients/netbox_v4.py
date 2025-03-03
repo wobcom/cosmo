@@ -36,18 +36,26 @@ class ConnectedDevicesDataQuery(ParallelQuery):
         query_template = Template('''
             query {
               interface_list(filters: { tag: "bgp_cpe" }) {
+                __typename
                 id,
                 parent {
+                  __typename
                   id,
                   connected_endpoints {
                     ... on InterfaceType {
+                      __typename
                       name
                       device {
                         primary_ip4 {
+                          __typename
                           address
                         }
                         interfaces {
+                          id
+                          name
+                          __typename
                           ip_addresses {
+                            __typename
                             address
                           }
                         }
@@ -91,20 +99,37 @@ class LoopbackDataQuery(ParallelQuery):
                 name: {starts_with: "lo"},
                 type: {exact:"loopback"}
               }) {
+                __typename
                 name,
                 child_interfaces {
+                  __typename
                   name,
                   vrf {
+                    __typename
                     id
+                    name
+                    description
+                    rd
+                    export_targets {
+                      __typename
+                      name
+                    }
+                    import_targets {
+                      __typename
+                      name
+                    }
                   },
                   ip_addresses {
+                    __typename
                     address,
                     family {
+                     __typename
                      value,
                     }
                   }
                 }
                 device{
+                  __typename
                   name,
                 }
               }
@@ -127,7 +152,9 @@ class LoopbackDataQuery(ParallelQuery):
             l_ipv6 = next(filter(lambda l: l['family']['value'] == 6, child_interface['ip_addresses']), None)
             loopbacks[device_name] = {
                 "ipv4": l_ipv4['address'] if l_ipv4 else None,
-                "ipv6": l_ipv6['address'] if l_ipv6 else None
+                "ipv6": l_ipv6['address'] if l_ipv6 else None,
+                "__typename": "CosmoLoopbackType",
+                "device": device_name,
             }
 
         return {
@@ -141,20 +168,61 @@ class L2VPNDataQuery(ParallelQuery):
         query_template = Template('''
          query {
             l2vpn_list (filters: {name: {starts_with: "WAN: "}}) {
+                __typename
                 id
                 name
                 type
                 identifier
                 terminations {
+                  __typename
                   id
                   assigned_object {
                     __typename
                     ... on VLANType {
+                      __typename
                       id
+                      name
+                      interfaces_as_tagged {
+                         id
+                         name
+                         __typename
+                         device {
+                            __typename
+                            id
+                            name
+                         }
+                      }
+                      interfaces_as_untagged {
+                         id
+                         name
+                         __typename
+                         device {
+                            __typename
+                            id
+                            name
+                         }
+                      }
                     }
                     ... on InterfaceType {
+                      __typename
                       id
+                      name
+                      custom_fields
+                      untagged_vlan {
+                        __typename
+                        id
+                        name
+                        vid
+                       }
+                      tagged_vlans {
+                        __typename
+                        id
+                        name
+                        vid
+                      }
                       device {
+                        __typename
+                        id
                         name
                       }
                     }
@@ -173,34 +241,6 @@ class L2VPNDataQuery(ParallelQuery):
         }
 
 
-class VrfDataQuery(ParallelQuery):
-    def _fetch_data(self, kwargs):
-        query_template = Template('''
-            query {
-                vrf_list {
-                    id
-                    name
-                    description
-                    rd
-                    export_targets {
-                      name
-                    }
-                    import_targets {
-                      name
-                    }
-                }
-            }
-        ''')
-
-        return self.client.query(query_template.substitute())['data']
-
-    def _merge_into(self, data: dict, query_data):
-        return {
-            **data,
-            **query_data,
-        }
-
-
 class StaticRouteQuery(ParallelQuery):
 
     def _fetch_data(self, kwargs):
@@ -211,6 +251,8 @@ class StaticRouteQuery(ParallelQuery):
         for d in data['device_list']:
             device_static_routes = list(filter(lambda sr: str(sr['device']['id']) == d['id'], query_data))
             d['staticroute_set'] = device_static_routes
+            for e in d['staticroute_set']:
+                e['__typename'] = "CosmoStaticRouteType"
 
         return data
 
@@ -251,24 +293,30 @@ class DeviceDataQuery(ParallelQuery):
               device_list(filters: {
                 name: { i_exact: $device },
               }) {
+                __typename
                 id
                 name
                 serial
 
                 device_type {
+                  __typename
                   slug
                 }
                 platform {
+                  __typename
                   manufacturer {
+                    __typename
                     slug
                   }
                   slug
                 }
                 primary_ip4 {
+                  __typename
                   address
                 }
 
                 interfaces {
+                  __typename
                   id
                   name
                   enabled
@@ -277,31 +325,51 @@ class DeviceDataQuery(ParallelQuery):
                   mtu
                   description
                   vrf {
+                    __typename
                     id
+                    name
+                    description
+                    rd
+                    export_targets {
+                      __typename
+                      name
+                    }
+                    import_targets {
+                      __typename
+                      name
+                    }
                   }
                   lag {
+                    __typename
                     id
+                    name
                   }
                   ip_addresses {
+                    __typename
                     address
                   }
                   untagged_vlan {
+                    __typename
                     id
                     name
                     vid
                   }
                   tagged_vlans {
+                    __typename
                     id
                     name
                     vid
                   }
                   tags {
+                    __typename
                     name
                     slug
                   }
                   parent {
+                    __typename
                     id
                     mtu
+                    name
                   }
                   custom_fields
                 }
@@ -342,7 +410,6 @@ class NetboxV4Strategy:
             )
 
         queries.extend([
-            VrfDataQuery(self.client, device_list=device_list),
             L2VPNDataQuery(self.client, device_list=device_list),
             StaticRouteQuery(self.client, device_list=device_list),
             DeviceMACQuery(self.client, device_list=device_list),

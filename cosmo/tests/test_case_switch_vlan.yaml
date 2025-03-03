@@ -1,6 +1,8 @@
 device_list:
 - device_type:
+    __typename: DeviceTypeType
     slug: sn3420
+  __typename: DeviceType
   id: '1718'
   interfaces:
   - custom_fields:
@@ -10,6 +12,7 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '31062'
@@ -23,15 +26,18 @@ device_list:
     - id: '862'
       name: vlan 101
       vid: 101
+      __typename: VLANType
     - id: '863'
       name: vlan 102
       vid: 102
+      __typename: VLANType
     tags: []
     type: LAG
     untagged_vlan:
       id: '28'
       name: test vlan 2
       vid: 103
+      __typename: VLANType
     vrf: null
   - custom_fields:
       bpdufilter: null
@@ -41,6 +47,7 @@ device_list:
       storm_control__multicast: null
       storm_control__unknown_unicast: null
     description: 'access port'
+    __typename: InterfaceType
     enabled: true
     id: '30319'
     ip_addresses: []
@@ -53,17 +60,21 @@ device_list:
     tags: []
     type: A_32GFC_SFP28
     untagged_vlan:
+      __typename: VLANType
       id: '24'
       name: test vlan
       vid: 42
     vrf: null
   name: TEST0001
   platform:
-    manufacturer: null
+    __typename: PlatformType
+    manufacturer:
+      __typename: ManufacturerType
+      slug: cumulus-networks
     slug: cumulus-linux-4-3
   primary_ip4:
+    __typename: IPAddressType
     address: 10.120.142.11/24
   serial: 4242
   staticroute_set: []
 l2vpn_list: []
-vrf_list: []

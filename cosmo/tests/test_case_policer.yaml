@@ -1,6 +1,7 @@
 device_list:
 - device_type:
     slug: mx204
+    __typename: DeviceTypeType
   id: '1886'
   interfaces:
   - custom_fields:
@@ -11,12 +12,15 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '32571'
     ip_addresses:
     - address: 194.146.118.41/24
+      __typename: IPAddressType
     - address: 2001:7f8:8::23b0:0:1/64
+      __typename: IPAddressType
     lag: null
     mac_address: null
     mode: ACCESS
@@ -26,8 +30,10 @@ device_list:
     tags:
     - name: edge:peering-ixp
       slug: edge_peering-ixp
+      __typename: TagType
     type: VIRTUAL
     untagged_vlan:
+      __typename: VLANType
       id: '1052'
       name: ''
       vid: 101
@@ -40,11 +46,13 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '81728'
     ip_addresses:
     - address: 172.30.0.153/30
+      __typename: IPAddressType
     lag: null
     mac_address: null
     mode: ACCESS
@@ -54,17 +62,30 @@ device_list:
     tags:
     - name: policer:100M
       slug: policer_100m
+      __typename: TagType
     type: VIRTUAL
     untagged_vlan:
       id: '1050'
       name: ''
       vid: 2220
+      __typename: VLANType
     vrf:
+      __typename: VRFType
       id: '399'
+      description: ''
+      export_targets:
+        - name: target:9136:399
+          __typename: RouteTargetType
+      import_targets:
+        - name: target:9136:399
+          __typename: RouteTargetType
+      name: L3VPN
+      rd: null
   - custom_fields:
       inner_tag: null
       ipv6_ra: false
       outer_tag: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '32385'
@@ -87,11 +108,13 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '183168'
     ip_addresses:
     - address: 10.120.130.10/24
+      __typename: IPAddressType
     lag: null
     mac_address: null
     mode: null
@@ -110,6 +133,7 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '192862'
@@ -132,12 +156,15 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '32402'
     ip_addresses:
     - address: 62.176.224.243/32
+      __typename: IPAddressType
     - address: 2a01:580:6000::23/128
+      __typename: IPAddressType
     lag: null
     mac_address: null
     mode: null
@@ -150,23 +177,17 @@ device_list:
     vrf: null
   name: TEST0001
   platform:
+    __typename: PlatformType
     manufacturer:
+      __typename: ManufacturerType
       slug: juniper
     slug: junos-21-4r3-s5-4
   primary_ip4:
-    address: 10.120.130.10/24
+    address: 198.51.100.15/24
+    __typename: IPAddressType
   serial: ''
   staticroute_set: []
 l2vpn_list: []
-vrf_list:
-- description: ''
-  export_targets:
-  - name: target:9136:399
-  id: '399'
-  import_targets:
-  - name: target:9136:399
-  name: L3VPN
-  rd: null
 loopbacks:
   TEST0001:
     ipv4: 62.176.224.24/32

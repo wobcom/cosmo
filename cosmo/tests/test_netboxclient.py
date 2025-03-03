@@ -21,7 +21,6 @@ def test_case_get_data(mocker):
     mockAnswer = {
         "device_list": [],
         "l2vpn_list": [],
-        "vrf_list": [],
         "loopbacks": {},
     }
     [getMock, postMock] = utils.RequestResponseMock.patchNetboxClient(mocker)

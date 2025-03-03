@@ -1,11 +1,14 @@
 device_list:
   - device_type:
+      __typename: DeviceTypeType
       slug: mx204
+    __typename: DeviceType
     id: '1746'
     interfaces:
       - custom_fields:
           inner_tag: null
           outer_tag: null
+        __typename: InterfaceType
         description: ''
         enabled: true
         id: '30747'
@@ -19,12 +22,14 @@ device_list:
         tags:
           - name: fec:rs
             slug: fec:rs
+            __typename: TagType
         type: A_100GBASE_X_QSFP28
         untagged_vlan: null
         vrf: null
       - custom_fields:
           inner_tag: null
           outer_tag: null
+        __typename: InterfaceType
         description: ''
         enabled: true
         id: '30748'
@@ -38,12 +43,14 @@ device_list:
         tags:
           - name: fec:baser
             slug: fec:baser
+            __typename: TagType
         type: A_100GBASE_X_QSFP28
         untagged_vlan: null
         vrf: null
       - custom_fields:
           inner_tag: null
           outer_tag: null
+        __typename: InterfaceType
         description: ''
         enabled: true
         id: '30749'
@@ -57,20 +64,23 @@ device_list:
         tags:
           - name: fec:off
             slug: fec:off
+            __typename: TagType
         type: A_100GBASE_X_QSFP28
         untagged_vlan: null
         vrf: null
     name: TEST0001
     platform:
+      __typename: PlatformType
       manufacturer:
+        __typename: ManufacturerType
         slug: juniper
       slug: junos-21-4r3-s5-4
     primary_ip4:
+      __typename: IPAddressType
       address: 45.139.136.10/32
     serial: 4242
     staticroute_set: [ ]
 l2vpn_list: [ ]
-vrf_list: [ ]
 loopbacks:
   TEST0001:
     ipv4: 45.139.136.10/32

@@ -1,9 +1,12 @@
 device_list:
 - device_type:
+    __typename: DeviceTypeType
     slug: sn3420
+  __typename: DeviceType
   id: '1718'
   interfaces:
-  - custom_fields:
+  - __typename: InterfaceType
+    custom_fields:
       inner_tag: null
       outer_tag: null
     description: ''
@@ -20,16 +23,20 @@ device_list:
     tags:
     - name: lldp
       slug: lldp
+      __typename: TagType
     type: A_100GBASE_X_QSFP28
     untagged_vlan: null
     vrf: null
   name: TEST0001
   platform:
-    manufacturer: null
+    __typename: PlatformType
+    manufacturer:
+      __typename: ManufacturerType
+      slug: cumulus-networks
     slug: cumulus-linux-4-3
   primary_ip4:
+    __typename: IPAddressType
     address: 10.120.142.11/24
   serial: 4242
   staticroute_set: []
 l2vpn_list: []
-vrf_list: []

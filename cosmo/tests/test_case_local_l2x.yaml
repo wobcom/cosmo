@@ -1,11 +1,13 @@
 device_list:
 - device_type:
+    __typename: DeviceTypeType
     slug: S9510-28DC-BN0B
   id: '17649'
   interfaces:
   - custom_fields:
       inner_tag: null
       outer_tag: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '190385'
@@ -23,27 +25,32 @@ device_list:
   - custom_fields:
       bpdufilter: false
       inner_tag: null
-      outer_tag: 7
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '191150'
     ip_addresses: []
     lag: null
     mac_address: null
-    mode: null
+    mode: "access"
     mtu: null
     name: ifp-0/0/4.7
     tagged_vlans: []
     tags: []
     type: VIRTUAL
-    untagged_vlan: null
+    untagged_vlan:
+      __typename: VLANType
+      id: '3293'
+      name: TEST-VLAN
+      vid: 7
     vrf: null
   - custom_fields:
       inner_tag: null
       outer_tag: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '190386'
@@ -65,13 +72,14 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '191151'
     ip_addresses: []
     lag: null
     mac_address: null
-    mode: null
+    mode: "access"
     mtu: null
     name: ifp-0/0/5.7
     tagged_vlans: []
@@ -81,32 +89,55 @@ device_list:
     vrf: null
   name: TEST0001
   platform:
+    __typename: PlatformType
     manufacturer:
+      __typename: ManufacturerType
       slug: rtbrick
     slug: rtbrick-consolidated-bng-q2a-24-1-1-1
   primary_ip4:
+    __typename: IPAddressType
     address: 198.51.100.15/24
   serial: ''
   staticroute_set: []
 l2vpn_list:
 - id: '53'
+  __typename: L2VPNType
   identifier: null
   name: 'WAN: L2X'
   terminations:
   - assigned_object:
       __typename: InterfaceType
       device:
+        __typename: DeviceType
         name: TEST0001
+        id: '17649'
       id: '191150'
+      name: 'ifp-0/0/4.7'
+      tagged_vlans: [ ]
+      untagged_vlan:
+        __typename: VLANType
+        id: '3293'
+        name: TEST-VLAN
+        vid: 7
     id: '944'
+    __typename: L2VPNTerminationType
   - assigned_object:
       __typename: InterfaceType
       device:
+        __typename: DeviceType
         name: TEST0001
+        id: '17649'
       id: '191151'
+      name: 'ifp-0/0/5.7'
+      tagged_vlans: [ ]
+      untagged_vlan:
+        __typename: VLANType
+        id: '3293'
+        name: TEST-VLAN
+        vid: 7
     id: '945'
+    __typename: L2VPNTerminationType
   type: EVPL
-vrf_list: []
 loopbacks:
   TEST0001:
     ipv4: 45.139.136.10/32

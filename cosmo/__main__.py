@@ -9,8 +9,8 @@ import argparse
 
 from cosmo.clients.netbox import NetboxClient
 from cosmo.log import info
-from cosmo.serializer import RouterSerializer, SwitchSerializer, AbstractRecoverableError, RouterSerializerConfig
-
+from cosmo.serializer import RouterSerializer, SwitchSerializer
+from cosmo.common import AbstractRecoverableError
 
 
 
@@ -57,11 +57,6 @@ def main() -> int:
 
     yaml.emitter.Emitter.process_tag = noop
 
-    for vrf in cosmo_data["vrf_list"]:
-        if len(vrf["export_targets"]) > 1 or len(vrf["import_targets"]) > 1:
-            warnings.warn(f"Currently we only support one import/export target per VRF. {vrf['name']} has {len(vrf['import_targets'])} import targets and {len(vrf['export_targets'])} export targets")
-            continue
-
     for device in cosmo_data["device_list"]:
 
         if 'fqdnSuffix' in cosmo_configuration:
@@ -77,9 +72,7 @@ def main() -> int:
         content = None
         try:
             if device['name'] in cosmo_configuration['devices']['router']:
-
-                router_serializer_cfg = RouterSerializerConfig(cosmo_configuration.get("router_serializer_configuration", {}))
-                serializer = RouterSerializer(router_serializer_cfg, device, cosmo_data['l2vpn_list'], cosmo_data["vrf_list"], cosmo_data["loopbacks"])
+                serializer = RouterSerializer(device, cosmo_data['l2vpn_list'], cosmo_data["loopbacks"])
                 content = serializer.serialize()
             elif device['name'] in cosmo_configuration['devices']['switch']:
                 serializer = SwitchSerializer(device)

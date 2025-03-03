@@ -1,5 +1,6 @@
 device_list:
 - device_type:
+    __typename: DeviceTypeType
     slug: mx204_te_3
   id: '2548'
   interfaces:
@@ -10,6 +11,7 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '38384'
@@ -31,6 +33,7 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '184384'
@@ -47,15 +50,20 @@ device_list:
     vrf: null
   name: TEST0001
   platform:
+    __typename: PlatformType
     manufacturer:
+      __typename: ManufacturerType
       slug: juniper
     slug: junos-21-4r3-s5-4
   primary_ip4:
+    __typename: IPAddressType
     address: 45.139.136.11/24
   serial: ''
   staticroute_set: []
 - device_type:
+    __typename: DeviceTypeType
     slug: mx204_te
+  __typename: DeviceType
   id: '2549'
   interfaces:
   - custom_fields:
@@ -65,6 +73,7 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '38398'
@@ -86,6 +95,7 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '184383'
@@ -102,34 +112,47 @@ device_list:
     vrf: null
   name: TEST0002
   platform:
+    __typename: PlatformType
     manufacturer:
+      __typename: ManufacturerType
       slug: juniper
     slug: junos-21-4r3-s5-4
   primary_ip4:
+    __typename: IPAddressType
     address: 45.139.136.10/32
   serial: ''
   staticroute_set: []
 l2vpn_list:
 - id: '39'
+  __typename: L2VPNType
   identifier: 2708
   name: 'WAN: VS_VPWS'
   terminations:
   - assigned_object:
       __typename: InterfaceType
       device:
+        __typename: DeviceType
         interfaces: []
         name: TEST0001
       id: '184384'
+      name: et-0/0/0.0
+      tagged_vlans: []
+      untagged_vlan: null
     id: '865'
+    __typename: L2VPNTerminationType
   - assigned_object:
       __typename: InterfaceType
       device:
+        __typename: DeviceType
         interfaces: []
         name: TEST0002
       id: '184383'
+      name: et-0/0/0.0
+      tagged_vlans: []
+      untagged_vlan: null
     id: '866'
+    __typename: L2VPNTerminationType
   type: VPWS
-vrf_list: []
 loopbacks:
   TEST0002:
     ipv4: 45.139.136.10/32

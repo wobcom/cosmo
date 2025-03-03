@@ -3,7 +3,7 @@ import pytest
 import copy
 from coverage.html import os
 
-from cosmo.serializer import RouterSerializer, SwitchSerializer, RouterSerializerConfig
+from cosmo.serializer import RouterSerializer, SwitchSerializer
 
 
 def _yaml_load(path):
@@ -17,13 +17,8 @@ def _yaml_load(path):
 def get_router_s_from_path(path):
     test_data = _yaml_load(path)
     return [
-        RouterSerializer(
-            cfg=RouterSerializerConfig(),
-            device=device,
-            l2vpn_list=test_data['l2vpn_list'],
-            vrfs=test_data['vrf_list'],
-            loopbacks=test_data.get('loopbacks', {}),
-        )
+        RouterSerializer(device=device, l2vpn_list=test_data['l2vpn_list'],
+                         loopbacks=test_data.get('loopbacks', {}))
         for device in test_data['device_list']]
 
 
@@ -60,53 +55,70 @@ def test_router_platforms():
 
 def test_l2vpn_errors():
     serialize = lambda y: \
-        RouterSerializer(
-            cfg=RouterSerializerConfig(),
-            device=y['device_list'][0],
-            l2vpn_list=y['l2vpn_list'],
-            vrfs=y['vrf_list'],
-            loopbacks=y['loopbacks']
-        )
+        RouterSerializer(device=y['device_list'][0], l2vpn_list=y['l2vpn_list'],
+                         loopbacks=y['loopbacks']).serialize()
 
     template = _yaml_load("./test_case_l2x_err_template.yaml")
 
     vpws_incorrect_terminations = copy.deepcopy(template)
     vpws_incorrect_terminations['l2vpn_list'].append({
+        '__typename': 'L2VPNType',
         'id': '53',
         'identifier': None,
         'name': 'WAN: incorrect VPWS',
         'type': 'VPWS',
         'terminations': [
-            {}, {}, {}]})
-    with pytest.warns(UserWarning, match="VPWS circuits are only allowed to have two terminations"):
+            {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': {}
+            }, {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': {}
+            }, {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': {}
+            }]})
+    with pytest.warns(UserWarning, match="VPWS circuits are only allowed to have 2 terminations"):
         serialize(vpws_incorrect_terminations)
 
     unsupported_type_terminations = copy.deepcopy(template)
     unsupported_type_terminations['l2vpn_list'].append({
+        '__typename': 'L2VPNType',
         'id': '54',
         'identifier': None,
         'name': 'WAN: unsupported termination types 1',
         'type': 'VPWS',
         'terminations': [
-            {'assigned_object': None},
-            {'assigned_object': {'__typename': None}}]})
-    with pytest.warns(UserWarning, match="Found unsupported L2VPN termination in"):
+            {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': None
+            },
+            {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': {}
+            }]})
+    with pytest.warns(UserWarning, match=r"VPWS L2VPN does not support|Found unsupported L2VPN termination in"):
         serialize(unsupported_type_terminations)
 
     vpws_non_interface_term = copy.deepcopy(template)
     vpws_non_interface_term['l2vpn_list'].append({
+        '__typename': 'L2VPNType',
         'id': '54',
         'identifier': None,
         'name': 'WAN: WAN: unsupported termination types 2',
         'type': 'VPWS',
         'terminations': [
-            {'assigned_object': {
+            {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': {
                 '__typename': "VLANType"
             }},
-            {'assigned_object': {
+            {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': {
                 '__typename': "VLANType"
             }}]})
-    with pytest.warns(UserWarning, match="Found non-interface termination in L2VPN"):
+    with pytest.warns(UserWarning, match=r"VPWS L2VPN does not support|Found unsupported L2VPN termination in"):
         serialize(vpws_non_interface_term)
 
 
@@ -128,10 +140,12 @@ def test_router_physical_interface():
 def test_router_logical_interface():
     [sd] = get_router_sd_from_path("./test_case_2.yaml")
 
-    assert len(sd['interfaces']['et-0/0/0']['units']) == 1
+    assert len(sd['interfaces']['et-0/0/0']['units']) == 2
 
     assert 139 in sd['interfaces']['et-0/0/0']['units']
-    assert 150 not in sd['interfaces']['et-0/0/0']['units']
+    assert 150 in sd['interfaces']['et-0/0/0']['units']
+    # should be present but shut down
+    assert sd['interfaces']['et-0/0/0']['units'][150]['shutdown']
 
     unit = sd['interfaces']['et-0/0/0']['units'][139]
 
@@ -196,6 +210,12 @@ def test_router_ips():
 
     unit_v4 = sd['interfaces']['ifp-0/0/2']['units'][0]
     unit_v6 = sd['interfaces']['ifp-0/0/3']['units'][0]
+    mgmt_v4 = sd['interfaces']['fxp0']['units'][0]
+    mgtm_routing_instance_rib = sd['routing_instances']['mgmt_junos']['routing_options']['rib']['mgmt_junos.inet.0']
+
+
+    assert mgmt_v4['families']['inet']['address']['192.168.1.23/24'] == {}
+    assert mgtm_routing_instance_rib['static']['0.0.0.0/0']['next_hop'] == "192.168.1.1"
 
     assert unit_v4['families']['inet']['address']['45.139.138.1/29'] == {}
     assert unit_v4['families']['inet']['address']['45.139.138.8/29'] == {"primary": True}
@@ -204,6 +224,15 @@ def test_router_ips():
     assert unit_v6['families']['inet6']['address']['2a0e:b941:2::/122'] == {}
     assert unit_v6['families']['inet6']['address']['2a0e:b941:2::40/122'] == {"primary": True}
     assert unit_v6['families']['inet6']['address']['2a0e:b941:2::41/122'] == {"secondary": True}
+
+    # reverse path filtering
+    assert unit_v4['families']['inet']['rpf_check']['mode'] == 'loose'
+    assert 'inet6' not in unit_v4['families']
+    assert unit_v6['families']['inet6']['rpf_check']['mode'] == 'strict'
+    assert 'inet' not in unit_v6['families']
+
+    # router advertisement
+    assert unit_v6['families']['inet6']['ipv6_ra'] == True
 
 
 def test_router_case_mpls_evpn():

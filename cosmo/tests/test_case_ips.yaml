@@ -1,65 +1,102 @@
 device_list:
   - device_type:
+      __typename: DeviceTypeType
       slug: mx204
     id: '1746'
+    __typename: DeviceType
     interfaces:
       - custom_fields:
           inner_tag: null
           outer_tag: null
+        __typename: InterfaceType
+        description: "management interface"
+        enabled: true
+        id: '49837'
+        ip_addresses:
+          - address: 192.168.1.23/24
+            role: null
+            __typename: IPAddressType
+        lag: null
+        mac_address: 94:BF:41:41:41:F9
+        mode: null
+        mtu: 1500
+        name: fxp0.0
+        tagged_vlans: [ ]
+        untagged_vlan: null
+      - custom_fields:
+          inner_tag: null
+          outer_tag: null
+        __typename: InterfaceType
         description: 'Customer: Test-Port'
         enabled: true
         id: '30747'
         ip_addresses:
           - address: 45.139.138.1/29
             role: null
+            __typename: IPAddressType
           - address: 45.139.138.8/29
             role: null
+            __typename: IPAddressType
           - address: 45.139.138.9/29
             role: SECONDARY
+            __typename: IPAddressType
         lag: null
         mac_address: 94:BF:41:41:41:F3
         mode: null
         mtu: null
         name: ifp-0/0/2.0
         tagged_vlans: [ ]
-        tags: [ ]
+        tags:
+          - name: urpf:loose
+            slug: urpf:loose
+            __typename: TagType
         type: A_100GBASE_X_QSFP28
         untagged_vlan: null
         vrf: null
       - custom_fields:
           inner_tag: null
           outer_tag: null
+          ipv6_ra: YES
+        __typename: InterfaceType
         description: 'Customer: Test-Port'
         enabled: true
         id: '30748'
         ip_addresses:
           - address: 2a0e:b941:2::/122
             role: null
+            __typename: IPAddressType
           - address: 2a0e:b941:2::40/122
             role: null
+            __typename: IPAddressType
           - address: 2a0e:b941:2::41/122
             role: SECONDARY
+            __typename: IPAddressType
         lag: null
         mac_address: 94:BF:41:41:41:F4
         mode: null
         mtu: null
         name: ifp-0/0/3.0
         tagged_vlans: [ ]
-        tags: [ ]
+        tags:
+          - name: urpf:strict
+            slug: urpf:strict
+            __typename: TagType
         type: A_100GBASE_X_QSFP28
         untagged_vlan: null
         vrf: null
     name: TEST0001
     platform:
+      __typename: PlatformType
       manufacturer:
+        __typename: ManufacturerType
         slug: juniper
       slug: junos-21-4r3-s5-4
     primary_ip4:
+      __typename: IPAddressType
       address: 45.139.136.10/32
     serial: 4242
     staticroute_set: [ ]
 l2vpn_list: [ ]
-vrf_list: [ ]
 loopbacks:
   TEST0001:
     ipv4: 45.139.136.10/32

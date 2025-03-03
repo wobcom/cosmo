@@ -1,16 +1,20 @@
 device_list:
 - device_type:
     slug: sn3420
+    __typename: DeviceTypeType
+  __typename: DeviceType
   id: '1718'
   interfaces:
   - custom_fields:
       inner_tag: null
       outer_tag: null
     description: 'management interface'
+    __typename: InterfaceType
     enabled: true
     id: '30317'
     ip_addresses:
     - address: 10.120.142.11/24
+      __typename: IPAddressType
     lag: null
     mac_address: null
     mode: null
@@ -25,6 +29,7 @@ device_list:
       inner_tag: null
       outer_tag: null
     description: ''
+    __typename: InterfaceType
     enabled: true
     id: '30318'
     ip_addresses: []
@@ -40,11 +45,14 @@ device_list:
     vrf: null
   name: TEST0001
   platform:
-    manufacturer: null
+    __typename: PlatformType
+    manufacturer:
+      __typename: ManufacturerType
+      slug: cumulus-networks
     slug: cumulus-linux-4-3
   primary_ip4:
+    __typename: IPAddressType
     address: 10.120.142.11/24
   serial: 4242
   staticroute_set: []
 l2vpn_list: []
-vrf_list: []

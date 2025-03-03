@@ -1,12 +1,14 @@
 device_list:
 - device_type:
     slug: sn3420
+    __typename: DeviceTypeType
   id: '1718'
   interfaces:
   - custom_fields:
       inner_tag: null
       outer_tag: null
     description: ''
+    __typename: InterfaceType
     enabled: true
     id: '30317'
     ip_addresses: []
@@ -19,12 +21,14 @@ device_list:
     tags:
      - name: fec:rs
        slug: fec:rs
+       __typename: TagType
     type: A_1000BASE_T
     untagged_vlan: null
     vrf: null
   - custom_fields:
       inner_tag: null
       outer_tag: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '30318'
@@ -38,12 +42,14 @@ device_list:
     tags:
      - name: fec:baser
        slug: fec:baser
+       __typename: TagType
     type: A_1000BASE_T
     untagged_vlan: null
     vrf: null
   - custom_fields:
       inner_tag: null
       outer_tag: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '30319'
@@ -57,12 +63,14 @@ device_list:
     tags:
      - name: fec:off
        slug: fec:off
+       __typename: TagType
     type: A_1000BASE_T
     untagged_vlan: null
     vrf: null
   - custom_fields:
       inner_tag: null
       outer_tag: null
+    __typename: InterfaceType
     description: ''
     enabled: true
     id: '30320'
@@ -76,16 +84,20 @@ device_list:
     tags:
      - name: fec:undefined
        slug: fec:undefined
+       __typename: TagType
     type: A_100BASE_T
     untagged_vlan: null
     vrf: null
   name: TEST0001
   platform:
-    manufacturer: null
+    manufacturer:
+      __typename: ManufacturerType
+      slug: cumulus-networks
     slug: cumulus-linux-4-3
+    __typename: PlatformType
   primary_ip4:
     address: 10.120.142.11/24
+    __typename: IPAddressType
   serial: 4242
   staticroute_set: []
 l2vpn_list: []
-vrf_list: []
