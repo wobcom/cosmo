@@ -46,6 +46,7 @@ class VlanCccEncapTrait(AbstractEncapTrait, metaclass=ABCMeta):
 
     @accept.register
     def _(self, o: InterfaceType):
+        # If there is at least one tagged VLAN on the interface or Untagged is not a "unit 0"...
         if len(o.getTaggedVLANS()) or o.getUntaggedVLAN():
             return "vlan-ccc"
 
