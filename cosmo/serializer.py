@@ -1,31 +1,14 @@
-import ipaddress
-import re
-import json
-import warnings
-import abc
-from collections import defaultdict
-
 from deepmerge import Merger
 
-from cosmo.common import deepsort, DeviceSerializationError, InterfaceSerializationError
-from cosmo.types import DeviceType, L2VPNType, VRFType, CosmoLoopbackType
+from cosmo.common import deepsort, DeviceSerializationError
+from cosmo.types import DeviceType, CosmoLoopbackType
 from cosmo.switchvisitor import SwitchDeviceExporterVisitor
 from cosmo.routervisitor import RouterDeviceExporterVisitor
 
 
 
-class RouterSerializerConfig:
-    # TODO: delete me! no longer used
-    def __init__(self, config={}):
-        self.config = config
-
-    @property
-    def allow_private_ips(self):
-        return self.config.get("allow_private_ips", False)
-
-
 class RouterSerializer:
-    def __init__(self, cfg, device, l2vpn_list, loopbacks):
+    def __init__(self, device, l2vpn_list, loopbacks):
         try:
             match device["platform"]["manufacturer"]["slug"]:
                 case 'juniper':
@@ -42,7 +25,6 @@ class RouterSerializer:
         except KeyError as ke:
             raise KeyError(f"missing key in device info, can't continue.") from ke
 
-        self.cfg = cfg
         self.device = device
         self.l2vpn_list = l2vpn_list
         self.loopbacks = loopbacks

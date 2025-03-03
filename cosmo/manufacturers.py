@@ -1,6 +1,5 @@
 import re
 from abc import ABC, abstractmethod
-from cosmo.common import ObjCache
 from cosmo.types import DeviceType, InterfaceType
 
 

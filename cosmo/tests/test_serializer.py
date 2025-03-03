@@ -3,7 +3,7 @@ import pytest
 import copy
 from coverage.html import os
 
-from cosmo.serializer import RouterSerializer, SwitchSerializer, RouterSerializerConfig
+from cosmo.serializer import RouterSerializer, SwitchSerializer
 
 
 def _yaml_load(path):
@@ -17,7 +17,7 @@ def _yaml_load(path):
 def get_router_s_from_path(path):
     test_data = _yaml_load(path)
     return [
-        RouterSerializer(cfg=RouterSerializerConfig(), device=device, l2vpn_list=test_data['l2vpn_list'],
+        RouterSerializer(device=device, l2vpn_list=test_data['l2vpn_list'],
                          loopbacks=test_data.get('loopbacks', {}))
         for device in test_data['device_list']]
 
@@ -55,7 +55,7 @@ def test_router_platforms():
 
 def test_l2vpn_errors():
     serialize = lambda y: \
-        RouterSerializer(cfg=RouterSerializerConfig(), device=y['device_list'][0], l2vpn_list=y['l2vpn_list'],
+        RouterSerializer(device=y['device_list'][0], l2vpn_list=y['l2vpn_list'],
                          loopbacks=y['loopbacks']).serialize()
 
     template = _yaml_load("./test_case_l2x_err_template.yaml")
