@@ -9,20 +9,20 @@ class AbstractNoopNetboxTypesVisitor(abc.ABC):
 
     @accept.register
     def _(self, o: int):
-        pass
+        return
 
     @accept.register
     def _(self, o: None):
-        pass
+        return
 
     @accept.register
     def _(self, o: str):
-        pass
+        return
 
     @accept.register
     def _(self, o: dict) -> dict:
-        pass
+        return {}
 
     @accept.register
     def _(self, o: list) -> list:
-        pass
+        return []
