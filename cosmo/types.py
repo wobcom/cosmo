@@ -122,6 +122,9 @@ class DeviceType(AbstractNetboxType):
     def __repr__(self):
         return super().__repr__() + f"({self.getName()})"
 
+    def isCompositeRoot(self) -> bool:
+        return not bool(self.get('__parent', False))
+
     def getDeviceType(self):
         return self['device_type']
 

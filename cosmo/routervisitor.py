@@ -42,7 +42,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     @accept.register
     def _(self, o: DeviceType):
-        if o.getParent(): # not root, do not process!
+        if not o.isCompositeRoot(): # not root, do not process!
             return
         manufacturer = AbstractManufacturer.getManufacturerFor(o)
         return {
