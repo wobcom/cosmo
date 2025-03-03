@@ -64,7 +64,7 @@ class VlanBridgeEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
 
 
 # generic supported termination types. it's this shape so that it can be directly used by isinstance()
-T = TypeVar('T', tuple[type[AbstractNetboxType], type[AbstractNetboxType]], type[AbstractNetboxType], None)
+T = tuple[type[AbstractNetboxType]|type[AbstractNetboxType]]|type[AbstractNetboxType]|None
 
 # FIXME simplify this!
 class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metaclass=ABCMeta):
