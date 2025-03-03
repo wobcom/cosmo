@@ -5,9 +5,9 @@ from collections.abc import Iterable
 from ipaddress import IPv4Interface, IPv6Interface
 
 from .common import without_keys
-from typing import Self, Iterator, TypeVar
+from typing import Self, Iterator, TypeVar, NoReturn
 
-MAX_DEPTH = 1_000
+
 T = TypeVar('T', bound="AbstractNetboxType")
 class AbstractNetboxType(abc.ABC, Iterable, dict):
     __parent = None
@@ -74,29 +74,25 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
     def register(cls) -> tuple:
         return cls._getNetboxType(), cls
 
-    def getParent(self, target_type: type[T], *, directly_above=False, max_inv_depth: int = MAX_DEPTH) -> T|None:
-        if directly_above:
-            max_inv_depth = 1
+    def hasParentAboveWithType(self, target_type: type[T]) -> bool:
+        instance = self['__parent']
+        return type(instance) == target_type
+
+    def getParent(self, target_type: type[T]) -> T|NoReturn:
+        ke = KeyError(
+                f"Cannot find any object above {type(self).__name__} which is of type {target_type.__name__}. "
+                f"It is likely you made wrong assumptions regarding the shape of the Netbox input data, or "
+                f"forgot to use hasParentAboveWithType()."
+        )
         if '__parent' not in self.keys():
-            raise KeyError(
-                f"Cannot search for {target_type}, I didn't found any object "
-                f"above {self} (which is probably the root of the composite tree). "
-                f"It is likely the new code you introduced made wrong assumptions "
-                f"regarding the shape of Netbox data."
-            )
+            raise ke
         else:
-            depth = 0
             instance = self['__parent']
-            while type(instance) != target_type and depth <= max_inv_depth:
+            while type(instance) != target_type:
                 if "__parent" not in instance.keys():
-                    # up to the whole tree we went, and we found nothing
-                    # we are not raising exceptions since caller might wanted
-                    # to check if a specific parent type did exist
-                    return None
+                    raise ke
                 else:
-                    instance = instance['__parent']; depth+=1
-            if not type(instance) == target_type: # max depth may have been exceeded
-                return None
+                    instance = instance['__parent']
             return instance
 
     def getID(self):

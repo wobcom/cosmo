@@ -92,10 +92,10 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     @accept.register
     def _(self, o: IPAddressType):
         manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
-        parent_interface = o.getParent(InterfaceType)
         optional_attrs = {}
-        if not parent_interface:
+        if not o.hasParentAboveWithType(InterfaceType):
             return
+        parent_interface = o.getParent(InterfaceType)
         if not parent_interface.isSubInterface():
             raise InterfaceSerializationError(
                 f"You seem to have configured an IP directly on interface {parent_interface.getName()}. "
@@ -239,17 +239,17 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     @accept.register
     def _(self, o: InterfaceType):
-        if o.getParent(VLANType, directly_above=True):
+        if o.hasParentAboveWithType(VLANType):
             # guard: do not process VLAN interface info
             return
-        if o.getParent(L2VPNTerminationType, directly_above=True):
+        if o.hasParentAboveWithType(L2VPNTerminationType):
             return self.l2vpn_exporter.accept(o)
         if o.isSubInterface():
             return self.processSubInterface(o)
         if o.isLagInterface():
             return self.processInterfaceLagInfo(o)
         # interface in interface is lag info
-        if o.getParent(InterfaceType, directly_above=True):
+        if o.hasParentAboveWithType(InterfaceType):
             if "lag" in o.getParent(InterfaceType).keys() and o.getParent(InterfaceType)["lag"] == o:
                 return self.processLagMember(o)
             return # guard: do not process (can be connected_endpoint, parent, etc...)
@@ -362,13 +362,13 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     @accept.register
     def _(self, o: VLANType):
-        if o.getParent(L2VPNTerminationType, directly_above=True):
+        if o.hasParentAboveWithType(L2VPNTerminationType):
             return self.l2vpn_exporter.accept(o)
         parent_interface = o.getParent(InterfaceType)
         if (
                 parent_interface and o == parent_interface.getUntaggedVLAN()
                 # guard: skip VLAN processing if it is in L2VPN termination. should reappear in device.
-                and not parent_interface.getParent(L2VPNTerminationType, directly_above=True)
+                and not parent_interface.hasParentAboveWithType(L2VPNTerminationType)
         ):
             return self.processUntaggedVLAN(o)
 

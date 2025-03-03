@@ -17,6 +17,8 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
     @accept.register
     def _(self, o: IPAddressType):
         manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
+        if not o.hasParentAboveWithType(InterfaceType):
+            return
         parent_interface = o.getParent(InterfaceType)
         if parent_interface and manufacturer.isManagementInterface(parent_interface):
             return {
@@ -121,7 +123,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         if o.isLagInterface():
             return self.processLagMember(o)
         # 'lag': {'__typename': 'InterfaceType', 'id': '${ID}', 'name': '${NAME}'}
-        elif o.getParent(InterfaceType, directly_above=True): # interface in interface -> lagInfo
+        elif o.hasParentAboveWithType(InterfaceType): # interface in interface -> lagInfo
             return self.processInterfaceLagInfo(o)
         # or "normal" interface
         else:
