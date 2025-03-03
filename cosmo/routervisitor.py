@@ -239,18 +239,18 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     @accept.register
     def _(self, o: InterfaceType):
-        if isinstance(o.getParent(), VLANType):
+        if o.getParent(VLANType, directly_above=True):
             # guard: do not process VLAN interface info
             return
-        if isinstance(o.getParent(), L2VPNTerminationType):
+        if o.getParent(L2VPNTerminationType, directly_above=True):
             return self.l2vpn_exporter.accept(o)
         if o.isSubInterface():
             return self.processSubInterface(o)
         if o.isLagInterface():
             return self.processInterfaceLagInfo(o)
         # interface in interface is lag info
-        if type(o.getParent()) == InterfaceType:
-            if "lag" in o.getParent().keys() and o.getParent()["lag"] == o:
+        if o.getParent(InterfaceType, directly_above=True):
+            if "lag" in o.getParent(InterfaceType).keys() and o.getParent(InterfaceType)["lag"] == o:
                 return self.processLagMember(o)
             return # guard: do not process (can be connected_endpoint, parent, etc...)
         return {
@@ -362,13 +362,13 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     @accept.register
     def _(self, o: VLANType):
-        if isinstance(o.getParent(), L2VPNTerminationType):
+        if o.getParent(L2VPNTerminationType, directly_above=True):
             return self.l2vpn_exporter.accept(o)
         parent_interface = o.getParent(InterfaceType)
         if (
                 parent_interface and o == parent_interface.getUntaggedVLAN()
                 # guard: skip VLAN processing if it is in L2VPN termination. should reappear in device.
-                and not isinstance(parent_interface.getParent(), L2VPNTerminationType)
+                and not parent_interface.getParent(L2VPNTerminationType, directly_above=True)
         ):
             return self.processUntaggedVLAN(o)
 

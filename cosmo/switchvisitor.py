@@ -121,7 +121,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         if o.isLagInterface():
             return self.processLagMember(o)
         # 'lag': {'__typename': 'InterfaceType', 'id': '${ID}', 'name': '${NAME}'}
-        elif type(o.getParent()) == InterfaceType: # interface in interface -> lagInfo
+        elif o.getParent(InterfaceType, directly_above=True): # interface in interface -> lagInfo
             return self.processInterfaceLagInfo(o)
         # or "normal" interface
         else:

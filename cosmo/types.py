@@ -5,9 +5,10 @@ from collections.abc import Iterable
 from ipaddress import IPv4Interface, IPv6Interface
 
 from .common import without_keys
-from typing import Self, Iterator, Any
+from typing import Self, Iterator, TypeVar
 
-
+MAX_DEPTH = 1_000
+T = TypeVar('T', bound="AbstractNetboxType")
 class AbstractNetboxType(abc.ABC, Iterable, dict):
     __parent = None
 
@@ -73,19 +74,29 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
     def register(cls) -> tuple:
         return cls._getNetboxType(), cls
 
-    def getParent(self, target_type=None) -> Self | None:
+    def getParent(self, target_type: type[T], *, directly_above=False, max_inv_depth: int = MAX_DEPTH) -> T|None:
+        if directly_above:
+            max_inv_depth = 1
         if '__parent' not in self.keys():
-            return None
-        if not target_type:
-            return self['__parent']
+            raise KeyError(
+                f"Cannot search for {target_type}, I didn't found any object "
+                f"above {self} (which is probably the root of the composite tree). "
+                f"It is likely the new code you introduced made wrong assumptions "
+                f"regarding the shape of Netbox data."
+            )
         else:
+            depth = 0
             instance = self['__parent']
-            while type(instance) != target_type:
+            while type(instance) != target_type and depth <= max_inv_depth:
                 if "__parent" not in instance.keys():
                     # up to the whole tree we went, and we found nothing
+                    # we are not raising exceptions since caller might wanted
+                    # to check if a specific parent type did exist
                     return None
                 else:
-                    instance = instance['__parent']
+                    instance = instance['__parent']; depth+=1
+            if not type(instance) == target_type: # max depth may have been exceeded
+                return None
             return instance
 
     def getID(self):
