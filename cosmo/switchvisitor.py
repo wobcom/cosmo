@@ -2,7 +2,7 @@ import ipaddress
 import warnings
 from functools import singledispatchmethod
 
-from cosmo.manufacturers import AbstractManufacturer
+from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
 from cosmo.types import IPAddressType, DeviceType, InterfaceType, VLANType, TagType
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
@@ -16,7 +16,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
 
     @accept.register
     def _(self, o: IPAddressType):
-        manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
+        manufacturer = ManufacturerFactoryFromDevice(o.getParent(DeviceType)).get()
         if not o.hasParentAboveWithType(InterfaceType):
             return
         parent_interface = o.getParent(InterfaceType)
@@ -64,7 +64,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
 
     @accept.register
     def _(self, o: VLANType):
-        ret = None
+        ret = dict()
         parent_interface = o.getParent(InterfaceType)
         if o in parent_interface.getTaggedVLANS():
             ret = self.processTaggedVLAN(o)
@@ -76,7 +76,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
 
     @staticmethod
     def processInterfaceCommon(o: InterfaceType):
-        manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
+        manufacturer = ManufacturerFactoryFromDevice(o.getParent(DeviceType)).get()
         description = {
             "description": o.getDescription()
         } if o.hasDescription() else {}

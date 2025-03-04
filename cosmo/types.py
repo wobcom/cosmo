@@ -435,6 +435,9 @@ class CosmoStaticRouteType(AbstractNetboxType):
             return VRFType(self["vrf"])
         return None
 
+    def __repr__(self):
+        return f"{super().__repr__()}({self.getPrefix()})"
+
 
 class CosmoLoopbackType(AbstractNetboxType):
     # TODO: refactor me for greater code reuse! (see netbox_v4.py)
