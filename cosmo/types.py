@@ -414,10 +414,12 @@ class CosmoStaticRouteType(AbstractNetboxType):
     def getNextHop(self) -> IPAddressType|None:
         if self["next_hop"]:
             return IPAddressType(self["next_hop"])
+        return None
 
     def getInterface(self) -> InterfaceType|None:
         if self["interface"]:
             return InterfaceType(self["interface"])
+        return None
 
     def getPrefixFamily(self) -> int:
         return self["prefix"]["family"]["value"]
@@ -431,6 +433,7 @@ class CosmoStaticRouteType(AbstractNetboxType):
     def getVRF(self) -> VRFType|None:
         if self["vrf"]:
             return VRFType(self["vrf"])
+        return None
 
 
 class CosmoLoopbackType(AbstractNetboxType):
