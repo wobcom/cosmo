@@ -9,4 +9,5 @@ leaf*.json
 machines/**
 
 .coverage
+.dmypy.json
 *~
