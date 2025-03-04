@@ -9,17 +9,29 @@ from typing import Self, Iterator, TypeVar, NoReturn
 
 
 T = TypeVar('T', bound="AbstractNetboxType")
-class AbstractNetboxType(abc.ABC, Iterable, dict):
-    __parent = None
-
+class AbstractNetboxType(abc.ABC, Iterable):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for k, v in without_keys(self, "__parent").items():
+        self._store = dict()
+        self._store.update(*args)
+        self._store.update(**kwargs)
+        for k, v in without_keys(self._store, "__parent").items():
             self[k] = self.convert(v)
+
+    def __getitem__(self, key):
+        return self._store[key]
+
+    def __setitem__(self, key, item):
+        self._store[key] = item
+
+    def __delitem__(self, key):
+        del self._store[key]
+
+    def __len__(self):
+        return len(self._store)
 
     def __iter__(self) -> Iterator[Self|str|int|bool|None]:
         yield self
-        for k, v in without_keys(self, ["__parent", "__typename"]).items():
+        for k, v in without_keys(self._store, ["__parent", "__typename"]).items():
             if isinstance(v, dict):
                 yield from iter(v)
             if isinstance(v, list):
@@ -29,7 +41,7 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
                 yield v
 
     def __hash__(self):
-        non_recursive_clone = without_keys(self, "__parent")
+        non_recursive_clone = without_keys(self._store, "__parent")
         return hash(
             (
                 frozenset(non_recursive_clone),
@@ -47,12 +59,27 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
             # cannot compare, id is missing
             return False
 
+    def items(self):
+        return self._store.items()
+
+    def keys(self):
+        return self._store.keys()
+
+    def values(self):
+        return self._store.values()
+
+    def get(self, *args, **kwargs):
+        return self._store.get(*args, **kwargs)
+
     def convert(self, item):
         if isinstance(item, dict):
             if "__typename" in item.keys():
                 c = {k: v for k, v in [c.register() for c in AbstractNetboxType.__subclasses__()]}[item["__typename"]]
-                #            self descending in tree
-                return c({k: self.convert(v) for k, v in without_keys(item, "__parent").items()} | {"__parent": self})
+                o = c()
+                o._store.update(
+                    {k: o.convert(v) for k, v in without_keys(item, "__parent").items()} | {"__parent": self}
+                )
+                return o
             else:
                 return item
         elif isinstance(item, list):
@@ -225,7 +252,7 @@ class InterfaceType(AbstractNetboxType):
     def getTaggedVLANS(self) -> list:
         return self.get("tagged_vlans", [])
 
-    def enabled(self) -> bool:
+    def isEnabled(self) -> bool:
         return bool(self.get("enabled", True))
 
     def isLagMember(self):

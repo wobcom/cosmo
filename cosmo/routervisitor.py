@@ -167,7 +167,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 case _:
                     description = f"Peering: {description}"
         return {
-        } | ({"shutdown": True} if not o.enabled() else {}) \
+        } | ({"shutdown": True} if not o.isEnabled() else {}) \
           | ({"description": description} if o.getDescription() else {}) \
           | ({"mtu": o.getMTU()} if o.getMTU() else {}) \
           | ({"type": o.getAssociatedType()} if not o.isSubInterface() else {}) \
@@ -341,7 +341,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 f"Interface {parent_interface} on device {o.getParent(DeviceType).getName()} "
                 "is mode ACCESS but has no untagged vlan, skipping"
             )
-        elif parent_interface.isSubInterface() and parent_interface.enabled():
+        elif parent_interface.isSubInterface() and parent_interface.isEnabled():
             optional_root_interface_attrs = {}
             if parent_interface.getUnitNumber == 0:
                 optional_root_interface_attrs = {

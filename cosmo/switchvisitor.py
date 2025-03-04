@@ -70,7 +70,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             ret = self.processTaggedVLAN(o)
         elif o == parent_interface.getUntaggedVLAN():
             ret = self.processUntaggedVLAN(o)
-        if parent_interface.enabled() and not parent_interface.isLagMember():
+        if parent_interface.isEnabled() and not parent_interface.isLagMember():
             ret[self._interfaces_key]["bridge"]["bridge_ports"] = [ parent_interface.getName() ]
         return ret
 
