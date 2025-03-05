@@ -80,6 +80,8 @@ class CumulusNetworksManufacturer(AbstractManufacturer):
         return len(o['ip_addresses']) >= 1 and o.getName().startswith("eth")
 
 
+# This is needed in order to avoid accidentally initializing the ABC.
+# Also enables us to extract type matching from the ABC.
 class ManufacturerFactoryFromDevice:
     _all_manufacturers = (
         CumulusNetworksManufacturer,

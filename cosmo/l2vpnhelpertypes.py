@@ -424,6 +424,11 @@ class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVi
         return self.processTerminationCommon(o)
 
 
+# This is needed for type safety, in order to avoid accidentally initializing the ABC.
+# Also enables us to state more explicitly which L2VPN types are supported, and to
+# extract type matching from the ABC.
+# If we need more of these factories in the future, a possibility would be to
+# make a factory ABC with Generic types and template methods.
 class L2VpnVisitorClassFactoryFromL2VpnTypeObject:
     _all_l2vpn_types = (
         MPLSEVPNL2VpnTypeTerminationVisitor,
