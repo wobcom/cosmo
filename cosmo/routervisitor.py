@@ -2,12 +2,13 @@ import ipaddress
 import re
 import warnings
 from functools import singledispatchmethod
+from typing import Optional
 
 import deepmerge
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import InterfaceSerializationError, head
-from cosmo.manufacturers import AbstractManufacturer
+from cosmo.common import InterfaceSerializationError, head, StaticRouteSerializationError
+from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
 from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor, RouterL2VPNExporterVisitor
 from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
@@ -19,7 +20,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         super().__init__(*args, **kwargs)
         # Note: I have to use composition since singledispatchmethod does not work well with inheritance
         self.l2vpn_exporter = RouterL2VPNExporterVisitor(loopbacks_by_device=loopbacks_by_device, asn=asn)
-        self.l2vpn_validator = RouterL2VPNValidatorVisitor()
+        self.l2vpn_validator = RouterL2VPNValidatorVisitor(loopbacks_by_device=loopbacks_by_device, asn=asn)
         self.bgpcpe_exporter = RouterBgpCpeExporterVisitor()
         self.loopbacks_by_device = loopbacks_by_device
         self.allow_private_ips = False
@@ -42,9 +43,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     @accept.register
     def _(self, o: DeviceType):
-        if o.getParent(): # not root, do not process!
+        if not o.isCompositeRoot(): # not root, do not process!
             return
-        manufacturer = AbstractManufacturer.getManufacturerFor(o)
+        manufacturer = ManufacturerFactoryFromDevice(o).get()
         return {
             "serial": o.getSerial(),
             self._vrf_key: {
@@ -70,7 +71,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         }
 
     def processMgmtInterfaceIPAddress(self, o: IPAddressType):
-        manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
+        manufacturer = ManufacturerFactoryFromDevice(o.getParent(DeviceType)).get()
         return {
             self._vrf_key: {
                 manufacturer.getRoutingInstanceName(): {
@@ -91,11 +92,11 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     @accept.register
     def _(self, o: IPAddressType):
-        manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
-        parent_interface = o.getParent(InterfaceType)
+        manufacturer = ManufacturerFactoryFromDevice(o.getParent(DeviceType)).get()
         optional_attrs = {}
-        if not parent_interface:
+        if not o.hasParentAboveWithType(InterfaceType):
             return
+        parent_interface = o.getParent(InterfaceType)
         if not parent_interface.isSubInterface():
             raise InterfaceSerializationError(
                 f"You seem to have configured an IP directly on interface {parent_interface.getName()}. "
@@ -167,7 +168,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 case _:
                     description = f"Peering: {description}"
         return {
-        } | ({"shutdown": True} if not o.enabled() else {}) \
+        } | ({"shutdown": True} if not o.isEnabled() else {}) \
           | ({"description": description} if o.getDescription() else {}) \
           | ({"mtu": o.getMTU()} if o.getMTU() else {}) \
           | ({"type": o.getAssociatedType()} if not o.isSubInterface() else {}) \
@@ -239,18 +240,18 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     @accept.register
     def _(self, o: InterfaceType):
-        if isinstance(o.getParent(), VLANType):
+        if o.hasParentAboveWithType(VLANType):
             # guard: do not process VLAN interface info
             return
-        if isinstance(o.getParent(), L2VPNTerminationType):
+        if o.hasParentAboveWithType(L2VPNTerminationType):
             return self.l2vpn_exporter.accept(o)
         if o.isSubInterface():
             return self.processSubInterface(o)
         if o.isLagInterface():
             return self.processInterfaceLagInfo(o)
         # interface in interface is lag info
-        if type(o.getParent()) == InterfaceType:
-            if "lag" in o.getParent().keys() and o.getParent()["lag"] == o:
+        if o.hasParentAboveWithType(InterfaceType):
+            if "lag" in o.getParent(InterfaceType).keys() and o.getParent(InterfaceType)["lag"] == o:
                 return self.processLagMember(o)
             return # guard: do not process (can be connected_endpoint, parent, etc...)
         return {
@@ -260,7 +261,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         }
 
     def getRouterId(self, o: DeviceType) -> str:
-        return str(ipaddress.ip_interface(self.loopbacks_by_device[o.getName()].getIpv4()).ip)
+        return str(ipaddress.ip_interface(str(self.loopbacks_by_device[o.getName()].getIpv4())).ip)
 
     @accept.register
     def _(self, o: VRFType):
@@ -293,14 +294,23 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     @staticmethod
     def processStaticRouteCommon(o: CosmoStaticRouteType):
         next_hop = None
-        if o.getNextHop():
-            next_hop = str(o.getNextHop().getIPInterfaceObject().ip)
-        elif o.getInterface():
-            next_hop = o.getInterface().getName()
-        if o.getPrefixFamily() == 4:
-            table = f"{o.getVRF().getName()}.inet.0"
-        else:
-            table = f"{o.getVRF().getName()}.inet6.0"
+        table = str()
+        next_hop_ipaddr_object = o.getNextHop()
+        interface_object = o.getInterface()
+        vrf_object = o.getVRF()
+        if isinstance(next_hop_ipaddr_object, IPAddressType):
+            next_hop = str(next_hop_ipaddr_object.getIPInterfaceObject().ip)
+        elif isinstance(interface_object, InterfaceType):
+            next_hop = interface_object.getName()
+        if isinstance(vrf_object, VRFType):
+            if o.getPrefixFamily() == 4:
+                table = f"{vrf_object.getName()}.inet.0"
+            elif o.getPrefixFamily() == 6:
+                table = f"{vrf_object.getName()}.inet6.0"
+            else:
+                raise StaticRouteSerializationError(
+                    f"Cannot find associated VRF for {o}! Please check Netbox data."
+                )
         return {
             "routing_options": {
                 "rib": {
@@ -319,11 +329,12 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     @accept.register
     def _(self, o: CosmoStaticRouteType):
-        if o.getVRF():
+        vrf_object = o.getVRF()
+        if isinstance(vrf_object, VRFType):
             return {
                 # vrf-wide static route
                 self._vrf_key: {
-                    o.getVRF().getName(): {
+                    vrf_object.getName(): {
                         **self.processStaticRouteCommon(o)
                     }
                 }
@@ -341,7 +352,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 f"Interface {parent_interface} on device {o.getParent(DeviceType).getName()} "
                 "is mode ACCESS but has no untagged vlan, skipping"
             )
-        elif parent_interface.isSubInterface() and parent_interface.enabled():
+        elif parent_interface.isSubInterface() and parent_interface.isEnabled():
             optional_root_interface_attrs = {}
             if parent_interface.getUnitNumber == 0:
                 optional_root_interface_attrs = {
@@ -362,13 +373,13 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     @accept.register
     def _(self, o: VLANType):
-        if isinstance(o.getParent(), L2VPNTerminationType):
+        if o.hasParentAboveWithType(L2VPNTerminationType):
             return self.l2vpn_exporter.accept(o)
         parent_interface = o.getParent(InterfaceType)
         if (
                 parent_interface and o == parent_interface.getUntaggedVLAN()
                 # guard: skip VLAN processing if it is in L2VPN termination. should reappear in device.
-                and not isinstance(parent_interface.getParent(), L2VPNTerminationType)
+                and not parent_interface.hasParentAboveWithType(L2VPNTerminationType)
         ):
             return self.processUntaggedVLAN(o)
 

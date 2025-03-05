@@ -2,7 +2,7 @@ import ipaddress
 import warnings
 from functools import singledispatchmethod
 
-from cosmo.manufacturers import AbstractManufacturer
+from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
 from cosmo.types import IPAddressType, DeviceType, InterfaceType, VLANType, TagType
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
@@ -16,7 +16,9 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
 
     @accept.register
     def _(self, o: IPAddressType):
-        manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
+        manufacturer = ManufacturerFactoryFromDevice(o.getParent(DeviceType)).get()
+        if not o.hasParentAboveWithType(InterfaceType):
+            return
         parent_interface = o.getParent(InterfaceType)
         if parent_interface and manufacturer.isManagementInterface(parent_interface):
             return {
@@ -62,19 +64,19 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
 
     @accept.register
     def _(self, o: VLANType):
-        ret = None
+        ret = dict()
         parent_interface = o.getParent(InterfaceType)
         if o in parent_interface.getTaggedVLANS():
             ret = self.processTaggedVLAN(o)
         elif o == parent_interface.getUntaggedVLAN():
             ret = self.processUntaggedVLAN(o)
-        if parent_interface.enabled() and not parent_interface.isLagMember():
+        if parent_interface.isEnabled() and not parent_interface.isLagMember():
             ret[self._interfaces_key]["bridge"]["bridge_ports"] = [ parent_interface.getName() ]
         return ret
 
     @staticmethod
     def processInterfaceCommon(o: InterfaceType):
-        manufacturer = AbstractManufacturer.getManufacturerFor(o.getParent(DeviceType))
+        manufacturer = ManufacturerFactoryFromDevice(o.getParent(DeviceType)).get()
         description = {
             "description": o.getDescription()
         } if o.hasDescription() else {}
@@ -121,7 +123,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         if o.isLagInterface():
             return self.processLagMember(o)
         # 'lag': {'__typename': 'InterfaceType', 'id': '${ID}', 'name': '${NAME}'}
-        elif type(o.getParent()) == InterfaceType: # interface in interface -> lagInfo
+        elif o.hasParentAboveWithType(InterfaceType): # interface in interface -> lagInfo
             return self.processInterfaceLagInfo(o)
         # or "normal" interface
         else:

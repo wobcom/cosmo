@@ -1,15 +1,12 @@
 import re
 from abc import ABC, abstractmethod
+from typing import NoReturn
+
+from cosmo.common import DeviceSerializationError
 from cosmo.types import DeviceType, InterfaceType
 
 
 class AbstractManufacturer(ABC):
-    @classmethod
-    def getManufacturerFor(cls, device: DeviceType):
-        for c in AbstractManufacturer.__subclasses__():
-            if c.isCompatibleWith(device):
-                return c()
-
     @classmethod
     def isCompatibleWith(cls, device: DeviceType):
         if device.getPlatform().getManufacturer():
@@ -81,3 +78,24 @@ class CumulusNetworksManufacturer(AbstractManufacturer):
         return "mgmt"
     def isManagementInterface(self, o: InterfaceType):
         return len(o['ip_addresses']) >= 1 and o.getName().startswith("eth")
+
+
+# This is needed in order to avoid accidentally initializing the ABC.
+# Also enables us to extract type matching from the ABC.
+class ManufacturerFactoryFromDevice:
+    _all_manufacturers = (
+        CumulusNetworksManufacturer,
+        RtBrickManufacturer,
+        JuniperManufacturer
+    )
+
+    def __init__(self, device: DeviceType):
+        self._device = device
+
+    def get(self) -> AbstractManufacturer | NoReturn:
+        for c in self._all_manufacturers:
+            if c.isCompatibleWith(self._device):
+                return c()
+        raise DeviceSerializationError(
+            f"Cannot find suitable manufacturer for device {self._device}"
+        )

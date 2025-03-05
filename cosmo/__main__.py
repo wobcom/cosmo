@@ -55,7 +55,8 @@ def main() -> int:
     def noop(*args, **kwargs):
         pass
 
-    yaml.emitter.Emitter.process_tag = noop
+    # Note: There is no better way of doing this.
+    yaml.emitter.Emitter.process_tag = noop # type: ignore
 
     for device in cosmo_data["device_list"]:
 
@@ -72,11 +73,11 @@ def main() -> int:
         content = None
         try:
             if device['name'] in cosmo_configuration['devices']['router']:
-                serializer = RouterSerializer(device, cosmo_data['l2vpn_list'], cosmo_data["loopbacks"])
-                content = serializer.serialize()
+                router_serializer = RouterSerializer(device, cosmo_data['l2vpn_list'], cosmo_data["loopbacks"])
+                content = router_serializer.serialize()
             elif device['name'] in cosmo_configuration['devices']['switch']:
-                serializer = SwitchSerializer(device)
-                content = serializer.serialize()
+                switch_serializer = SwitchSerializer(device)
+                content = switch_serializer.serialize()
         except AbstractRecoverableError as e:
             warnings.warn(f"{device['name']} serialization error \"{e}\", skipping ...")
             continue

@@ -2,10 +2,10 @@ import warnings
 from functools import singledispatchmethod
 from ipaddress import IPv4Interface, IPv6Interface
 
-from cosmo.common import head
+from cosmo.common import head, CosmoOutputType
 from cosmo.cperoutervisitor import CpeRouterExporterVisitor
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.types import TagType, InterfaceType, DeviceType
+from cosmo.types import TagType, InterfaceType, DeviceType, VRFType
 
 
 class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
@@ -17,14 +17,17 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
         linked_interface = o.getParent(InterfaceType)
         group_name = "CPE_" + linked_interface.getName().replace(".", "-").replace("/","-")
         vrf_name = "default"
-        policy_v4 = {
+        # make the type checker happy, since it cannot reliably infer
+        # type from default values of policy_v4 and policy_v6
+        policy_v4: CosmoOutputType = {
             "import_list": []
         }
-        policy_v6 = {
+        policy_v6: CosmoOutputType = {
             "import_list": []
         }
-        if linked_interface.getVRF():
-            vrf_name = linked_interface.getVRF().getName()
+        vrf_object = linked_interface.getVRF()
+        if isinstance(vrf_object, VRFType):
+            vrf_name = vrf_object.getName()
         if vrf_name == "default":
             policy_v4["export"] = "DEFAULT_V4"
             policy_v6["export"] = "DEFAULT_V6"

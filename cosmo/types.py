@@ -5,20 +5,33 @@ from collections.abc import Iterable
 from ipaddress import IPv4Interface, IPv6Interface
 
 from .common import without_keys
-from typing import Self, Iterator, Any
+from typing import Self, Iterator, TypeVar, NoReturn
 
 
-class AbstractNetboxType(abc.ABC, Iterable, dict):
-    __parent = None
-
+T = TypeVar('T', bound="AbstractNetboxType")
+class AbstractNetboxType(abc.ABC, Iterable):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for k, v in without_keys(self, "__parent").items():
+        self._store = dict()
+        self._store.update(*args)
+        self._store.update(**kwargs)
+        for k, v in without_keys(self._store, "__parent").items():
             self[k] = self.convert(v)
+
+    def __getitem__(self, key):
+        return self._store[key]
+
+    def __setitem__(self, key, item):
+        self._store[key] = item
+
+    def __delitem__(self, key):
+        del self._store[key]
+
+    def __len__(self):
+        return len(self._store)
 
     def __iter__(self) -> Iterator[Self|str|int|bool|None]:
         yield self
-        for k, v in without_keys(self, ["__parent", "__typename"]).items():
+        for k, v in without_keys(self._store, ["__parent", "__typename"]).items():
             if isinstance(v, dict):
                 yield from iter(v)
             if isinstance(v, list):
@@ -28,7 +41,7 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
                 yield v
 
     def __hash__(self):
-        non_recursive_clone = without_keys(self, "__parent")
+        non_recursive_clone = without_keys(self._store, "__parent")
         return hash(
             (
                 frozenset(non_recursive_clone),
@@ -46,12 +59,27 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
             # cannot compare, id is missing
             return False
 
+    def items(self):
+        return self._store.items()
+
+    def keys(self):
+        return self._store.keys()
+
+    def values(self):
+        return self._store.values()
+
+    def get(self, *args, **kwargs):
+        return self._store.get(*args, **kwargs)
+
     def convert(self, item):
         if isinstance(item, dict):
             if "__typename" in item.keys():
                 c = {k: v for k, v in [c.register() for c in AbstractNetboxType.__subclasses__()]}[item["__typename"]]
-                #            self descending in tree
-                return c({k: self.convert(v) for k, v in without_keys(item, "__parent").items()} | {"__parent": self})
+                o = c()
+                o._store.update(
+                    {k: o.convert(v) for k, v in without_keys(item, "__parent").items()} | {"__parent": self}
+                )
+                return o
             else:
                 return item
         elif isinstance(item, list):
@@ -73,17 +101,23 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
     def register(cls) -> tuple:
         return cls._getNetboxType(), cls
 
-    def getParent(self, target_type=None) -> Self | None:
+    def hasParentAboveWithType(self, target_type: type[T]) -> bool:
+        instance = self['__parent']
+        return type(instance) == target_type
+
+    def getParent(self, target_type: type[T]) -> T|NoReturn:
+        ke = KeyError(
+                f"Cannot find any object above {type(self).__name__} which is of type {target_type.__name__}. "
+                f"It is likely you made wrong assumptions regarding the shape of the Netbox input data, or "
+                f"forgot to use hasParentAboveWithType()."
+        )
         if '__parent' not in self.keys():
-            return None
-        if not target_type:
-            return self['__parent']
+            raise ke
         else:
             instance = self['__parent']
             while type(instance) != target_type:
                 if "__parent" not in instance.keys():
-                    # up to the whole tree we went, and we found nothing
-                    return None
+                    raise ke
                 else:
                     instance = instance['__parent']
             return instance
@@ -121,6 +155,9 @@ class AbstractNetboxType(abc.ABC, Iterable, dict):
 class DeviceType(AbstractNetboxType):
     def __repr__(self):
         return super().__repr__() + f"({self.getName()})"
+
+    def isCompositeRoot(self) -> bool:
+        return not bool(self.get('__parent', False))
 
     def getDeviceType(self):
         return self['device_type']
@@ -215,7 +252,7 @@ class InterfaceType(AbstractNetboxType):
     def getTaggedVLANS(self) -> list:
         return self.get("tagged_vlans", [])
 
-    def enabled(self) -> bool:
+    def isEnabled(self) -> bool:
         return bool(self.get("enabled", True))
 
     def isLagMember(self):
@@ -377,10 +414,12 @@ class CosmoStaticRouteType(AbstractNetboxType):
     def getNextHop(self) -> IPAddressType|None:
         if self["next_hop"]:
             return IPAddressType(self["next_hop"])
+        return None
 
     def getInterface(self) -> InterfaceType|None:
         if self["interface"]:
             return InterfaceType(self["interface"])
+        return None
 
     def getPrefixFamily(self) -> int:
         return self["prefix"]["family"]["value"]
@@ -394,6 +433,10 @@ class CosmoStaticRouteType(AbstractNetboxType):
     def getVRF(self) -> VRFType|None:
         if self["vrf"]:
             return VRFType(self["vrf"])
+        return None
+
+    def __repr__(self):
+        return f"{super().__repr__()}({self.getPrefix()})"
 
 
 class CosmoLoopbackType(AbstractNetboxType):

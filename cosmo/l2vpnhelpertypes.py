@@ -2,10 +2,10 @@ import ipaddress
 import warnings
 from abc import abstractmethod, ABCMeta
 from functools import singledispatchmethod
-from typing import TypeVar
+from typing import NoReturn
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import head
+from cosmo.common import head, CosmoOutputType, L2VPNSerializationError
 from cosmo.types import InterfaceType, VLANType, AbstractNetboxType, DeviceType, L2VPNType, CosmoLoopbackType, \
     L2VPNTerminationType
 
@@ -64,7 +64,8 @@ class VlanBridgeEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
 
 
 # generic supported termination types. it's this shape so that it can be directly used by isinstance()
-T = TypeVar('T', tuple[type[AbstractNetboxType], type[AbstractNetboxType]], type[AbstractNetboxType], None)
+# (same shape as _ClassInfo)
+T = tuple[type[AbstractNetboxType], type[AbstractNetboxType]]|type[AbstractNetboxType]
 
 # FIXME simplify this!
 class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metaclass=ABCMeta):
@@ -110,11 +111,11 @@ class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
 
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
         warnings.warn(f"{self.getNetboxTypeName().upper()} L2VPN does not support {type(o)} terminations.")
-        return
+        return None
 
     def processVLANTypeTermination(self, o: VLANType) -> dict | None:
         warnings.warn(f"{self.getNetboxTypeName().upper()} L2VPN does not support {type(o)} terminations.")
-        return
+        return None
 
     def spitInterfaceEncapFor(self, o: VLANType|InterfaceType):
         encap_type = self.getChosenEncapType(o)
@@ -141,7 +142,7 @@ class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
                         ]
                     )
             )
-            interface_props = {}
+            interface_props: CosmoOutputType = dict()
             for i in linked_interfaces:
                 interface_props = interface_props | i.spitInterfacePathWith(inner_info)
             return {
@@ -191,8 +192,23 @@ class AbstractEPLEVPLL2VpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, metacl
             lambda i: i != local,
             parent_l2vpn.getTerminations()
         ))
+        if not isinstance(remote, InterfaceType):
+            raise L2VPNSerializationError(
+                f"Incorrect termination type {type(remote)} for L2VPN {parent_l2vpn.getName()}."
+            )
         # + l2circuits
-        remote_end_loopback = self.loopbacks_by_device.get(remote.getAssociatedDevice().getName())
+        associated_device = remote.getAssociatedDevice()
+        if not isinstance(associated_device, DeviceType):
+            raise L2VPNSerializationError(
+                f"Couldn't find the device associated to the remote end {remote} in "
+                f"EPL/EVPL L2VPN {parent_l2vpn.getName()}."
+            )
+        remote_end_loopback = self.loopbacks_by_device.get(associated_device.getName())
+        if not isinstance(remote_end_loopback, CosmoLoopbackType):
+            raise L2VPNSerializationError(
+                f"Couldn't find the associated remote end loopback for remote {associated_device.getName()} "
+                f"in EPL/EVPL L2VPN {parent_l2vpn.getName()}."
+            )
         return {
             self._l2circuits_key: {
                 parent_l2vpn.getName().replace("WAN: ", ""): {
@@ -200,12 +216,12 @@ class AbstractEPLEVPLL2VpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, metacl
                         o.getName(): {
                             "local_label": 1_000_000 + int(local.getParent(L2VPNTerminationType).getID()),
                             "remote_label": 1_000_000 + int(remote.getParent(L2VPNTerminationType).getID()),
-                            "remote_ip": str(ipaddress.ip_interface(remote_end_loopback.getIpv4()).ip),
+                            "remote_ip": str(ipaddress.ip_interface(str(remote_end_loopback.getIpv4())).ip),
                         }
                     },
                     "description": f"{parent_l2vpn.getType().upper()}: "
                                    f"{parent_l2vpn.getName().replace('WAN: ', '')} "
-                                   f"via {remote.getAssociatedDevice().getName()}",
+                                   f"via {associated_device.getName()}",
                 }
             }
         } | self.spitInterfaceEncapFor(o)
@@ -322,8 +338,8 @@ class VXLANEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationV
                 return int_or_vlan.getName()
         parent_l2vpn = o.getParent(L2VPNType)
         vlan_id = None
-        if o.getUntaggedVLAN():
-            vlan_id = o.getUntaggedVLAN().getVID()
+        if o.hasParentAboveWithType(InterfaceType):
+            vlan_id = o.getParent(InterfaceType).getUntaggedVLAN().getVID()
         return {
             self._vrf_key: {
                 parent_l2vpn.getName().replace("WAN: ", ""): {
@@ -406,3 +422,25 @@ class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVi
 
     def processVLANTypeTermination(self, o: VLANType) -> dict | None:
         return self.processTerminationCommon(o)
+
+
+# This is needed for type safety, in order to avoid accidentally initializing the ABC.
+# Also enables us to state more explicitly which L2VPN types are supported, and to
+# extract type matching from the ABC.
+# If we need more of these factories in the future, a possibility would be to
+# make a factory ABC with Generic types and template methods.
+class L2VpnVisitorClassFactoryFromL2VpnTypeObject:
+    _all_l2vpn_types = (
+        MPLSEVPNL2VpnTypeTerminationVisitor,
+        VXLANEVPNL2VpnTypeTerminationVisitor,
+        VPWSL2VpnTypeTerminationVisitor,
+        EVPLL2VpnTypeTerminationVisitorAbstract,
+        EPLL2VpnTypeTerminationVisitorAbstract,
+    )
+    _typename_to_class = {c.getNetboxTypeName(): c for c in _all_l2vpn_types}
+
+    def __init__(self, l2vpn_object: L2VPNType):
+        self.l2vpn = l2vpn_object
+
+    def get(self) -> type[AbstractL2VpnTypeTerminationVisitor] | NoReturn:
+        return self._typename_to_class[self.l2vpn.getType().lower()]

@@ -12,6 +12,17 @@ class InterfaceSerializationError(AbstractRecoverableError):
     pass
 
 
+class StaticRouteSerializationError(AbstractRecoverableError):
+    pass
+
+
+class L2VPNSerializationError(AbstractRecoverableError):
+    pass
+
+# recursive type for the shape of cosmo output. use it when specifying something that
+# the visitors will export.
+CosmoOutputType = dict[str, str|dict[str, "CosmoOutputType"]|list["CosmoOutputType"]]
+
 # next() can raise StopIteration, so that's why I use this function
 def head(l):
     return None if not l else l[0]

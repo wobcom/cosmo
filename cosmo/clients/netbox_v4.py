@@ -22,12 +22,12 @@ class ParallelQuery(ABC):
     def _fetch_data(self, **kwargs):
         pass
 
-    def merge_into(self, data_promise, data: object):
+    def merge_into(self, data_promise, data: dict):
         query_data = data_promise.get()
         return self._merge_into(data, query_data)
 
     @abstractmethod
-    def _merge_into(self, data: object, query_result):
+    def _merge_into(self, data: dict, query_result):
         pass
 
 
@@ -83,6 +83,10 @@ class ConnectedDevicesDataQuery(ParallelQuery):
                     filter(lambda i: i['id'] == cd_interface['parent']['id'], d['interfaces']),
                     None
                 )
+                
+                if not parent_interface:
+                  continue
+                
                 parent_interface['connected_endpoints'] = cd_interface['parent']['connected_endpoints']
 
         return data
@@ -138,7 +142,7 @@ class LoopbackDataQuery(ParallelQuery):
 
         return self.client.query(query_template.substitute())['data']
 
-    def _merge_into(self, data: object, query_data):
+    def _merge_into(self, data: dict, query_data):
 
         loopbacks = dict()
 
@@ -234,7 +238,7 @@ class L2VPNDataQuery(ParallelQuery):
 
         return self.client.query(query_template.substitute())['data']
 
-    def _merge_into(self, data: object, query_data):
+    def _merge_into(self, data: dict, query_data):
         return {
             **data,
             **query_data,
