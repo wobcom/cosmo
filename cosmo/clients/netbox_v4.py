@@ -261,6 +261,48 @@ class StaticRouteQuery(ParallelQuery):
         return data
 
 
+class StaticRouteDummyQuery(ParallelQuery):
+    def _fetch_data(self, kwargs):
+      return []
+
+    def _merge_into(self, data: dict, query_data):
+        for d in data['device_list']:
+            d['staticroute_set'] = []
+
+        return data
+
+class IPPoolDataQuery(ParallelQuery):
+
+    def _fetch_data(self, kwargs):
+        device_list = kwargs.get("device_list")
+        return self.client.query_rest("api/plugins/ip-pools/ippools/", {"devices": device_list})
+
+    def _merge_into(self, data: dict, query_data):
+      
+        for d in data['device_list']:
+            if 'pool_set' not in d:
+              d['pool_set'] = []
+                  
+            for pool in query_data:
+              if next(filter(lambda pd: str(pd['id']) == d['id'], pool['devices']), None):
+                d['pool_set'].append({
+                  **pool,
+                  "__typename": "CosmoIPPoolType"
+                })
+
+        return data
+
+
+class IPPoolDataDummyQuery(ParallelQuery):
+
+    def _fetch_data(self, kwargs):
+        return []
+
+    def _merge_into(self, data: dict, query_data):
+        for d in data['device_list']:
+            d['pool_set'] = []
+        return data
+
 # Note:
 # Netbox v4.2 broke mac addresses in the GraphQL queries. Therefore, we just fetch them via the REST API and add them.
 class DeviceMACQuery(ParallelQuery):
@@ -400,9 +442,10 @@ class DeviceDataQuery(ParallelQuery):
 
 class NetboxV4Strategy:
 
-    def __init__(self, url, token, multiple_mac_addresses):
+    def __init__(self, url, token, multiple_mac_addresses, feature_flags):
         self.client = NetboxAPIClient(url, token)
         self.multiple_mac_addresses = multiple_mac_addresses
+        self.feature_flags = feature_flags
 
     def get_data(self, device_config):
         device_list = device_config['router'] + device_config['switch']
@@ -416,10 +459,11 @@ class NetboxV4Strategy:
 
         queries.extend([
             L2VPNDataQuery(self.client, device_list=device_list),
-            StaticRouteQuery(self.client, device_list=device_list),
+            StaticRouteQuery(self.client, device_list=device_list) if self.feature_flags['routing'] else StaticRouteDummyQuery(self.client, device_list=device_list),
             DeviceMACQuery(self.client, device_list=device_list),
             ConnectedDevicesDataQuery(self.client, device_list=device_list),
-            LoopbackDataQuery(self.client, device_list=device_list)
+            LoopbackDataQuery(self.client, device_list=device_list),
+            IPPoolDataQuery(self.client, device_list=device_list) if self.feature_flags['ippools'] else IPPoolDataDummyQuery(self.client, device_list=device_list),
         ])
 
         with Pool() as pool:
