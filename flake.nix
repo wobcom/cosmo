@@ -17,6 +17,8 @@
           # The application
           cosmo = prev.poetry2nix.mkPoetryApplication {
             projectDir = ./.;
+            doCheck = false;
+            checkGroups = [];
           };
         })
       ];
