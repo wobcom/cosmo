@@ -14,18 +14,21 @@ class NetboxClient:
         self.url = url
         self.token = token
 
-        version = self.query_version()
+        version, feature_flags = self.query_version()
         base_version_match = re.search(r'[\d.]+', version)
         self.base_version = Version(base_version_match.group(0))
 
         if self.base_version > Version("4.2.0"):
             log.info("Using version 4.2.x strategy...")
-            self.child_client = NetboxV4Strategy(url, token, multiple_mac_addresses=True)
+            self.child_client = NetboxV4Strategy(url, token, multiple_mac_addresses=True, feature_flags=feature_flags)
         elif self.base_version > Version("4.0.0"):
             log.info("Using version 4.0.x strategy...")
-            self.child_client = NetboxV4Strategy(url, token, multiple_mac_addresses=False)
+            self.child_client = NetboxV4Strategy(url, token, multiple_mac_addresses=False, feature_flags=feature_flags)
         else:
             raise Exception("Unknown Version")
+        
+        for f, e in feature_flags.items():
+            log.info(f"Feature {f}: {e}")
 
     def query_version(self):
         r = requests.get(
@@ -40,7 +43,14 @@ class NetboxClient:
             raise Exception("Error querying api: " + r.text)
 
         json = r.json()
-        return json['netbox-version']
+        version = json['netbox-version']
+
+        feature_flags = {
+            "routing": "netbox_plugin_routing" in json['plugins'] and False,
+            "ippools": "netbox_plugin_ip_pools" in json['plugins'] and False,
+        }
+
+        return version, feature_flags
 
     def get_data(self, device_config):
         start_time = time.perf_counter()
