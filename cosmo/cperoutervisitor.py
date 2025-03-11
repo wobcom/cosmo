@@ -4,6 +4,26 @@ from cosmo.types import IPAddressType, DeviceType
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
 
+class CpeRouterIPVisitor(AbstractNoopNetboxTypesVisitor):
+    def __init__(self, ip_networks) -> None:
+        super().__init__()
+        
+        self.ip_networks = ip_networks
+        
+    @singledispatchmethod
+    def accept(self, o):
+        return super().accept(o)
+
+    @accept.register
+    def _(self, o: IPAddressType):
+        ipo = o.getIPInterfaceObject()
+        
+        for ipn in self.ip_networks:
+            if o.getIPInterfaceObject() in ipn:
+                return ipo
+
+        return None
+
 class CpeRouterExporterVisitor(AbstractNoopNetboxTypesVisitor):
     """
     This visitor creates a list of networks which are exported from the router

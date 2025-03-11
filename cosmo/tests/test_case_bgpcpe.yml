@@ -52,6 +52,8 @@ device_list:
         - ip_addresses:
           - address: 10.128.6.12/29
             __typename: IPAddressType
+          - address: 2a0e:b941:2::21/122
+            __typename: IPAddressType
           id: ''
           name: ''
           __typename: InterfaceType
@@ -116,12 +118,57 @@ device_list:
       __typename: VRFType
       description: ''
       export_targets:
-        - name: target:9136:407
-          __typename: RouteTargetType
+      - name: target:9136:407
+        __typename: RouteTargetType
       id: '407'
       import_targets:
-        - name: target:9136:407
-          __typename: RouteTargetType
+      - name: target:9136:407
+        __typename: RouteTargetType
+      name: L3VPN
+      rd: null
+    parent:
+      __typename: InterfaceType
+      id: '191940'
+      name: "ifp-0/1/2"
+      mtu: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: 5
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    __typename: InterfaceType
+    description: ''
+    enabled: true
+    id: '192119'
+    ip_addresses:
+    - address: 10.128.6.13/29
+      __typename: IPAddressType
+    - address: 2a0e:b941:2::20/122
+      __typename: IPAddressType
+    lag: null
+    mac_address: null
+    mode: ACCESS
+    mtu: 1500
+    name: ifp-0/1/2.5
+    tagged_vlans: []
+    tags:
+    - name: bgp:cpe
+      slug: bgpcpe
+      __typename: TagType
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf:
+      __typename: VRFType
+      description: ''
+      export_targets:
+      - name: target:9136:407
+        __typename: RouteTargetType
+      id: '407'
+      import_targets:
+      - name: target:9136:407
+        __typename: RouteTargetType
       name: L3VPN
       rd: null
     parent:
@@ -140,14 +187,14 @@ device_list:
     description: ''
     enabled: true
     id: '192046'
-    ip_addresses: [ ]
+    ip_addresses: []
     lag: null
     mac_address: null
     mode: null
     mtu: null
     name: lo-0/0/0
-    tagged_vlans: [ ]
-    tags: [ ]
+    tagged_vlans: []
+    tags: []
     type: LOOPBACK
     untagged_vlan: null
     vrf: null
@@ -164,15 +211,15 @@ device_list:
     enabled: true
     id: '192047'
     ip_addresses:
-      - address: 45.139.136.10/32
-        __typename: IPAddressType
+    - address: 45.139.136.10/32
+      __typename: IPAddressType
     lag: null
     mac_address: null
     mode: null
     mtu: null
     name: lo-0/0/0.0
-    tagged_vlans: [ ]
-    tags: [ ]
+    tagged_vlans: []
+    tags: []
     type: VIRTUAL
     untagged_vlan: null
     vrf: null
