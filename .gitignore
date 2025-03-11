@@ -11,3 +11,7 @@ machines/**
 .coverage
 .dmypy.json
 *~
+
+.vscode
+.env
+.code

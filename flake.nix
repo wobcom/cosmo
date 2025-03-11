@@ -17,6 +17,10 @@
           # The application
           cosmo = prev.poetry2nix.mkPoetryApplication {
             projectDir = ./.;
+
+            # This disables the build of mypy, which just takes too long.
+            check = false;
+            checkGroups = [];
           };
         })
       ];
