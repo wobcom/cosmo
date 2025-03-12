@@ -387,7 +387,6 @@ def test_router_case_local_bgpcpe():
     
     assert 'CPE_ifp-0-1-2-5_V4' in groups_L3VPN
     assert 'CPE_ifp-0-1-2-5_V6' in groups_L3VPN
-    print(groups_L3VPN)
     assert groups_L3VPN['CPE_ifp-0-1-2-5_V4']['neighbors'][0]['peer'] == '10.128.6.12'
     assert groups_L3VPN['CPE_ifp-0-1-2-5_V6']['neighbors'][0]['peer'] == '2a0e:b941:2::21'
     assert not 'export' in groups_L3VPN['CPE_ifp-0-1-2-5_V4']['family']['ipv4_unicast']['policy']

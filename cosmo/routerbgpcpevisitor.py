@@ -13,7 +13,8 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
     def accept(self, o):
         return super().accept(o)
     
-    def _processNumberedBGP(self, cpe, base_group_name, linked_interface, policy_v4, policy_v6):
+    @staticmethod
+    def _processNumberedBGP(cpe, base_group_name, linked_interface, policy_v4, policy_v6):
         ip_addresses = linked_interface.getIPAddresses()
         ip_addresses_ipo = map(lambda x: x.getIPInterfaceObject(), ip_addresses)
         own_ipv4_address = next(filter(lambda i: type(i) is IPv4Interface, ip_addresses_ipo), None)               
@@ -62,8 +63,8 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
             
         return groups
         
-    
-    def _processUnnumberedBGP(self, base_group_name, linked_interface, policy_v4, policy_v6):
+    @staticmethod
+    def _processUnnumberedBGP(base_group_name, linked_interface, policy_v4, policy_v6):
         return {
             base_group_name: {
                 "any_as": True,
@@ -121,9 +122,9 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
             policy_v4["export"] = "DEFAULT_V4"
             policy_v6["export"] = "DEFAULT_V6"
             
-        cpet = DeviceType(cpe["device"])
+        t_cpe = DeviceType(cpe["device"])
         v4_import, v6_import = set(), set() # unique
-        for item in iter(cpet):
+        for item in iter(t_cpe):
             ret = CpeRouterExporterVisitor().accept(item)
             if not ret:
                 continue
@@ -136,11 +137,14 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
         policy_v4["import_list"] = list(v4_import)
         policy_v6["import_list"] = list(v6_import)
         
-        groups = self._processNumberedBGP(
-            cpe, group_name, linked_interface, policy_v4, policy_v6
-        ) if len(ip_addresses) > 0 else self._processUnnumberedBGP(
-            group_name, linked_interface, policy_v4, policy_v6
-        )
+        if len(ip_addresses) > 0:
+            groups = self._processNumberedBGP(
+                cpe, group_name, linked_interface, policy_v4, policy_v6
+            )  
+        else:
+            groups = self._processUnnumberedBGP(
+                group_name, linked_interface, policy_v4, policy_v6
+            )
         
         return {
             self._vrf_key: {
