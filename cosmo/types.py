@@ -7,6 +7,9 @@ from ipaddress import IPv4Interface, IPv6Interface
 from .common import without_keys
 from typing import Self, Iterator, TypeVar, NoReturn
 
+def findSubclasses(cls):
+    return set(cls.__subclasses__()).union(
+        [s for c in cls.__subclasses__() for s in findSubclasses(c)])
 
 T = TypeVar('T', bound="AbstractNetboxType")
 class AbstractNetboxType(abc.ABC, Iterable):
@@ -16,7 +19,7 @@ class AbstractNetboxType(abc.ABC, Iterable):
         self._store.update(**kwargs)
         for k, v in without_keys(self._store, "__parent").items():
             self[k] = self.convert(v)
-
+            
     def __getitem__(self, key):
         return self._store[key]
 
@@ -30,15 +33,20 @@ class AbstractNetboxType(abc.ABC, Iterable):
         return len(self._store)
 
     def __iter__(self) -> Iterator[Self|str|int|bool|None]:
+        # I bet, we cannot to this before AbstractClass and all of it's inherited childs are constructed, so we need to do this in here.
+        iterableSubclasses = findSubclasses(AbstractNetboxType)
+        
         yield self
         for k, v in without_keys(self._store, ["__parent", "__typename"]).items():
             if isinstance(v, dict):
                 yield from iter(v)
-            if isinstance(v, list):
+            elif isinstance(v, list):
                 for e in v:
                     yield from e
-            else:
-                yield v
+            elif next((cs for cs in iterableSubclasses if isinstance(v, cs)), None):
+                yield from iter(v)
+                
+            # Note: We can omit the emit of scalars, because we do not use them.
 
     def __hash__(self):
         non_recursive_clone = without_keys(self._store, "__parent")
@@ -74,7 +82,12 @@ class AbstractNetboxType(abc.ABC, Iterable):
     def convert(self, item):
         if isinstance(item, dict):
             if "__typename" in item.keys():
-                c = {k: v for k, v in [c.register() for c in AbstractNetboxType.__subclasses__()]}[item["__typename"]]
+                
+                # Taken from https://stackoverflow.com/questions/3862310/how-to-find-all-the-subclasses-of-a-class-given-its-name
+                availableSubclasses = findSubclasses(AbstractNetboxType)
+                availableClassesForTypeNames = {k: v for k, v in [c.register() for c in availableSubclasses]} 
+                
+                c = availableClassesForTypeNames[item["__typename"]]
                 o = c()
                 o._store.update(
                     {k: o.convert(v) for k, v in without_keys(item, "__parent").items()} | {"__parent": self}
