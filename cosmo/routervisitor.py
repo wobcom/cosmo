@@ -6,14 +6,15 @@ from typing import Optional
 
 import deepmerge
 
+from ipaddress import IPv4Interface, IPv6Interface
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import InterfaceSerializationError, head, StaticRouteSerializationError
-from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
-from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
+from cosmo.common import (CosmoOutputType, head, InterfaceSerializationError,
+    StaticRouteSerializationError)
+from cosmo.manufacturers import ManufacturerFactoryFromDevice
 from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor, RouterL2VPNExporterVisitor
-from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
-    L2VPNTerminationType, IPAddressType, CosmoStaticRouteType, DeviceTypeType, PlatformType
-
+from cosmo.types import (ConnectedDeviceType, ConnectedInterfaceType, ConnectedIPAddressType, CosmoLoopbackType, CosmoStaticRouteType, DeviceType, DeviceTypeType,
+    InterfaceType, IPAddressType, L2VPNTerminationType, L2VPNType, PlatformType, TagType, VLANType,
+    VRFType)
 
 class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     def __init__(self, loopbacks_by_device: dict[str, CosmoLoopbackType], asn: int, *args, **kwargs):
@@ -21,7 +22,6 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         # Note: I have to use composition since singledispatchmethod does not work well with inheritance
         self.l2vpn_exporter = RouterL2VPNExporterVisitor(loopbacks_by_device=loopbacks_by_device, asn=asn)
         self.l2vpn_validator = RouterL2VPNValidatorVisitor(loopbacks_by_device=loopbacks_by_device, asn=asn)
-        self.bgpcpe_exporter = RouterBgpCpeExporterVisitor()
         self.loopbacks_by_device = loopbacks_by_device
         self.allow_private_ips = False
 
@@ -155,6 +155,167 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     def _(self, o: CosmoLoopbackType):
         pass
 
+    def getVirtualInterfaceOfRouterFromCPE(self, o: ConnectedInterfaceType) -> InterfaceType | None:
+        if not o.isSubInterface():
+            return None
+        
+        linked_interface = o.getParent(InterfaceType)
+        device = linked_interface.getParent(DeviceType)
+
+        for dI in device.getInterfaces():
+            if dI.getName() == f'{linked_interface.getName()}.{o.getUnitNumber()}':
+                return dI
+            
+        return None
+    
+
+    @accept.register
+    def _(self, o: ConnectedInterfaceType):
+        pass
+
+    @accept.register
+    def _(self, o: ConnectedDeviceType):
+        
+        router_device = o.getParent(DeviceType)
+        
+        vrf_return_value = {}
+
+        for interface in router_device.getInterfaces():
+            if not interface.isSubInterface():
+                continue
+
+            hasTag = any((tag.getTagName() == "bgp" and tag.getTagValue() == "cpe") for tag in interface.getTags())
+            if not hasTag:
+                continue
+            
+            parent_router_interface = next(x for x in router_device.getInterfaces() if x.getName() == interface.getSubInterfaceParentInterfaceName())
+            dx= [ x.get("device") for x in parent_router_interface.getConnectedEndpoints()]
+            router_interface = None        
+            if o in dx:
+                router_interface = interface
+                
+            if not router_interface:
+                continue
+                
+            
+            router_interface_ip_addresses = router_interface.getIPAddresses()
+            router_interface_ipa_addresses = [x.getIPInterfaceObject() for x in router_interface_ip_addresses]
+            router_interface_vrf = router_interface.getVRF()
+            
+            policy_v4: CosmoOutputType = {}
+            policy_v6: CosmoOutputType = {}
+            v4_import = set()
+            v6_import = set()
+            
+            # If we are in our default VRF, we only export a default route and not a full table.
+            # If we are in a specific VRF, we can just export everything to the customer.
+            if not router_interface_vrf:
+                policy_v4["export"] = "DEFAULT_V4"
+                policy_v6["export"] = "DEFAULT_V6"
+                
+            primary_ipa = o.getPrimaryIP()
+
+            for cpe_interface in o.getInterfaces():
+                for cpe_ip in cpe_interface.getIPAddresses():
+                    cpe_ipa = cpe_ip.getIPInterfaceObject()
+                    
+                    # We do not want to allow them to announce their primary IP (mgmt mostly)
+                    if cpe_ipa == primary_ipa.getIPInterfaceObject():
+                        continue
+                    
+                    # We do not want to allow them to announce our transfer nets
+                    if any([(router_ipa in cpe_ipa.network) for router_ipa in router_interface_ipa_addresses]):
+                        continue
+                    
+                    match cpe_ipa.version:
+                        case 4:
+                            v4_import.add(cpe_ipa.network.with_prefixlen)
+                        case 6:
+                            v6_import.add(cpe_ipa.network.with_prefixlen)
+                    
+            policy_v4["import_list"] = list(v4_import)
+            policy_v6["import_list"] = list(v6_import)
+    
+            if len(router_interface_ip_addresses) > 0:
+                # Numbered BGP
+                    vrf_return_value = deepmerge.always_merger.merge( 
+                        vrf_return_value,
+                        router_interface.splitBGPGroupPath({
+                            "family": {
+                                "ipv4_unicast": {
+                                    "policy": policy_v4
+                                }
+                            }
+                        }, 4)
+                    )
+                        
+                    vrf_return_value = deepmerge.always_merger.merge( 
+                        vrf_return_value,                        
+                        router_interface.splitBGPGroupPath({
+                            "family": {
+                                "ipv6_unicast": {
+                                    "policy": policy_v6
+                                }
+                            }
+                        }, 6)
+                    )
+            else:
+                # Unnumbered BGP, we already did all the configuration needed.
+                vrf_return_value = deepmerge.always_merger.merge(
+                    vrf_return_value,
+                    router_interface.splitBGPGroupPath({
+                        "family": {
+                            "ipv4_unicast": {
+                                "policy": policy_v4
+                            },
+                            "ipv6_unicast": {
+                                "policy": policy_v6
+                            }
+                        }
+                    }, None)
+                )
+
+        return {
+            self._vrf_key: vrf_return_value
+        }
+
+    @accept.register
+    def _(self, o: ConnectedIPAddressType):
+        # We also have a ConnectedIPAddressType for our primary IP address and maybe on our through-interface for connected_endpoints.
+        # We only want to process IP addresses in our interface list on our device.
+        
+        interface = o.getParent(ConnectedInterfaceType)
+        if not interface.hasParentAboveWithType(ConnectedDeviceType):
+            return
+        
+        router_interface = self.getVirtualInterfaceOfRouterFromCPE(interface)
+        
+        if not router_interface:
+            return
+        hasTag = any(tag.getTagName() == "bgp" and tag.getTagValue() == "cpe" for tag in router_interface.getTags())
+        if not hasTag:
+            return
+        
+        router_interface_ip_addresses = router_interface.getIPAddresses()
+        ipa = o.getIPInterfaceObject()
+        
+        if len(router_interface_ip_addresses) > 0:
+            # Numbered BGP
+            return {
+                self._vrf_key: {
+                    **router_interface.splitBGPGroupPath({
+                        "neighbors": [
+                            {
+                                "peer": str(ipa.ip)
+                            }
+                        ]
+                    }, ipa.version)
+                }
+            }
+        else:
+            # Unnumbered BGP, we already did all the configuration needed.
+            return 
+    
     @staticmethod
     def processInterfaceCommon(o: InterfaceType):
         description = o.getDescription()
@@ -555,7 +716,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             }
         }
 
-    def processBgpUnnumberedTag(self, o: TagType):
+    def processUnnumberedInterfaceTag(self, o: TagType):
         parent_interface = o.getParent(InterfaceType)
         opt_unnumbered_interface = {}
         if parent_interface.getVRF():
@@ -582,6 +743,97 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 })
             }
         }
+        
+  
+            
+    def processNumberedBGP(self, o: InterfaceType):
+        group_name_v4 = "CPE_" + o.getName().replace(".", "-").replace("/","-") + "_V4"
+        group_name_v6 = "CPE_" + o.getName().replace(".", "-").replace("/","-") + "_V6"
+        
+        ip_addresses = o.getIPAddresses()
+        ip_addresses_ipo = map(lambda x: x.getIPInterfaceObject(), ip_addresses)
+        own_ipv4_address = next(filter(lambda i: type(i) is IPv4Interface, ip_addresses_ipo), None)               
+        own_ipv6_address = next(filter(lambda i: type(i) is IPv6Interface, ip_addresses_ipo), None)
+        
+        # Note: This is more or less a stub and will be further filled by Connceted* types.
+        groups = {}
+        
+        if own_ipv4_address:
+            groups[group_name_v4] = {
+                "any_as": True,
+                "local_address": str(own_ipv4_address.ip),
+                "neighbors": [],
+                "family": {
+                    "ipv4_unicast": {}
+                }
+            }
+        
+        if own_ipv6_address:
+            groups[group_name_v6] = {
+                "any_as": True,
+                "local_address": str(own_ipv6_address.ip),
+                "neighbors": [],
+                "family": {
+                    "ipv6_unicast": {}
+                }
+            }
+        
+        return groups
+
+        
+    def processUnnumberedBGP(self, o: InterfaceType):
+        group_name = "CPE_" + o.getName().replace(".", "-").replace("/","-")
+        
+        # Note: This is more or less a stub and will be further filled by Connceted* types.
+        return {
+            group_name: {
+                "any_as": True,
+                "link_local_nexthop_only": True,
+                "neighbors": [
+                    {"interface": o.getName()}
+                ],
+                "family": {
+                    "ipv4_unicast": {
+                        "extended_nexthop": True,
+                    },
+                    "ipv6_unicast": {}
+                }
+            }
+        }
+        
+    def processBGPTag(self, o: TagType):
+        interface = o.getParent(InterfaceType)
+
+        if not interface.isSubInterface():
+            warnings.warn(f"{interface.getName()} is not a subinterface, thus it cannot be used with bgp:cpe")
+            return
+
+        vrf_object = interface.getVRF()
+        vrf_name = "default"
+        if isinstance(vrf_object, VRFType):
+            vrf_name = vrf_object.getName()
+        
+        # If there are any IP adresses assigned to this interface, we are assuming numbered BGP.
+        # If not, it is unnumbered BGP.
+        
+        ip_addresses = interface.getIPAddresses()
+        if len(ip_addresses) > 0:
+            groups = self.processNumberedBGP(interface)
+        else:
+            groups = self.processUnnumberedBGP(interface)
+            
+        return {
+            self._vrf_key: {
+                vrf_name: {
+                    "protocols": {
+                        "bgp": {
+                            "groups": groups
+                        }
+                    }
+                }
+            }
+        }
+        
 
     @accept.register
     def _(self, o: TagType):
@@ -607,10 +859,10 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             case "access":
                 return self.processAccessTag(o)
             case "unnumbered":
-                return self.processBgpUnnumberedTag(o)
+                return self.processUnnumberedInterfaceTag(o)
             case "bgp":
                 if o.getTagValue() == "cpe":
-                    return self.bgpcpe_exporter.accept(o)
+                    return self.processBGPTag(o)
                 else:
                     warnings.warn(f"unkown bgp tag {o.getTagValue()}")
             case _:

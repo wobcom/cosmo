@@ -31,32 +31,37 @@ device_list:
     vrf: null
     parent: null
     connected_endpoints:
-    - device:
+    - __typename: ConnectedInterfaceType
+      name: "ge-0/0/0"
+      device:
+        __typename: ConnectedDeviceType
         name: ''
         primary_ip4:
-          __typename: IPAddressType
+          __typename: ConnectedIPAddressType
           address: 10.128.6.12/29
         interfaces:
         - ip_addresses: []
           id: ''
-          name: ''
-          __typename: InterfaceType
+          name: 'ge-0/0/0.3'
+          __typename: ConnectedInterfaceType
         - ip_addresses:
           - address: 10.1.0.1/28
-            __typename: IPAddressType
+            __typename: ConnectedIPAddressType
           - address: 10.1.0.2/28
-            __typename: IPAddressType
+            __typename: ConnectedIPAddressType
+          - address: 2a0e:b941:2:42::/64
+            __typename: ConnectedIPAddressType
           id: ''
-          name: ''
-          __typename: InterfaceType
+          name: 'ge-0/0/0.4'
+          __typename: ConnectedInterfaceType
         - ip_addresses:
           - address: 10.128.6.12/29
-            __typename: IPAddressType
+            __typename: ConnectedIPAddressType
           - address: 2a0e:b941:2::21/122
-            __typename: IPAddressType
+            __typename: ConnectedIPAddressType
           id: ''
-          name: ''
-          __typename: InterfaceType
+          name: 'ge-0/0/0.5'
+          __typename: ConnectedInterfaceType
   - custom_fields:
       bpdufilter: false
       inner_tag: null

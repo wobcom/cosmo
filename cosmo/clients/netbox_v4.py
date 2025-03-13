@@ -38,14 +38,20 @@ class ConnectedDevicesDataQuery(ParallelQuery):
               interface_list(filters: { tag: "bgp_cpe" }) {
                 __typename
                 id,
+                name
                 parent {
                   __typename
                   id,
+                  name
                   connected_endpoints {
                     ... on InterfaceType {
                       __typename
+                      id
                       name
                       device {
+                        id
+                        name
+                        __typename
                         primary_ip4 {
                           __typename
                           address
@@ -88,6 +94,18 @@ class ConnectedDevicesDataQuery(ParallelQuery):
                   continue
                 
                 parent_interface['connected_endpoints'] = cd_interface['parent']['connected_endpoints']
+                
+                for ce in parent_interface['connected_endpoints']:
+                  ce["__typename"] = "ConnectedInterfaceType"
+                  ce["device"]["__typename"] = "ConnectedDeviceType"
+                  if ce["device"]["primary_ip4"]:
+                    ce["device"]["primary_ip4"]['__typename'] = "ConnectedIPAddressType"
+                  for cei in ce["device"]['interfaces']:
+                    cei["__typename"] = "ConnectedInterfaceType"
+                    for ceii in cei["ip_addresses"]:
+                      ceii["__typename"] = "ConnectedIPAddressType"
+                      
+                    
 
         return data
 

@@ -183,6 +183,9 @@ class DeviceType(AbstractNetboxType):
 
     def getSerial(self) -> str:
         return self.get("serial", "")
+    
+    def getPrimaryIP(self):
+        return self.get("primary_ip4", None)
 
 
 class DeviceTypeType(AbstractNetboxType):
@@ -328,6 +331,31 @@ class InterfaceType(AbstractNetboxType):
                     **d
                 }
             }
+            
+    def splitBGPGroupPath(self, d: dict, version=None) -> dict:
+        base_group_name = "CPE_" + self.getName().replace(".", "-").replace("/","-")
+        
+        match version:
+            case None:
+                group_name = base_group_name
+            case 4:
+                group_name = f'{base_group_name}_V4'
+            case 6:
+                group_name = f'{base_group_name}_V6'
+        
+        router_interface_vrf = self.getVRF()
+        router_vrf_name = router_interface_vrf.getName() if router_interface_vrf else "default"
+        return {
+            router_vrf_name: {
+                "protocols": {
+                    "bgp": {
+                        "groups": {
+                            group_name: d
+                        }
+                    }
+                }
+            }
+        }
 
     def getMode(self) -> str|None:
         return self.get("mode")
@@ -378,7 +406,7 @@ class InterfaceType(AbstractNetboxType):
     def hasParentInterface(self) -> bool:
         return bool(self.get("parent"))
 
-    def getConnectedEndpoints(self) -> list[DeviceType]:
+    def getConnectedEndpoints(self) -> list[Self]:
         return self.get("connected_endpoints", [])
 
     def getCustomFields(self) -> dict:
@@ -461,3 +489,12 @@ class CosmoLoopbackType(AbstractNetboxType):
 
     def getIpv6(self) -> str | None:
         return self["ipv6"]
+
+class ConnectedInterfaceType(InterfaceType):
+    pass
+
+class ConnectedDeviceType(DeviceType):
+    pass
+
+class ConnectedIPAddressType(IPAddressType):
+    pass
