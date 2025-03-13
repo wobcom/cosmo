@@ -178,8 +178,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         
         router_device = o.getParent(DeviceType)
         
-        vrf_return_value: CosmoOutputType = {}
+        vrf_bgp_group_definitions: CosmoOutputType = {}
 
+        # Since, we have to collect all IP addresses from all devices, 
         for interface in router_device.getInterfaces():
             if not interface.isSubInterface():
                 continue
@@ -188,15 +189,18 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             if not hasTag:
                 continue
             
+            # At this point, we found a bgp-enabled subinterface on our router.
+            # We have to check, if this is actually connected to our ConnectedDevice.
+
+            # Physical interface, so we can use this to get the connected endpoints.
             parent_router_interface = next(x for x in router_device.getInterfaces() if x.getName() == interface.getSubInterfaceParentInterfaceName())
-            dx= [ x.get("device") for x in parent_router_interface.getConnectedEndpoints()]
-            router_interface = None        
-            if o in dx:
-                router_interface = interface
+            connected_devices = [ x.get("device") for x in parent_router_interface.getConnectedEndpoints()]
+
+            router_interface = next((connected_device for connected_device in connected_devices if o in connected_device), None)
                 
+            # If the device has multiple BGP sessions and this is not to our device, we skip this interface.
             if not router_interface:
                 continue
-                
             
             router_interface_ip_addresses = router_interface.getIPAddresses()
             router_interface_ipa_addresses = [x.getIPInterfaceObject() for x in router_interface_ip_addresses]
@@ -215,6 +219,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 
             primary_ipa = o.getPrimaryIP()
 
+            # We have to collect all IP networks from the device to whitelist them.
             for cpe_interface in o.getInterfaces():
                 for cpe_ip in cpe_interface.getIPAddresses():
                     cpe_ipa = cpe_ip.getIPInterfaceObject()
@@ -238,31 +243,31 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     
             if len(router_interface_ip_addresses) > 0:
                 # Numbered BGP
-                    vrf_return_value = deepmerge.always_merger.merge( 
-                        vrf_return_value,
-                        router_interface.splitBGPGroupPath({
-                            "family": {
-                                "ipv4_unicast": {
-                                    "policy": policy_v4
-                                }
+                vrf_bgp_group_definitions = deepmerge.always_merger.merge( 
+                    vrf_bgp_group_definitions,
+                    router_interface.splitBGPGroupPath({
+                        "family": {
+                            "ipv4_unicast": {
+                                "policy": policy_v4
                             }
-                        }, 4)
-                    )
-                        
-                    vrf_return_value = deepmerge.always_merger.merge( 
-                        vrf_return_value,                        
-                        router_interface.splitBGPGroupPath({
-                            "family": {
-                                "ipv6_unicast": {
-                                    "policy": policy_v6
-                                }
+                        }
+                    }, 4)
+                )
+                    
+                vrf_bgp_group_definitions = deepmerge.always_merger.merge( 
+                    vrf_bgp_group_definitions,                        
+                    router_interface.splitBGPGroupPath({
+                        "family": {
+                            "ipv6_unicast": {
+                                "policy": policy_v6
                             }
-                        }, 6)
-                    )
+                        }
+                    }, 6)
+                )
             else:
-                # Unnumbered BGP, we already did all the configuration needed.
-                vrf_return_value = deepmerge.always_merger.merge(
-                    vrf_return_value,
+                # Unnumbered BGP
+                vrf_bgp_group_definitions = deepmerge.always_merger.merge(
+                    vrf_bgp_group_definitions,
                     router_interface.splitBGPGroupPath({
                         "family": {
                             "ipv4_unicast": {
@@ -276,7 +281,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 )
 
         return {
-            self._vrf_key: vrf_return_value
+            self._vrf_key: vrf_bgp_group_definitions
         }
 
     @accept.register
