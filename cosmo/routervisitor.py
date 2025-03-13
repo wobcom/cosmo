@@ -196,15 +196,13 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             parent_router_interface = next(x for x in router_device.getInterfaces() if x.getName() == interface.getSubInterfaceParentInterfaceName())
             connected_devices = [ x.get("device") for x in parent_router_interface.getConnectedEndpoints()]
 
-            router_interface = next((connected_device for connected_device in connected_devices if o in connected_device), None)
-                
-            # If the device has multiple BGP sessions and this is not to our device, we skip this interface.
-            if not router_interface:
+            # If your device is not in connected_devices, we skip.
+            if o not in connected_devices:
                 continue
-            
-            router_interface_ip_addresses = router_interface.getIPAddresses()
-            router_interface_ipa_addresses = [x.getIPInterfaceObject() for x in router_interface_ip_addresses]
-            router_interface_vrf = router_interface.getVRF()
+                
+            interface_ip_addresses = interface.getIPAddresses()
+            interface_ipa_addresses = [x.getIPInterfaceObject() for x in interface_ip_addresses]
+            interface_vrf = interface.getVRF()
             
             policy_v4: CosmoOutputType = {}
             policy_v6: CosmoOutputType = {}
@@ -213,7 +211,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             
             # If we are in our default VRF, we only export a default route and not a full table.
             # If we are in a specific VRF, we can just export everything to the customer.
-            if not router_interface_vrf:
+            if not interface_vrf:
                 policy_v4["export"] = "DEFAULT_V4"
                 policy_v6["export"] = "DEFAULT_V6"
                 
@@ -229,7 +227,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                         continue
                     
                     # We do not want to allow them to announce our transfer nets
-                    if any([(router_ipa in cpe_ipa.network) for router_ipa in router_interface_ipa_addresses]):
+                    if any([(router_ipa in cpe_ipa.network) for router_ipa in interface_ipa_addresses]):
                         continue
                     
                     match cpe_ipa.version:
@@ -241,11 +239,11 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             policy_v4["import_list"] = list(v4_import)
             policy_v6["import_list"] = list(v6_import)
     
-            if len(router_interface_ip_addresses) > 0:
+            if len(interface_ip_addresses) > 0:
                 # Numbered BGP
                 vrf_bgp_group_definitions = deepmerge.always_merger.merge( 
                     vrf_bgp_group_definitions,
-                    router_interface.splitBGPGroupPath({
+                    interface.splitBGPGroupPath({
                         "family": {
                             "ipv4_unicast": {
                                 "policy": policy_v4
@@ -256,7 +254,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                     
                 vrf_bgp_group_definitions = deepmerge.always_merger.merge( 
                     vrf_bgp_group_definitions,                        
-                    router_interface.splitBGPGroupPath({
+                    interface.splitBGPGroupPath({
                         "family": {
                             "ipv6_unicast": {
                                 "policy": policy_v6
@@ -268,7 +266,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 # Unnumbered BGP
                 vrf_bgp_group_definitions = deepmerge.always_merger.merge(
                     vrf_bgp_group_definitions,
-                    router_interface.splitBGPGroupPath({
+                    interface.splitBGPGroupPath({
                         "family": {
                             "ipv4_unicast": {
                                 "policy": policy_v4
