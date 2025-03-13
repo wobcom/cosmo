@@ -21,7 +21,7 @@ class L2VPNSerializationError(AbstractRecoverableError):
 
 # recursive type for the shape of cosmo output. use it when specifying something that
 # the visitors will export.
-CosmoOutputType = dict[str, str|dict[str, "CosmoOutputType"]|list["CosmoOutputType"|str]]
+CosmoOutputType = dict[str, str|dict[str, "CosmoOutputType"]|list["CosmoOutputType"]|list[str]]
 
 # next() can raise StopIteration, so that's why I use this function
 def head(l):
