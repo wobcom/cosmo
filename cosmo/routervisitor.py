@@ -178,7 +178,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         
         router_device = o.getParent(DeviceType)
         
-        vrf_return_value = {}
+        vrf_return_value: CosmoOutputType = {}
 
         for interface in router_device.getInterfaces():
             if not interface.isSubInterface():
@@ -204,8 +204,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             
             policy_v4: CosmoOutputType = {}
             policy_v6: CosmoOutputType = {}
-            v4_import = set()
-            v6_import = set()
+            v4_import: set[str] = set()
+            v6_import: set[str] = set()
             
             # If we are in our default VRF, we only export a default route and not a full table.
             # If we are in a specific VRF, we can just export everything to the customer.
