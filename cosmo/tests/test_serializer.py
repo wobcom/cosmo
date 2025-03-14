@@ -392,6 +392,7 @@ def test_router_case_local_bgpcpe():
     assert not 'export' in groups_L3VPN['CPE_ifp-0-1-2-5_V4']['family']['ipv4_unicast']['policy']
     assert not 'export' in groups_L3VPN['CPE_ifp-0-1-2-5_V6']['family']['ipv6_unicast']['policy']
     assert groups_L3VPN['CPE_ifp-0-1-2-5_V4']['family']['ipv4_unicast']['policy']['import_list'] == ["10.1.0.0/28"]
+    # should not be allowed to announce our transfer nets, so '2a0e:b941:2::/122' should not be there
     assert groups_L3VPN['CPE_ifp-0-1-2-5_V6']['family']['ipv6_unicast']['policy']['import_list'] == ['2a0e:b941:2:42::/64']
 
 
