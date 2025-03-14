@@ -360,6 +360,7 @@ def test_router_case_local_bgpcpe():
     assert 'ifp-0/1/2' in d['interfaces']
     assert 3 in d['interfaces']['ifp-0/1/2']['units']
     assert 4 in d['interfaces']['ifp-0/1/2']['units']
+    assert 5 in d['interfaces']['ifp-0/1/2']['units']
     assert 'lo-0/0/0' in d['interfaces']
     assert len(d['interfaces']) == 2
 
@@ -373,15 +374,26 @@ def test_router_case_local_bgpcpe():
     assert groups_default['CPE_ifp-0-1-2-3']['family']['ipv4_unicast']['policy']['export'] == 'DEFAULT_V4'
     assert groups_default['CPE_ifp-0-1-2-3']['family']['ipv6_unicast']['policy']['export'] == 'DEFAULT_V6'
     assert groups_default['CPE_ifp-0-1-2-3']['family']['ipv4_unicast']['policy']['import_list'] == ["10.1.0.0/28"]
-    assert groups_default['CPE_ifp-0-1-2-3']['family']['ipv6_unicast']['policy']['import_list'] == []
+    assert groups_default['CPE_ifp-0-1-2-3']['family']['ipv6_unicast']['policy']['import_list'] == ['2a0e:b941:2:42::/64', '2a0e:b941:2::/122']
 
     groups_L3VPN = d['routing_instances']['L3VPN']['protocols']['bgp']['groups']
+    
     assert 'CPE_ifp-0-1-2-4' in groups_L3VPN
     assert groups_L3VPN['CPE_ifp-0-1-2-4']['neighbors'][0]['interface'] == 'ifp-0/1/2.4'
     assert not 'export' in groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv4_unicast']['policy']
     assert not 'export' in groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv6_unicast']['policy']
     assert groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv4_unicast']['policy']['import_list'] == ["10.1.0.0/28"]
-    assert groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv6_unicast']['policy']['import_list'] == []
+    assert groups_L3VPN['CPE_ifp-0-1-2-4']['family']['ipv6_unicast']['policy']['import_list'] == ['2a0e:b941:2:42::/64', '2a0e:b941:2::/122']
+    
+    assert 'CPE_ifp-0-1-2-5_V4' in groups_L3VPN
+    assert 'CPE_ifp-0-1-2-5_V6' in groups_L3VPN
+    assert groups_L3VPN['CPE_ifp-0-1-2-5_V4']['neighbors'][0]['peer'] == '10.128.6.12'
+    assert groups_L3VPN['CPE_ifp-0-1-2-5_V6']['neighbors'][0]['peer'] == '2a0e:b941:2::21'
+    assert not 'export' in groups_L3VPN['CPE_ifp-0-1-2-5_V4']['family']['ipv4_unicast']['policy']
+    assert not 'export' in groups_L3VPN['CPE_ifp-0-1-2-5_V6']['family']['ipv6_unicast']['policy']
+    assert groups_L3VPN['CPE_ifp-0-1-2-5_V4']['family']['ipv4_unicast']['policy']['import_list'] == ["10.1.0.0/28"]
+    # should not be allowed to announce our transfer nets, so '2a0e:b941:2::/122' should not be there
+    assert groups_L3VPN['CPE_ifp-0-1-2-5_V6']['family']['ipv6_unicast']['policy']['import_list'] == ['2a0e:b941:2:42::/64']
 
 
 def test_router_case_policer():
