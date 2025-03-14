@@ -150,7 +150,6 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
             groups = self.processUnnumberedBGP(
                 group_name, linked_interface, policy_v4, policy_v6
             )
-        breakpoint()
         return {
             self._vrf_key: {
                 vrf_name: {
