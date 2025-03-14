@@ -29,16 +29,19 @@ class AbstractNetboxType(abc.ABC, Iterable):
     def __len__(self):
         return len(self._store)
 
-    def __iter__(self) -> Iterator[Self|str|int|bool|None]:
+    # I have to write the union in quotes because of this Python bug:
+    # https://bugs.python.org/issue45857
+    def __iter__(self) -> Iterator['AbstractNetboxType|str|int|bool|None']:
         yield self
         for k, v in without_keys(self._store, ["__parent", "__typename"]).items():
             if isinstance(v, dict):
                 yield from iter(v)
-            if isinstance(v, list):
+            elif isinstance(v, list):
                 for e in v:
                     yield from e
-            else:
-                yield v
+            elif isinstance(v, AbstractNetboxType):
+                yield from iter(v)
+            # Note: We can omit the emit of scalars, because we do not use them.
 
     def __hash__(self):
         non_recursive_clone = without_keys(self._store, "__parent")
