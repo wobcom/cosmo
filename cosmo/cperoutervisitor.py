@@ -1,4 +1,5 @@
 from functools import singledispatchmethod
+from ipaddress import IPv6Network, IPv4Network
 
 from cosmo.types import IPAddressType, DeviceType
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
@@ -9,7 +10,7 @@ class CpeRouterIPVisitor(AbstractNoopNetboxTypesVisitor):
         super().__init__()
         
         self.ip_networks = ip_networks
-        
+
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
@@ -32,6 +33,9 @@ class CpeRouterExporterVisitor(AbstractNoopNetboxTypesVisitor):
     should not be allowed to be exported via BGP from the router.
     """
 
+    def __init__(self, forbidden_networks: list[IPv6Network|IPv4Network]):
+        self.forbidden_networks = forbidden_networks
+
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
@@ -40,6 +44,8 @@ class CpeRouterExporterVisitor(AbstractNoopNetboxTypesVisitor):
     def _(self, o: IPAddressType):
         primary_ip4 = o.getParent(DeviceType)["primary_ip4"]
         if primary_ip4 and primary_ip4.getIPAddress() == o.getIPAddress():
-            return # skip
+            return # skip, they're not allowed to export their mgmt addr
         ip_interface = o.getIPInterfaceObject()
+        if any(map(lambda forbidden_network: ip_interface in forbidden_network, self.forbidden_networks)):
+            return # skip, they're not allowed to export our transfer nets
         return type(ip_interface), ip_interface.network.with_prefixlen

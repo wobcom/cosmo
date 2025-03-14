@@ -14,7 +14,7 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
         return super().accept(o)
     
     @staticmethod
-    def _processNumberedBGP(cpe, base_group_name, linked_interface, policy_v4, policy_v6):
+    def processNumberedBGP(cpe, base_group_name, linked_interface, policy_v4, policy_v6):
         ip_addresses = linked_interface.getIPAddresses()
         ip_addresses_ipo = map(lambda x: x.getIPInterfaceObject(), ip_addresses)
         own_ipv4_address = next(filter(lambda i: type(i) is IPv4Interface, ip_addresses_ipo), None)               
@@ -27,44 +27,45 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
             other_ip_networks.append(own_ipv6_address.network)
         
         groups = {}
-        
+
+        v4_neighbors = set()
+        v6_neighbors = set()
+
         t_cpe = DeviceType(cpe["device"])
         for item in iter(t_cpe):
             other_ipa = CpeRouterIPVisitor(other_ip_networks).accept(item)
             if not other_ipa:
                 continue
-
-            if type(other_ipa) is IPv4Interface:
-                groups[f"{base_group_name}_V4"] = {
-                    "any_as": True,
-                    "local_address": str(own_ipv4_address.ip),
-                    "neighbors": [
-                        {"peer": str(other_ipa.ip)}
-                    ],
-                    "family": {
-                        "ipv4_unicast": {
-                            "policy": policy_v4,
-                        },
-                    }
-                }
+            elif type(other_ipa) is IPv4Interface:
+                v4_neighbors.add(str(other_ipa.ip))
             elif type(other_ipa) is IPv6Interface:
-                groups[f"{base_group_name}_V6"] = {
-                    "any_as": True,
-                    "local_address": str(own_ipv6_address.ip),
-                    "neighbors": [
-                        {"peer": str(other_ipa.ip)}
-                    ],
-                    "family": {
-                        "ipv6_unicast": {
-                            "policy": policy_v6,
-                        },
-                    }
+                v6_neighbors.add(str(other_ipa.ip))
+        if v4_neighbors:
+            groups[f"{base_group_name}_V4"] = {
+                "any_as": True,
+                "local_address": str(own_ipv4_address.ip),
+                "neighbors": list(map(lambda n: {"peer": n}, v4_neighbors)),
+                "family": {
+                    "ipv4_unicast": {
+                        "policy": policy_v4,
+                    },
                 }
-            
+            }
+        if v6_neighbors:
+            groups[f"{base_group_name}_V6"] = {
+                "any_as": True,
+                "local_address": str(own_ipv6_address.ip),
+                "neighbors": list(map(lambda n: {"peer": n}, v6_neighbors)),
+                "family": {
+                    "ipv6_unicast": {
+                        "policy": policy_v6,
+                    },
+                }
+            }
         return groups
         
     @staticmethod
-    def _processUnnumberedBGP(base_group_name, linked_interface, policy_v4, policy_v6):
+    def processUnnumberedBGP(base_group_name, linked_interface, policy_v4, policy_v6):
         return {
             base_group_name: {
                 "any_as": True,
@@ -112,20 +113,24 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
         policy_v6: CosmoOutputType = {
             "import_list": []
         }
-        
+
         ip_addresses = linked_interface.getIPAddresses()
-          
+
         vrf_object = linked_interface.getVRF()
         if isinstance(vrf_object, VRFType):
             vrf_name = vrf_object.getName()
         if vrf_name == "default":
             policy_v4["export"] = "DEFAULT_V4"
             policy_v6["export"] = "DEFAULT_V6"
-            
+
+
         t_cpe = DeviceType(cpe["device"])
         v4_import, v6_import = set(), set() # unique
+        cpe_visitor = CpeRouterExporterVisitor(
+            forbidden_networks=list(map(lambda i: i.getIPInterfaceObject().network, ip_addresses))
+        )
         for item in iter(t_cpe):
-            ret = CpeRouterExporterVisitor().accept(item)
+            ret = cpe_visitor.accept(item)
             if not ret:
                 continue
             af, prefix = ret
@@ -133,19 +138,19 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
                 v4_import.add(prefix)
             elif af and af is IPv6Interface:
                 v6_import.add(prefix)
-                
+
         policy_v4["import_list"] = list(v4_import)
         policy_v6["import_list"] = list(v6_import)
-        
+
         if len(ip_addresses) > 0:
-            groups = self._processNumberedBGP(
+            groups = self.processNumberedBGP(
                 cpe, group_name, linked_interface, policy_v4, policy_v6
-            )  
+            )
         else:
-            groups = self._processUnnumberedBGP(
+            groups = self.processUnnumberedBGP(
                 group_name, linked_interface, policy_v4, policy_v6
             )
-        
+        breakpoint()
         return {
             self._vrf_key: {
                 vrf_name: {
