@@ -46,6 +46,8 @@ device_list:
             __typename: IPAddressType
           - address: 10.1.0.2/28
             __typename: IPAddressType
+          - address: 2a0e:b941:2:42::/64
+            __typename: IPAddressType
           id: ''
           name: ''
           __typename: InterfaceType
