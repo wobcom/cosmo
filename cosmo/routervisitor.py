@@ -555,6 +555,20 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             }
         }
 
+    def processBreakoutTag(self, o: TagType):
+        interface = o.getParent(InterfaceType)
+        
+        if interface.isSubInterface(): 
+            warnings.warn(f"Interface {interface.getName()} is a sub-interface, breakout tag needs to be set on parent interface.")
+        
+        return {
+            self._interfaces_key: {
+                **interface.spitInterfacePathWith({
+                    "breakout": o.getTagValue(),
+                })
+            }
+        }
+
     def processBgpUnnumberedTag(self, o: TagType):
         parent_interface = o.getParent(InterfaceType)
         opt_unnumbered_interface = {}
@@ -602,6 +616,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 return self.processEdgeTag(o)
             case "core":
                 return self.processCoreTag(o)
+            case "breakout":
+                return self.processBreakoutTag(o)
             case "sonderlocke":
                 pass # ignore, as it is treated in "core" tag handler
             case "access":
