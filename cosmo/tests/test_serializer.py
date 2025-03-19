@@ -135,6 +135,7 @@ def test_router_physical_interface():
     assert sd['interfaces']['et-0/0/3']['shutdown']
     assert sd['interfaces']['et-0/0/3']['mtu'] == 9000
     assert sd['interfaces']['et-0/0/3']['gigether']['speed'] == '10g'
+    assert sd['interfaces']['et-0/0/3']['breakout'] == '4x10g'
 
 
 def test_router_logical_interface():

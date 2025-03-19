@@ -20,9 +20,12 @@ device_list:
     name: et-0/0/3
     tagged_vlans: []
     tags:
-      - name: speed:10g
-        slug: speed:10g
-        __typename: TagType
+    - name: speed:10g
+      slug: speed:10g
+      __typename: TagType
+    - name: breakout:4x10g
+      slug: breakout4x10g
+      __typename: TagType
     type: A_100GBASE_X_QSFP28
     untagged_vlan: null
     vrf: null
@@ -42,9 +45,9 @@ device_list:
     name: et-0/0/0
     tagged_vlans: []
     tags:
-      - name: autoneg:on
-        slug: autoneg:on
-        __typename: TagType
+    - name: autoneg:on
+      slug: autoneg:on
+      __typename: TagType
     type: A_100GBASE_X_QSFP28
     untagged_vlan: null
     vrf: null
