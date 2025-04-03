@@ -235,7 +235,6 @@ class EPLL2VpnTypeTerminationVisitorAbstract(AbstractEPLEVPLL2VpnTypeCommon, Abs
     @staticmethod
     def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
         return [ # order is important!
-            VlanCccEncapCapability,
             EthernetCccEncapCapability,
         ]
 
@@ -254,7 +253,6 @@ class EVPLL2VpnTypeTerminationVisitorAbstract(AbstractEPLEVPLL2VpnTypeCommon, Ab
     def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
         return [
             VlanCccEncapCapability,
-            EthernetCccEncapCapability,
         ]
 
     @staticmethod
@@ -406,6 +404,7 @@ class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVi
     def processTerminationCommon(self, o: InterfaceType|VLANType) -> dict|None:
         parent_l2vpn = o.getParent(L2VPNType)
         interface_names = None
+        warnings.warn(f"{parent_l2vpn.getName()} is of type {self.getNetboxTypeName()} which is deprecated.")
         if isinstance(o, InterfaceType):
             interface_names = [o.getName()]
         elif isinstance(o, VLANType):
