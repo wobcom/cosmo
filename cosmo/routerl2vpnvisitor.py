@@ -3,7 +3,7 @@ import warnings
 from functools import singledispatchmethod
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import head
+from cosmo.common import head, L2VPNSerializationError
 from cosmo.l2vpnhelpertypes import L2VpnVisitorClassFactoryFromL2VpnTypeObject, AbstractL2VpnTypeTerminationVisitor
 from cosmo.types import L2VPNType, InterfaceType, VLANType, CosmoLoopbackType, L2VPNTerminationType, DeviceType
 
@@ -29,18 +29,24 @@ class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
     def accept(self, o):
         return super().accept(o)
 
-    def isCompliantWANL2VPN(self, o: L2VPNType) -> bool:
+    def isCompliantWANL2VPN(self, o: L2VPNType):
         terminations = o.getTerminations()
+        identifier = o.getIdentifier()
         l2vpn_type = self.getL2VpnTypeTerminationObjectFrom(o)
+        if l2vpn_type.needsL2VPNIdentifierAsMandatory() and identifier is None:
+            raise L2VPNSerializationError(
+                f"for {o.getName()}: L2VPN identifier is mandatory."
+            )
         if not l2vpn_type.isValidNumberOfTerminations(len(terminations)):
-            warnings.warn(f"for {o.getName()}: "
-                          f"{l2vpn_type.getInvalidNumberOfTerminationsErrorMessage(len(terminations))}")
-            return False
+            raise L2VPNSerializationError(
+                f"for {o.getName()}: "
+                f"{l2vpn_type.getInvalidNumberOfTerminationsErrorMessage(len(terminations))}"
+            )
         if any([not isinstance(t, l2vpn_type.getAcceptedTerminationTypes()) for t in terminations]):
-            warnings.warn(f"Found unsupported L2VPN termination in \"{o.getName()}\". "
-                          f"Accepted types are: {l2vpn_type.getAcceptedTerminationTypes()}")
-            return False
-        return True
+            raise L2VPNSerializationError(
+                f"Found unsupported L2VPN termination in \"{o.getName()}\". "
+                f"Accepted types are: {l2vpn_type.getAcceptedTerminationTypes()}"
+            )
 
     @accept.register
     def _(self, o: L2VPNType):

@@ -398,7 +398,7 @@ class L2VPNType(AbstractNetboxType):
     def __repr__(self):
         return f"{super().__repr__()}({self.getName()})"
 
-    def getIdentifier(self):
+    def getIdentifier(self) -> int|None:
         return self["identifier"]
 
     def getType(self) -> str:

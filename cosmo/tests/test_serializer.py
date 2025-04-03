@@ -1,6 +1,8 @@
 import yaml
 import pytest
 import copy
+
+from cosmo.common import L2VPNSerializationError
 from coverage.html import os
 
 from cosmo.serializer import RouterSerializer, SwitchSerializer
@@ -64,7 +66,7 @@ def test_l2vpn_errors():
     vpws_incorrect_terminations['l2vpn_list'].append({
         '__typename': 'L2VPNType',
         'id': '53',
-        'identifier': None,
+        'identifier': 123456,
         'name': 'WAN: incorrect VPWS',
         'type': 'VPWS',
         'terminations': [
@@ -78,14 +80,17 @@ def test_l2vpn_errors():
                 '__typename': 'L2VPNTerminationType',
                 'assigned_object': {}
             }]})
-    with pytest.warns(UserWarning, match="VPWS circuits are only allowed to have 2 terminations"):
+    with pytest.raises(
+            L2VPNSerializationError,
+            match="VPWS circuits are only allowed to have 2 terminations"
+    ):
         serialize(vpws_incorrect_terminations)
 
     unsupported_type_terminations = copy.deepcopy(template)
     unsupported_type_terminations['l2vpn_list'].append({
         '__typename': 'L2VPNType',
         'id': '54',
-        'identifier': None,
+        'identifier': 123456,
         'name': 'WAN: unsupported termination types 1',
         'type': 'VPWS',
         'terminations': [
@@ -97,14 +102,17 @@ def test_l2vpn_errors():
                 '__typename': 'L2VPNTerminationType',
                 'assigned_object': {}
             }]})
-    with pytest.warns(UserWarning, match=r"VPWS L2VPN does not support|Found unsupported L2VPN termination in"):
+    with pytest.raises(
+            L2VPNSerializationError,
+            match=r"VPWS L2VPN does not support|Found unsupported L2VPN termination in"
+    ):
         serialize(unsupported_type_terminations)
 
     vpws_non_interface_term = copy.deepcopy(template)
     vpws_non_interface_term['l2vpn_list'].append({
         '__typename': 'L2VPNType',
         'id': '54',
-        'identifier': None,
+        'identifier': 123456,
         'name': 'WAN: WAN: unsupported termination types 2',
         'type': 'VPWS',
         'terminations': [
@@ -118,8 +126,39 @@ def test_l2vpn_errors():
                 'assigned_object': {
                 '__typename': "VLANType"
             }}]})
-    with pytest.warns(UserWarning, match=r"VPWS L2VPN does not support|Found unsupported L2VPN termination in"):
+    with pytest.raises(
+            L2VPNSerializationError,
+            match=r"VPWS L2VPN does not support|Found unsupported L2VPN termination in"
+    ):
         serialize(vpws_non_interface_term)
+
+    vpws_missing_identifier = copy.deepcopy(template)
+    vpws_missing_identifier['l2vpn_list'].append({
+        '__typename': 'L2VPNType',
+        'id': '54',
+        'identifier': None,
+        'name': 'WAN: WAN: missing L2VPN identifier',
+        'type': 'evpn-vpws',
+        'terminations': [
+            {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': {
+                    '__typename': "InterfaceType"
+                }
+            },
+            {
+                '__typename': 'L2VPNTerminationType',
+                'assigned_object': {
+                    '__typename': "InterfaceType"
+                }
+            }
+        ]
+    })
+    with pytest.raises(
+        L2VPNSerializationError,
+        match=r"L2VPN identifier is mandatory.",
+    ):
+        serialize(vpws_missing_identifier)
 
 
 def test_router_physical_interface():
