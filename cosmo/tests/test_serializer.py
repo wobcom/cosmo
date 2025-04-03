@@ -269,7 +269,8 @@ def test_router_ips():
 
 
 def test_router_case_mpls_evpn():
-    sd = get_router_sd_from_path("./test_case_mpls_evpn.yaml")
+    with pytest.warns(UserWarning): # mpls is deprecated. should warn.
+        sd = get_router_sd_from_path("./test_case_mpls_evpn.yaml")
 
     for d in sd:
         assert 'ae0' in d['interfaces']
