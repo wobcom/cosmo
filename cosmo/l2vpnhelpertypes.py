@@ -102,6 +102,9 @@ class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
     def getInvalidNumberOfTerminationsErrorMessage(cls, i: int):
         return f"{cls.getNetboxTypeName().upper()}: {i} is not a valid number of terminations, ignoring..."
 
+    def needsL2VPNIdentifierAsMandatory(self) -> bool:
+        return False
+
     def getChosenEncapType(self, o: AbstractNetboxType) -> str | None:
         chosen_encap = head(list(filter(
             lambda encap: encap is not None,
@@ -275,6 +278,9 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, met
     def getAcceptedTerminationTypes() -> T:
         return InterfaceType
 
+    def needsL2VPNIdentifierAsMandatory(self) -> bool:
+        return True
+
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
         parent_l2vpn = o.getParent(L2VPNType)
         # find local end
@@ -340,6 +346,9 @@ class VXLANEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationV
     def getAcceptedTerminationTypes() -> T:
         return VLANType
 
+    def needsL2VPNIdentifierAsMandatory(self) -> bool:
+        return True
+
     def processVLANTypeTermination(self, o: VLANType) -> dict | None:
         def spitNameForInterfaces(int_or_vlan: InterfaceType | VLANType):
             if isinstance(int_or_vlan, InterfaceType):
@@ -390,6 +399,9 @@ class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVi
     @staticmethod
     def getAcceptedTerminationTypes() -> T:
         return InterfaceType, VLANType
+
+    def needsL2VPNIdentifierAsMandatory(self) -> bool:
+        return True
 
     def processTerminationCommon(self, o: InterfaceType|VLANType) -> dict|None:
         parent_l2vpn = o.getParent(L2VPNType)
