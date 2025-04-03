@@ -263,17 +263,13 @@ class EVPLL2VpnTypeTerminationVisitorAbstract(AbstractEPLEVPLL2VpnTypeCommon, Ab
         return InterfaceType
 
 
-class VPWSL2VpnTypeTerminationVisitor(AbstractP2PL2VpnTypeTerminationVisitor):
+class AbstractVPWSEVPNVPWSVpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta):
     @staticmethod
     def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
         return [
             VlanCccEncapCapability,
             EthernetCccEncapCapability,
         ]
-
-    @staticmethod
-    def getNetboxTypeName() -> str:
-        return "vpws"
 
     @staticmethod
     def getAcceptedTerminationTypes() -> T:
@@ -317,6 +313,18 @@ class VPWSL2VpnTypeTerminationVisitor(AbstractP2PL2VpnTypeTerminationVisitor):
                 }
             }
         } | self.spitInterfaceEncapFor(o)
+
+
+class VPWSL2VpnTypeTerminationVisitor(AbstractVPWSEVPNVPWSVpnTypeCommon, AbstractP2PL2VpnTypeTerminationVisitor):
+    @staticmethod
+    def getNetboxTypeName() -> str:
+        return "vpws"
+
+
+class EVPNVPWSVpnTypeTerminationVisitor(AbstractVPWSEVPNVPWSVpnTypeCommon, AbstractP2PL2VpnTypeTerminationVisitor):
+    @staticmethod
+    def getNetboxTypeName() -> str:
+        return "evpn-vpws"
 
 
 class VXLANEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVisitor):
@@ -434,6 +442,7 @@ class L2VpnVisitorClassFactoryFromL2VpnTypeObject:
         MPLSEVPNL2VpnTypeTerminationVisitor,
         VXLANEVPNL2VpnTypeTerminationVisitor,
         VPWSL2VpnTypeTerminationVisitor,
+        EVPNVPWSVpnTypeTerminationVisitor,
         EVPLL2VpnTypeTerminationVisitorAbstract,
         EPLL2VpnTypeTerminationVisitorAbstract,
     )
