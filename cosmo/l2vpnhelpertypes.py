@@ -300,8 +300,8 @@ class VPWSL2VpnTypeTerminationVisitor(AbstractP2PL2VpnTypeTerminationVisitor):
                     "interfaces": [o.getName()],
                     "description": f"VPWS: {parent_l2vpn.getName().replace('WAN: VS_', '')}",
                     "instance_type": "evpn-vpws",
-                    "route-distinguisher": f"{self.asn}:{str(parent_l2vpn.getIdentifier())}",
-                    "vrf-target": f"target:1:{str(parent_l2vpn.getIdentifier())}",
+                    "route_distinguisher": f"{self.asn}:{str(parent_l2vpn.getIdentifier())}",
+                    "vrf_target": f"target:1:{str(parent_l2vpn.getIdentifier())}",
                     "protocols": {
                         "evpn": {
                             "interfaces": {
