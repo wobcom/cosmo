@@ -14,6 +14,7 @@ requests = ">2.26.0"
 PyYAML = ">5.1"
 packaging = "^24"
 deepmerge = "^2.0"
+python-json-logger = "^3.3.0"
 
 [tool.poetry.dev-dependencies]
 
