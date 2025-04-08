@@ -8,7 +8,7 @@ import yaml
 import argparse
 
 from cosmo.clients.netbox import NetboxClient
-from cosmo.log import info
+from cosmo.log import info, logger, HumanReadableLoggingStrategy
 from cosmo.serializer import RouterSerializer, SwitchSerializer
 from cosmo.common import AbstractRecoverableError
 
@@ -22,6 +22,8 @@ def main() -> int:
                         help='List of hosts to generate configurations')
     parser.add_argument('--config', '-c', default='cosmo.yml', metavar="CFGFILE",
                         help='Path of the yaml config file to use')
+
+    logger.setLoggingStrategy(HumanReadableLoggingStrategy()) # TODO --json logging switch
 
     args = parser.parse_args()
 
