@@ -32,7 +32,7 @@ def main() -> int:
         logger.setLoggingStrategy(JsonLoggingStrategy())
     else:
         logger.setLoggingStrategy(HumanReadableLoggingStrategy(
-            netbox_instance_url=os.environ.get("NETBOX_URL") # isn't validated so it's fine
+            netbox_instance_url=str(os.environ.get("NETBOX_URL")) # isn't validated so it's fine
         ))
 
     if len(args.limit) > 1:
