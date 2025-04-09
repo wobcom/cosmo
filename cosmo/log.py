@@ -2,7 +2,7 @@ import sys
 from abc import abstractmethod, ABCMeta
 from typing import Self
 
-from cosmo.common import AbstractRecoverableError
+from cosmo.common import AbstractRecoverableError, JsonOutputType
 from cosmo.netbox_types import AbstractNetboxType
 
 
@@ -46,15 +46,14 @@ class JsonLoggingStrategy(AbstractLoggingStrategy):
     error_queue: list[M] = []
 
     @staticmethod
-    def _toJSON(m: M) -> dict:
+    def _messageToJSON(m: M):
         loglevel, message, obj = m
-        obj_dict = {}
-        if obj is not None:
-            obj_dict = { "object": obj }
         return {
             "level": loglevel.name,
             "message": message,
-            **obj_dict,
+            "object": (obj.toJSON() if isinstance(obj, AbstractNetboxType) else {
+                "type": "cosmo_string", "value": str(obj)
+            }),
         }
 
     def info(self, message: str, on: O):
@@ -71,12 +70,12 @@ class JsonLoggingStrategy(AbstractLoggingStrategy):
         res = {}
         if len(self.warning_queue) + len(self.error_queue) == 0:
             res = {
-                "result": list(map(self._toJSON, self.info_queue)),
+                "result": list(map(self._messageToJSON, self.info_queue)),
             }
         else:
             res = {
-                "error": list(map(self._toJSON, self.error_queue)),
-                "warning": list(map(self._toJSON, self.warning_queue)),
+                "error": list(map(self._messageToJSON, self.error_queue)),
+                "warning": list(map(self._messageToJSON, self.warning_queue)),
             }
         print(res)
 

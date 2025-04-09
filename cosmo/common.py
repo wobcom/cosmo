@@ -23,6 +23,8 @@ class L2VPNSerializationError(AbstractRecoverableError):
 # the visitors will export.
 CosmoOutputType = dict[str, str|dict[str, "CosmoOutputType"]|list["CosmoOutputType"]]
 
+JsonOutputType = CosmoOutputType
+
 # next() can raise StopIteration, so that's why I use this function
 def head(l):
     return None if not l else l[0]

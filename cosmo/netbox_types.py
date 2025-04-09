@@ -4,7 +4,7 @@ import cosmo.log
 from collections.abc import Iterable
 from ipaddress import IPv4Interface, IPv6Interface
 
-from .common import without_keys
+from .common import without_keys, JsonOutputType
 from typing import Self, Iterator, TypeVar, NoReturn
 
 
@@ -142,6 +142,12 @@ class AbstractNetboxType(abc.ABC, Iterable):
             return tuple(cls.tuplize(v) for k, v in without_keys(o, "__parent").items())
         else:
             return o
+
+    def toJSON(self) -> JsonOutputType:
+        return {
+            "id": self.getID(),
+            "type": self._getNetboxType(),
+        }
 
 
 # POJO style store
