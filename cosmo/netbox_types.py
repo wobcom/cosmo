@@ -1,7 +1,10 @@
 import abc
 import ipaddress
+from urllib.parse import urljoin
+
 import cosmo.log
 from collections.abc import Iterable
+from abc import abstractmethod
 from ipaddress import IPv4Interface, IPv6Interface
 
 from .common import without_keys, JsonOutputType
@@ -143,10 +146,21 @@ class AbstractNetboxType(abc.ABC, Iterable):
         else:
             return o
 
+    @abstractmethod
+    def getBasePath(self): # as in, netbox HTML view path
+        pass
+
+    def getRelPath(self) -> str:
+        return urljoin(self.getBasePath(), self.getID())
+
+    def getFullURL(self, netbox_instance_url: str):
+        return urljoin(netbox_instance_url, self.getRelPath())
+
     def toJSON(self) -> JsonOutputType:
         return {
             "id": self.getID(),
             "type": self._getNetboxType(),
+            "rel_path": self.getRelPath(),
         }
 
 
@@ -165,6 +179,9 @@ class DeviceType(AbstractNetboxType):
     def __repr__(self):
         return super().__repr__() + f"({self.getName()})"
 
+    def getBasePath(self):
+        return "/dcim/devices/"
+
     def isCompositeRoot(self) -> bool:
         return not bool(self.get('__parent', False))
 
@@ -182,19 +199,27 @@ class DeviceType(AbstractNetboxType):
 
 
 class DeviceTypeType(AbstractNetboxType):
-    pass
+    def getBasePath(self):
+        return "/dcim/device-types/"
 
 
 class PlatformType(AbstractNetboxType):
+    def getBasePath(self):
+        return "/dcim/platforms/"
+
     def getManufacturer(self):
         return self['manufacturer']
 
 
 class ManufacturerType(AbstractNetboxType):
-    pass
+    def getBasePath(self):
+        return "/dcim/manufacturers/"
 
 
 class IPAddressType(AbstractNetboxType):
+    def getBasePath(self):
+        return "/ipam/ip-addresses/"
+
     def getIPAddress(self) -> str:
         return self["address"]
 
@@ -209,6 +234,8 @@ class IPAddressType(AbstractNetboxType):
 
 class TagType(AbstractNetboxType):
     _delimiter = ':'
+    def getBasePath(self):
+        return "/extras/tags/"
     def getTagComponents(self):
         return self.get('name').split(self._delimiter)
     def getTagName(self):
@@ -218,10 +245,14 @@ class TagType(AbstractNetboxType):
 
 
 class RouteTargetType(AbstractNetboxType):
-    pass
+    def getBasePath(self):
+        return "/ipam/route-targets/"
 
 
 class VRFType(AbstractNetboxType):
+    def getBasePath(self):
+        return "/ipam/vrfs/"
+
     def getDescription(self) -> str:
         return self["description"]
 
@@ -238,6 +269,9 @@ class VRFType(AbstractNetboxType):
 class InterfaceType(AbstractNetboxType):
     def __repr__(self):
         return super().__repr__() + f"({self.getName()})"
+
+    def getBasePath(self):
+        return "/dcim/interfaces/"
 
     def getMACAddress(self) -> str|None:
         return self.get("mac_address")
@@ -388,6 +422,9 @@ class VLANType(AbstractNetboxType):
     def __repr__(self):
         return f"{super().__repr__()}({self.getVID()})"
 
+    def getBasePath(self):
+        return "/ipam/vlans/"
+
     def getVID(self):
         return self["vid"]
 
@@ -399,6 +436,9 @@ class VLANType(AbstractNetboxType):
 
 
 class L2VPNTerminationType(AbstractNetboxType):
+    def getBasePath(self):
+        return "/vpn/l2vpn-terminations/"
+
     def getAssignedObject(self) -> InterfaceType|VLANType:
         return self["assigned_object"]
 
@@ -406,6 +446,9 @@ class L2VPNTerminationType(AbstractNetboxType):
 class L2VPNType(AbstractNetboxType):
     def __repr__(self):
         return f"{super().__repr__()}({self.getName()})"
+
+    def getBasePath(self):
+        return "/vpn/l2vpns/"
 
     def getIdentifier(self) -> int|None:
         return self["identifier"]
@@ -423,6 +466,9 @@ class L2VPNType(AbstractNetboxType):
 class CosmoStaticRouteType(AbstractNetboxType):
     # TODO: fixme
     # hacky! does not respect usual workflow
+    def getBasePath(self):
+        return "/plugins/routing/static_routes/"
+
     def getNextHop(self) -> IPAddressType|None:
         if self["next_hop"]:
             return IPAddressType(self["next_hop"])
@@ -455,6 +501,9 @@ class CosmoLoopbackType(AbstractNetboxType):
     # TODO: refactor me for greater code reuse! (see netbox_v4.py)
     # this is an artificial type that we create in cosmo
     # it does not exist in netbox
+    def getBasePath(self):
+        return "" # no path
+
     def getIpv4(self) -> str | None:
         return self["ipv4"]
 
