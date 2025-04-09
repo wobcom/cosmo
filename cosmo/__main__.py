@@ -14,6 +14,8 @@ from cosmo.common import AbstractRecoverableError
 
 
 def main() -> int:
+    sys.excepthook = logger.exceptionHook
+
     parser = argparse.ArgumentParser(
         description="Automagically generate filter lists and BGP sessions for WAN-Core network"
     )
@@ -107,13 +109,10 @@ def main() -> int:
                         json.dump(content, json_file, indent=4)
             case other:
                 raise Exception(f"unsupported output format {other}")
-                return 1
 
+    logger.flush()
     return 0
 
 
 if __name__ == "__main__":
-    sys.excepthook = logger.exceptionHook
-    ret = main()
-    logger.flush()
-    sys.exit(ret)
+    sys.exit(main())
