@@ -1,3 +1,4 @@
+import json
 import sys
 from abc import abstractmethod, ABCMeta
 from typing import Self
@@ -77,7 +78,7 @@ class JsonLoggingStrategy(AbstractLoggingStrategy):
                 "error": list(map(self._messageToJSON, self.error_queue)),
                 "warning": list(map(self._messageToJSON, self.warning_queue)),
             }
-        print(res)
+        print(json.dumps(res))
 
     def exceptionHook(self, exception: type[BaseException], value: BaseException, traceback):
         if isinstance(exception, AbstractRecoverableError):
