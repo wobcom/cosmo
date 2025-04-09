@@ -1,6 +1,8 @@
+import sys
 from abc import abstractmethod, ABCMeta
 from typing import Self
 
+from cosmo.common import AbstractRecoverableError
 from cosmo.netbox_types import AbstractNetboxType
 
 
@@ -32,6 +34,9 @@ class AbstractLoggingStrategy(metaclass=ABCMeta):
         pass
     @abstractmethod
     def error(self, message: str, on: O):
+        pass
+    @abstractmethod
+    def exceptionHook(self, exception: type[BaseException], value: BaseException, traceback):
         pass
 
 
@@ -75,6 +80,12 @@ class JsonLoggingStrategy(AbstractLoggingStrategy):
             }
         print(res)
 
+    def exceptionHook(self, exception: type[BaseException], value: BaseException, traceback):
+        if isinstance(exception, AbstractRecoverableError):
+            self.warn(str(value), None)
+        else:
+            self.error(str(value), None)
+
 
 class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
     def info(self, message: str, on: O):
@@ -88,6 +99,9 @@ class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
 
     def flush(self):
         pass
+
+    def exceptionHook(self, exception: type[BaseException], value: BaseException, traceback):
+        sys.__excepthook__(exception, value, traceback)
 
 
 class CosmoLogger:
@@ -112,6 +126,16 @@ class CosmoLogger:
 
     def error(self, message: str, on: O):
         self.strategy.error(message, on)
+
+    def processHandledException(self, exception: BaseException): # for try/catch blocks to use
+        self.exceptionHook(type(exception), exception, None, recovered=True)
+
+    def exceptionHook(self, exception: type[BaseException], value: BaseException, traceback, recovered=False):
+        self.strategy.exceptionHook(exception, value, traceback)
+        if not recovered:
+            # not recoverable because uncaught (we've been called from sys.excepthook,
+            # since recovered is False by default). we're stopping the interpreter NOW.
+            self.flush()
 
 
 def info(string: str) -> None:

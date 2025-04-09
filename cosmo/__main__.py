@@ -114,6 +114,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    sys.excepthook = logger.exceptionHook
     ret = main()
     logger.flush()
     sys.exit(ret)
