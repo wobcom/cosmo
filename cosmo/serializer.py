@@ -1,6 +1,7 @@
 from deepmerge import Merger
 
-from cosmo.common import deepsort, DeviceSerializationError
+from cosmo.common import deepsort, DeviceSerializationError, AbstractRecoverableError
+from cosmo.log import error
 from cosmo.netbox_types import DeviceType, CosmoLoopbackType
 from cosmo.switchvisitor import SwitchDeviceExporterVisitor
 from cosmo.routervisitor import RouterDeviceExporterVisitor
@@ -53,9 +54,13 @@ class RouterSerializer:
             asn=9136,
         )
         for value in iter(DeviceType(self.device)):
-            new = visitor.accept(value)
-            if new:
-                device_stub = merger.merge(device_stub, new)
+            try:
+                new = visitor.accept(value)
+                if new:
+                    device_stub = merger.merge(device_stub, new)
+            except AbstractRecoverableError as are:
+                error(f"serialization error \"{are}\"", value)
+                continue
         return deepsort(device_stub)
 
 
@@ -77,7 +82,11 @@ class SwitchSerializer:
             ["override"]
         )
         for value in iter(DeviceType(self.device)):
-            new = SwitchDeviceExporterVisitor().accept(value)
-            if new:
-                device_stub = merger.merge(device_stub, new)
+            try:
+                new = SwitchDeviceExporterVisitor().accept(value)
+                if new:
+                    device_stub = merger.merge(device_stub, new)
+            except AbstractRecoverableError as are:
+                error(f"serialization error \"{are}\"", value)
+                continue
         return deepsort(device_stub)

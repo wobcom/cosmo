@@ -7,7 +7,7 @@ import yaml
 import argparse
 
 from cosmo.clients.netbox import NetboxClient
-from cosmo.log import info, warn, logger, JsonLoggingStrategy
+from cosmo.log import info, logger, JsonLoggingStrategy, error
 from cosmo.serializer import RouterSerializer, SwitchSerializer
 from cosmo.common import AbstractRecoverableError
 
@@ -83,7 +83,7 @@ def main() -> int:
                 switch_serializer = SwitchSerializer(device)
                 content = switch_serializer.serialize()
         except AbstractRecoverableError as e:
-            warn(f"{device['name']} serialization error \"{e}\", skipping ...", device_fqdn)
+            error(f"{device['name']} serialization error \"{e}\", skipping ...", device_fqdn)
             continue
 
         match cosmo_configuration['output_format']:
