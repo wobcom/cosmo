@@ -366,6 +366,7 @@ class DeviceDataQuery(ParallelQuery):
                   }
                   tags {
                     __typename
+                    id
                     name
                     slug
                   }
