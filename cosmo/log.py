@@ -1,20 +1,26 @@
-import abc
-from abc import abstractmethod
-from enum import IntEnum, auto
+from abc import abstractmethod, ABCMeta
+from typing import Self
 
 from cosmo.types import AbstractNetboxType
 
 
-class LogLevel(IntEnum):
-    INFO = 0
-    WARN = auto()
-    ERROR = auto()
+class AbstractLogLevel(metaclass=ABCMeta):
+    name: str = None
+    def __str__(self):
+        return f"[{self.name}]"
+
+class InfoLogLevel(AbstractLogLevel):
+    name = "INFO"
+class WarningLogLevel(AbstractLogLevel):
+    name = "WARNING"
+class ErrorLogLevel(AbstractLogLevel):
+    name = "ERROR"
 
 
 O = object | AbstractNetboxType | None # object-being-logged-on type
-M = tuple[LogLevel, str, O] # message type
+M = tuple[AbstractLogLevel, str, O] # message type
 
-class AbstractLoggingStrategy(metaclass=abc.ABCMeta):
+class AbstractLoggingStrategy(metaclass=ABCMeta):
     @abstractmethod
     def flush(self): # this is for async and sync logging
         pass
@@ -30,29 +36,55 @@ class AbstractLoggingStrategy(metaclass=abc.ABCMeta):
 
 
 class JsonLoggingStrategy(AbstractLoggingStrategy):
-    queue: list[M] = [] # list of log messages
+    info_queue: list[M] = []
+    warning_queue: list[M] = []
+    error_queue: list[M] = []
+
+    @staticmethod
+    def _toJSON(message: M) -> dict:
+        loglevel, message, obj = message
+        obj_dict = {}
+        if obj is not None:
+            obj_dict = { "object": str(obj) }
+        return {
+            "level": loglevel.name.lower(),
+            "message": message,
+            **obj_dict,
+        }
 
     def info(self, message: str, on: O):
-        self.queue.append((LogLevel.INFO, message, on))
+        self.info_queue.append((InfoLogLevel(), message, on))
 
     def warn(self, message: str, on: O):
-        self.queue.append((LogLevel.WARN, message, on))
+        self.warning_queue.append((WarningLogLevel(), message, on))
 
     def error(self, message: str, on: O):
-        self.queue.append((LogLevel.ERROR, message, on))
+        self.error_queue.append((ErrorLogLevel(), message, on))
 
     def flush(self):
-        pass # TODO
+        # JSON-RPC like
+        res = {}
+        if len(self.warning_queue) + len(self.error_queue) == 0:
+            res = {
+                "result": list(map(self._toJSON, self.info_queue)),
+            }
+        else:
+            res = {
+                "error": list(map(self._toJSON, self.error_queue)),
+                "warning": list(map(self._toJSON, self.warning_queue)),
+            }
+        print(res)
+
 
 class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
     def info(self, message: str, on: O):
-        print('[INFO] ' + message)
+        print(f"{InfoLogLevel()} {message}")
 
     def warn(self, message: str, on: O):
-        print('[WARNING] ' + message)
+        print(f"{WarningLogLevel()} {message}")
 
     def error(self, message: str, on: O):
-        print('[ERROR] ' + message)
+        print(f"{ErrorLogLevel()} {message}")
 
     def flush(self):
         pass
@@ -61,13 +93,15 @@ class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
 class CosmoLogger:
     strategy: AbstractLoggingStrategy
 
-    def setLoggingStrategy(self, strategy: AbstractLoggingStrategy):
+    def setLoggingStrategy(self, strategy: AbstractLoggingStrategy) -> Self:
         self.strategy = strategy
+        return self
 
-    def flush(self):
+    def flush(self) -> Self:
         self.strategy.flush()
+        return self
 
-    def getLoggingStrategy(self):
+    def getLoggingStrategy(self) -> AbstractLoggingStrategy:
         return self.strategy
 
     def info(self, message: str, on: O):
@@ -80,8 +114,8 @@ class CosmoLogger:
         self.strategy.error(message, on)
 
 
-logger = CosmoLogger()
-
-
 def info(string: str) -> None:
     logger.info(string, None)
+
+
+logger = CosmoLogger().setLoggingStrategy(HumanReadableLoggingStrategy())
