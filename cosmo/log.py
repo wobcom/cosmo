@@ -1,7 +1,7 @@
 from abc import abstractmethod, ABCMeta
 from typing import Self
 
-from cosmo.types import AbstractNetboxType
+from cosmo.netbox_types import AbstractNetboxType
 
 
 class AbstractLogLevel(metaclass=ABCMeta):

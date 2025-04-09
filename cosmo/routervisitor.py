@@ -11,7 +11,7 @@ from cosmo.common import InterfaceSerializationError, head, StaticRouteSerializa
 from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
 from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor, RouterL2VPNExporterVisitor
-from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
+from cosmo.netbox_types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
     L2VPNTerminationType, IPAddressType, CosmoStaticRouteType, DeviceTypeType, PlatformType
 
 

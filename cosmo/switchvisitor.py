@@ -3,7 +3,7 @@ import warnings
 from functools import singledispatchmethod
 
 from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
-from cosmo.types import IPAddressType, DeviceType, InterfaceType, VLANType, TagType
+from cosmo.netbox_types import IPAddressType, DeviceType, InterfaceType, VLANType, TagType
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
 

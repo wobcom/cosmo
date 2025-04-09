@@ -1,7 +1,7 @@
 from deepmerge import Merger
 
 from cosmo.common import deepsort, DeviceSerializationError
-from cosmo.types import DeviceType, CosmoLoopbackType
+from cosmo.netbox_types import DeviceType, CosmoLoopbackType
 from cosmo.switchvisitor import SwitchDeviceExporterVisitor
 from cosmo.routervisitor import RouterDeviceExporterVisitor
 

@@ -6,7 +6,7 @@ from typing import NoReturn
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import head, CosmoOutputType, L2VPNSerializationError
-from cosmo.types import InterfaceType, VLANType, AbstractNetboxType, DeviceType, L2VPNType, CosmoLoopbackType, \
+from cosmo.netbox_types import InterfaceType, VLANType, AbstractNetboxType, DeviceType, L2VPNType, CosmoLoopbackType, \
     L2VPNTerminationType
 
 

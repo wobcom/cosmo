@@ -5,7 +5,7 @@ from ipaddress import IPv4Interface, IPv6Interface, ip_interface
 from cosmo.common import head, CosmoOutputType
 from cosmo.cperoutervisitor import CpeRouterExporterVisitor, CpeRouterIPVisitor
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.types import TagType, InterfaceType, DeviceType, VRFType
+from cosmo.netbox_types import TagType, InterfaceType, DeviceType, VRFType
 
 
 class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
