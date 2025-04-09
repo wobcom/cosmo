@@ -5,16 +5,16 @@ from cosmo.types import AbstractNetboxType
 
 
 class AbstractLogLevel(metaclass=ABCMeta):
-    name: str = None
+    name: str = "abstract_log_level"
     def __str__(self):
-        return f"[{self.name}]"
+        return f"[{self.name.upper()}]"
 
 class InfoLogLevel(AbstractLogLevel):
-    name = "INFO"
+    name = "info"
 class WarningLogLevel(AbstractLogLevel):
-    name = "WARNING"
+    name = "warning"
 class ErrorLogLevel(AbstractLogLevel):
-    name = "ERROR"
+    name = "error"
 
 
 O = object | AbstractNetboxType | None # object-being-logged-on type
@@ -41,13 +41,13 @@ class JsonLoggingStrategy(AbstractLoggingStrategy):
     error_queue: list[M] = []
 
     @staticmethod
-    def _toJSON(message: M) -> dict:
-        loglevel, message, obj = message
+    def _toJSON(m: M) -> dict:
+        loglevel, message, obj = m
         obj_dict = {}
         if obj is not None:
-            obj_dict = { "object": str(obj) }
+            obj_dict = { "object": obj }
         return {
-            "level": loglevel.name.lower(),
+            "level": loglevel.name,
             "message": message,
             **obj_dict,
         }
