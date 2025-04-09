@@ -1,5 +1,4 @@
 import ipaddress
-import warnings
 from functools import singledispatchmethod
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor

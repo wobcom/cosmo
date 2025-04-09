@@ -1,6 +1,6 @@
 import abc
 import ipaddress
-import warnings
+import cosmo.log
 from collections.abc import Iterable
 from ipaddress import IPv4Interface, IPv6Interface
 
@@ -240,9 +240,12 @@ class InterfaceType(AbstractNetboxType):
         cf = self.getCustomFields()
         if "untagged_vlan" in self.keys() and self["untagged_vlan"]:
             if cf.get("outer_tag"):
-                warnings.warn(f"{self} has untagged {self['untagged_vlan']} and outer_tag "
-                              f"{cf.get('outer_tag')}! outer_tag should not be used with "
-                              f"untagged_vlan. Please fix data source.")
+                cosmo.log.warn(
+                    f"{self} has untagged {self['untagged_vlan']} and outer_tag "
+                    f"{cf.get('outer_tag')}! outer_tag should not be used with "
+                    f"untagged_vlan. Please fix data source.",
+                    self,
+                )
             return self["untagged_vlan"]
         elif cf.get("outer_tag"):
             # we have to build the VLANType object in the case of

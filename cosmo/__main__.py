@@ -2,13 +2,12 @@ import json
 import os
 import sys
 import pathlib
-import warnings
 
 import yaml
 import argparse
 
 from cosmo.clients.netbox import NetboxClient
-from cosmo.log import info, logger, HumanReadableLoggingStrategy, JsonLoggingStrategy
+from cosmo.log import info, warn, logger, JsonLoggingStrategy
 from cosmo.serializer import RouterSerializer, SwitchSerializer
 from cosmo.common import AbstractRecoverableError
 
@@ -73,7 +72,7 @@ def main() -> int:
         if allowed_hosts and device['name'] not in allowed_hosts and device_fqdn not in allowed_hosts:
             continue
 
-        info(f"Generating {device_fqdn}")
+        info(f"generating", device_fqdn)
 
         content = None
         try:
@@ -84,7 +83,7 @@ def main() -> int:
                 switch_serializer = SwitchSerializer(device)
                 content = switch_serializer.serialize()
         except AbstractRecoverableError as e:
-            warnings.warn(f"{device['name']} serialization error \"{e}\", skipping ...")
+            warn(f"{device['name']} serialization error \"{e}\", skipping ...", device_fqdn)
             continue
 
         match cosmo_configuration['output_format']:

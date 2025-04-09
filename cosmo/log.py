@@ -88,14 +88,18 @@ class JsonLoggingStrategy(AbstractLoggingStrategy):
 
 
 class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
+    @staticmethod
+    def formatObject(obj: O):
+        return f" on {str(obj)}: " if obj else " "
+
     def info(self, message: str, on: O):
-        print(f"{InfoLogLevel()} {message}")
+        print(f"{InfoLogLevel()}{self.formatObject(on)}{message}")
 
     def warn(self, message: str, on: O):
-        print(f"{WarningLogLevel()} {message}")
+        print(f"{WarningLogLevel()}{self.formatObject(on)}{message}")
 
     def error(self, message: str, on: O):
-        print(f"{ErrorLogLevel()} {message}")
+        print(f"{ErrorLogLevel()}{self.formatObject(on)}{message}")
 
     def flush(self):
         pass
@@ -138,8 +142,13 @@ class CosmoLogger:
             self.flush()
 
 
-def info(string: str) -> None:
-    logger.info(string, None)
+def info(message: str, on: O = None) -> None:
+    logger.info(message, on)
 
+def warn(message: str, on: O) -> None:
+    logger.warn(message, on)
+
+def error(message: str, on:O) -> None:
+    logger.error(message, on)
 
 logger = CosmoLogger().setLoggingStrategy(HumanReadableLoggingStrategy())

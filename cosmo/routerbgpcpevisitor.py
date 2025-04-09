@@ -1,10 +1,10 @@
-import warnings
 from functools import singledispatchmethod
 from ipaddress import IPv4Interface, IPv6Interface, ip_interface
 
 from cosmo.common import head, CosmoOutputType
 from cosmo.cperoutervisitor import CpeRouterExporterVisitor, CpeRouterIPVisitor
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
+from cosmo.log import warn
 from cosmo.netbox_types import TagType, InterfaceType, DeviceType, VRFType
 
 
@@ -88,7 +88,10 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
     def processBgpCpeTag(self, o: TagType):
         linked_interface = o.getParent(InterfaceType)
         if not linked_interface.hasParentInterface():
-            warnings.warn(f"{linked_interface.getName()} does not have a parent interface configured, skipping...")
+            warn(
+                f"{linked_interface.getName()} does not have a parent interface configured, skipping...",
+                linked_interface
+            )
             return
         
         parent_interface = next(filter(
@@ -97,9 +100,10 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
         ))
         cpe = head(parent_interface.getConnectedEndpoints())
         if not cpe:
-            warnings.warn(
+            warn(
                 f"Interface {linked_interface.getName()} has bgp:cpe tag "
-                "on it without a connected device, skipping..."
+                "on it without a connected device, skipping...",
+                linked_interface,
             )
             return 
             
