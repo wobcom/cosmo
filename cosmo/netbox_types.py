@@ -161,6 +161,12 @@ class AbstractNetboxType(abc.ABC, Iterable):
             "id": self.getID(),
             "type": self._getNetboxType(),
             "rel_path": self.getRelPath(),
+            "device_rel_path": (
+                self.getParent(DeviceType).getRelPath()
+                if not isinstance(self, DeviceType)
+                else self.getRelPath()
+            ),
+            "display_name": self.getName(),
         }
 
 
