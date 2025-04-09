@@ -7,7 +7,7 @@ import yaml
 import argparse
 
 from cosmo.clients.netbox import NetboxClient
-from cosmo.log import info, logger, JsonLoggingStrategy, error
+from cosmo.log import info, logger, JsonLoggingStrategy, error, HumanReadableLoggingStrategy
 from cosmo.serializer import RouterSerializer, SwitchSerializer
 from cosmo.common import AbstractRecoverableError
 
@@ -30,6 +30,10 @@ def main() -> int:
 
     if args.json:
         logger.setLoggingStrategy(JsonLoggingStrategy())
+    else:
+        logger.setLoggingStrategy(HumanReadableLoggingStrategy(
+            netbox_instance_url=os.environ.get("NETBOX_URL") # isn't validated so it's fine
+        ))
 
     if len(args.limit) > 1:
         allowed_hosts = args.limit

@@ -88,9 +88,21 @@ class JsonLoggingStrategy(AbstractLoggingStrategy):
 
 
 class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
-    @staticmethod
-    def formatObject(obj: O):
-        return f" on {str(obj)}: " if obj else " "
+    def __init__(self, *args, netbox_instance_url: str, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.nb_instance_url = netbox_instance_url
+
+    def formatObject(self, obj: O):
+        match obj:
+            case AbstractNetboxType():
+                url = obj.getFullURL(self.nb_instance_url)
+                return f" for {url} : "
+            case None:
+                return " "
+            case str()|object():
+                return f" on {obj} : "
+            case _:
+                return " "
 
     def info(self, message: str, on: O):
         print(f"{InfoLogLevel()}{self.formatObject(on)}{message}")
@@ -151,4 +163,4 @@ def warn(message: str, on: O) -> None:
 def error(message: str, on:O) -> None:
     logger.error(message, on)
 
-logger = CosmoLogger().setLoggingStrategy(HumanReadableLoggingStrategy())
+logger = CosmoLogger()
