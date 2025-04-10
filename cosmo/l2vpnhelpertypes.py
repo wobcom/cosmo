@@ -190,17 +190,17 @@ class AbstractEPLEVPLL2VpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, metacl
 
     def processInterfaceTypeTermination(self, o: InterfaceType):
         parent_l2vpn = o.getParent(L2VPNType)
-        local = next(filter(
+        local = head(list(filter(
             lambda i: (
                     isinstance(i, InterfaceType)
                     and i == o
             ),
             parent_l2vpn.getTerminations()
-        ))
-        remote = next(filter(
+        )))
+        remote = head(list(filter(
             lambda i: i != local,
             parent_l2vpn.getTerminations()
-        ))
+        )))
         if not isinstance(remote, InterfaceType):
             raise L2VPNSerializationError(
                 f"Incorrect termination type {type(remote)} for L2VPN {parent_l2vpn.getName()}."
