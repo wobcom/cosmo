@@ -3,6 +3,8 @@ import sys
 from abc import abstractmethod, ABCMeta
 from typing import Self
 
+from termcolor import colored
+
 from cosmo.common import AbstractRecoverableError, JsonOutputType
 from cosmo.netbox_types import AbstractNetboxType
 
@@ -94,18 +96,32 @@ class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
 
     def formatMessage(self, m: M) -> str:
         log_level, message, obj = m
-        default_log = f"[{log_level}] {message}"
+        match log_level:
+            case InfoLogLevel():
+                color = "blue"
+            case WarningLogLevel():
+                color = "yellow"
+            case ErrorLogLevel():
+                color = "red"
+            case _:
+                color = "white"
+        log_level_colored = colored(log_level, color)
+        default_log = f"[{log_level_colored}] {message}"
         match obj:
             case AbstractNetboxType():
                 meta_info = obj.getMetaInfo()
                 full_url = meta_info.getFullObjectURL(self.nb_instance_url)
-                return f"[{log_level}] [{meta_info.device_display_name.lower()}] [{meta_info.display_name}] " \
-                       f"{message}\n" \
-                       f" {full_url}"
+                return (
+                        f"[{log_level_colored}]"
+                        f" [{meta_info.device_display_name.lower()}]"
+                        f" [{meta_info.display_name}] "
+                        f"{message}\n" +
+                        colored(f"🌐 {full_url}", "light_blue")
+                )
             case None:
                 return default_log
             case str()|object():
-                return f"[{log_level}] [{obj}] {message}"
+                return f"[{log_level_colored}] [{obj}] {message}"
             case _:
                 return default_log
 
