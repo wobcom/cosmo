@@ -404,7 +404,7 @@ class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVi
     def processTerminationCommon(self, o: InterfaceType|VLANType) -> dict|None:
         parent_l2vpn = o.getParent(L2VPNType)
         interface_names = None
-        warnings.warn(f"{parent_l2vpn.getName()} is of type {self.getNetboxTypeName()} which is deprecated.")
+        warn(f"{parent_l2vpn.getName()} is of type {self.getNetboxTypeName()} which is deprecated.", o)
         if isinstance(o, InterfaceType):
             interface_names = [o.getName()]
         elif isinstance(o, VLANType):
