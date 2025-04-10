@@ -8,9 +8,11 @@
     {
       # Nixpkgs overlay providing the application
       overlay = nixpkgs.lib.composeManyExtensions [
-        (final: prev: {
+        (final: prev: let 
+          pyprojectFile = builtins.fromTOML (builtins.readFile ./pyproject.toml);
+        in {
           # The application
-          cosmo = final.callPackage ./package.nix {};
+          cosmo = final.callPackage ./package.nix { version = pyprojectFile.tool.poetry.version; };
         })
       ];
     } // (flake-utils.lib.eachDefaultSystem (system:
