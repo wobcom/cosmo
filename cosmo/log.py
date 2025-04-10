@@ -105,7 +105,9 @@ class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
                 color = "red"
             case _:
                 color = "white"
-        log_level_colored = colored(log_level, color)
+                
+        # Type Ignore is fixed with termcolor v3.
+        log_level_colored = colored(log_level, color) # type: ignore
         default_log = f"[{log_level_colored}] {message}"
         match obj:
             case AbstractNetboxType():
