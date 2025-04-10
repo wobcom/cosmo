@@ -2,7 +2,7 @@
 
 python3Packages.buildPythonApplication rec {
   pname = "cosmo";
-  version = "0.0.0";
+  version = "0.10.1";
   pyproject = true;
 
   src = ./.;
