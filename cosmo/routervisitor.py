@@ -7,7 +7,7 @@ import deepmerge
 
 from cosmo.log import warn
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import InterfaceSerializationError, head, StaticRouteSerializationError
+from cosmo.common import InterfaceSerializationError, head, StaticRouteSerializationError, APP_NAME
 from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
 from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor, RouterL2VPNExporterVisitor
@@ -190,7 +190,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             parent_interface_type = parent_interface.getAssociatedType()
             # cases where no VLAN is authorized: we have only one sub interface, or it's a loopback or virtual
             if len(all_parent_sub_interfaces) > 1 and parent_interface_type not in [ "loopback", "virtual" ]:
-                warn(f"Sub interface {o.getName()} does not have a access VLAN configured!", o)
+                warn(f"sub interfaces should have an access VLAN configured!", o)
         # specific outer_tag case -> we cannot process the "virtual" untagged vlan
         # via type hinting / visitor, since it does not exist in the composite
         # tree, and is only represent by outer_tag CF.
@@ -349,7 +349,6 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         parent_interface = o.getParent(InterfaceType)
         if not parent_interface.isInAccessMode():
             warn(
-                f"Interface {parent_interface} on device {o.getParent(DeviceType).getName()} "
                 "is mode ACCESS but has no untagged vlan, skipping",
                 parent_interface,
             )
@@ -398,8 +397,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     def processSpeedTag(self, o: TagType):
         if not re.search("[0-9]+[tgmTGM]", o.getTagValue()):
             warn(
-                f"Interface speed {o.getTagValue()} on interface "
-                f"{o.getParent(InterfaceType).getName()} is not known, ignoring",
+                f"Interface speed {o.getTagValue()} is not known, ignoring.",
                 o.getParent(InterfaceType)
             )
         else:
@@ -418,8 +416,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         fecs = ["off", "rs", "baser"]
         if o.getTagValue() not in fecs:
             warn(
-                f"FEC mode {o.getTagValue()} on interface "
-                f"{parent_interface.getName()} is not known, ignoring",
+                f"FEC mode {o.getTagValue()} is not known, ignoring.",
                 parent_interface
             )
         else:
@@ -534,8 +531,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         mtu = interface.getMTU() or parent_mtu
         if not sonderlocke and mtu is not None and mtu not in self._allowed_core_mtus:
             warn(
-                f"Interface {interface.getName()} on device {interface.getParent(DeviceType).getName()} "
-                f"has MTU {mtu} set, which is not one of the allowed values for core interfaces.",
+                f"MTU {mtu} is not one of the allowed values for core interfaces.",
                 interface
             )
         return {
@@ -564,8 +560,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         
         if interface.isSubInterface(): 
             warn(
-                f"Interface {interface.getName()} is a sub-interface,"
-                " breakout tag needs to be set on parent interface.",
+                "this is a sub-interface. breakout tag needs to be set on parent interface.",
                 interface
             )
         
@@ -636,6 +631,6 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 if o.getTagValue() == "cpe":
                     return self.bgpcpe_exporter.accept(o)
                 else:
-                    warn(f"unkown bgp tag {o.getTagValue()}", o)
+                    warn(f"{APP_NAME} doesn't know this bgp tag.", o)
             case _:
-                warn(f"unknown tag {o.getTagName()}", o)
+                warn(f"{APP_NAME} doesn't know this tag.", o)

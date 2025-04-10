@@ -514,7 +514,7 @@ def test_switch_case_lag():
 def test_switch_interface_speed(capsys):
     [sd] = get_switch_sd_from_path('./test_case_switch_interface_speed.yaml')
     captured = capsys.readouterr()
-    assert re.search("Interface speed 100m on interface swp4 is not known", captured.out)
+    assert re.search("Interface speed 100m is not known", captured.out)
 
     # check all switchports are present
     assert 'swp1' in sd['cumulus__device_interfaces']
@@ -531,7 +531,7 @@ def test_switch_interface_speed(capsys):
 def test_switch_interface_fec(capsys):
     [sd] = get_switch_sd_from_path("./test_case_switch_fec.yaml")
     captured = capsys.readouterr()
-    assert re.search("FEC mode undefined on interface swp4 is not known", captured.out)
+    assert re.search("FEC mode undefined is not known", captured.out)
 
     assert 'swp1' in sd['cumulus__device_interfaces']
     assert 'swp2' in sd['cumulus__device_interfaces']

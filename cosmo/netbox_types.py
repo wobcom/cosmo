@@ -305,7 +305,7 @@ class InterfaceType(AbstractNetboxType):
         if "untagged_vlan" in self.keys() and self["untagged_vlan"]:
             if cf.get("outer_tag"):
                 cosmo.log.warn(
-                    f"{self} has untagged {self['untagged_vlan']} and outer_tag "
+                    f"has untagged {self['untagged_vlan']} and outer_tag "
                     f"{cf.get('outer_tag')}! outer_tag should not be used with "
                     f"untagged_vlan. Please fix data source.",
                     self,

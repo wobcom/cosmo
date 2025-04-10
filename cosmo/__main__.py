@@ -78,7 +78,7 @@ def main() -> int:
         if allowed_hosts and device['name'] not in allowed_hosts and device_fqdn not in allowed_hosts:
             continue
 
-        info(f"generating", device_fqdn)
+        info(f"generating...", device_fqdn)
 
         content = None
         try:

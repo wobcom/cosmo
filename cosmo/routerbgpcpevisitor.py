@@ -89,7 +89,7 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
         linked_interface = o.getParent(InterfaceType)
         if not linked_interface.hasParentInterface():
             warn(
-                f"{linked_interface.getName()} does not have a parent interface configured, skipping...",
+                f"does not have a parent interface configured, skipping...",
                 linked_interface
             )
             return
@@ -101,8 +101,7 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
         cpe = head(parent_interface.getConnectedEndpoints())
         if not cpe:
             warn(
-                f"Interface {linked_interface.getName()} has bgp:cpe tag "
-                "on it without a connected device, skipping...",
+                f"has bgp:cpe tag on it without a connected device, skipping...",
                 linked_interface,
             )
             return 

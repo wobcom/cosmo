@@ -1,5 +1,7 @@
 import abc
 
+APP_NAME = "cosmo"
+
 class AbstractRecoverableError(Exception, abc.ABC):
     pass
 

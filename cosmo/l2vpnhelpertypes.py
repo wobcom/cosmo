@@ -14,7 +14,7 @@ from cosmo.netbox_types import InterfaceType, VLANType, AbstractNetboxType, Devi
 class AbstractEncapCapability(metaclass=ABCMeta):
     @singledispatchmethod
     def accept(self, o):
-        warn(f"cannot find suitable encapsulation for type {type(o)}", o)
+        warn(f"cannot find suitable encapsulation.", o)
 
 
 class EthernetCccEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):

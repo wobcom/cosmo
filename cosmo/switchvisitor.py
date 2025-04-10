@@ -138,8 +138,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         }
         if o.getTagValue() not in speeds:
             warn(
-                f"Interface speed {o.getTagValue()} on interface "
-                f"{parent_interface.getName()} is not known, ignoring",
+                f"Interface speed {o.getTagValue()} is not known, ignoring.",
                 parent_interface
             )
         else:
@@ -156,8 +155,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         fecs = ["off", "rs", "baser"]
         if o.getTagValue() not in fecs:
             warn(
-                f"FEC mode {o.getTagValue()} on interface "
-                f"{parent_interface.getName()} is not known, ignoring",
+                f"FEC mode {o.getTagValue()} is not known, ignoring.",
                 parent_interface
             )
         else:
