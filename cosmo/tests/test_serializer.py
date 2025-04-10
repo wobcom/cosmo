@@ -268,8 +268,11 @@ def test_router_ips():
     assert unit_v6['families']['inet6']['ipv6_ra'] == True
 
 
-def test_router_case_mpls_evpn():
+def test_router_case_mpls_evpn(capsys):
     sd = get_router_sd_from_path("./test_case_mpls_evpn.yaml")
+
+    capture = capsys.readouterr() # mpls is deprecated. should warn.
+    assert re.search("which is deprecated", capture.out)
 
     for d in sd:
         assert 'ae0' in d['interfaces']

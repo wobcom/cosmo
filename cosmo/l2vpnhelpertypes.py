@@ -182,23 +182,31 @@ class AbstractAnyToAnyL2VpnTypeTerminationVisitor(AbstractL2VpnTypeTerminationVi
 #                                    |  so that it does not appear in subclasses of any2any
 #                                    v or p2p since we're enumerating from there
 class AbstractEPLEVPLL2VpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta):
+    def localInterfaceValidationTemplateMethod(self, local: InterfaceType):
+        pass
+
+    def remoteInterfaceValidationTemplateMethod(self, remote: InterfaceType):
+        pass
+
     def processInterfaceTypeTermination(self, o: InterfaceType):
         parent_l2vpn = o.getParent(L2VPNType)
-        local = next(filter(
+        local = head(list(filter(
             lambda i: (
                     isinstance(i, InterfaceType)
                     and i == o
             ),
             parent_l2vpn.getTerminations()
-        ))
-        remote = next(filter(
+        )))
+        remote = head(list(filter(
             lambda i: i != local,
             parent_l2vpn.getTerminations()
-        ))
+        )))
         if not isinstance(remote, InterfaceType):
             raise L2VPNSerializationError(
                 f"Incorrect termination type {type(remote)} for L2VPN {parent_l2vpn.getName()}."
             )
+        self.localInterfaceValidationTemplateMethod(local)
+        self.remoteInterfaceValidationTemplateMethod(remote)
         # + l2circuits
         associated_device = remote.getAssociatedDevice()
         if not isinstance(associated_device, DeviceType):
@@ -235,7 +243,6 @@ class EPLL2VpnTypeTerminationVisitorAbstract(AbstractEPLEVPLL2VpnTypeCommon, Abs
     @staticmethod
     def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
         return [ # order is important!
-            VlanCccEncapCapability,
             EthernetCccEncapCapability,
         ]
 
@@ -247,6 +254,20 @@ class EPLL2VpnTypeTerminationVisitorAbstract(AbstractEPLEVPLL2VpnTypeCommon, Abs
     def getAcceptedTerminationTypes() -> T:
         return InterfaceType
 
+    @staticmethod
+    def commonInterfaceValidationTemplateMethod(interface: InterfaceType, kind: str):
+        if interface.getUntaggedVLAN():
+            raise L2VPNSerializationError(
+                f"Using EPL but {kind} interface {interface.getName()}"
+                f" is a VLAN-based termination. Please switch to EVPL."
+            )
+
+    def remoteInterfaceValidationTemplateMethod(self, remote: InterfaceType):
+        self.commonInterfaceValidationTemplateMethod(remote, "remote")
+
+    def localInterfaceValidationTemplateMethod(self, local: InterfaceType):
+        self.commonInterfaceValidationTemplateMethod(local, "local")
+
 
 # for MRO, common need to be 1st
 class EVPLL2VpnTypeTerminationVisitorAbstract(AbstractEPLEVPLL2VpnTypeCommon, AbstractP2PL2VpnTypeTerminationVisitor):
@@ -254,7 +275,6 @@ class EVPLL2VpnTypeTerminationVisitorAbstract(AbstractEPLEVPLL2VpnTypeCommon, Ab
     def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
         return [
             VlanCccEncapCapability,
-            EthernetCccEncapCapability,
         ]
 
     @staticmethod
@@ -406,6 +426,7 @@ class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVi
     def processTerminationCommon(self, o: InterfaceType|VLANType) -> dict|None:
         parent_l2vpn = o.getParent(L2VPNType)
         interface_names = None
+        warn(f"{parent_l2vpn.getName()} is of type {self.getNetboxTypeName()} which is deprecated.", o)
         if isinstance(o, InterfaceType):
             interface_names = [o.getName()]
         elif isinstance(o, VLANType):
