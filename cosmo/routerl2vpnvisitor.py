@@ -1,11 +1,10 @@
 import ipaddress
-import warnings
 from functools import singledispatchmethod
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import head, L2VPNSerializationError
 from cosmo.l2vpnhelpertypes import L2VpnVisitorClassFactoryFromL2VpnTypeObject, AbstractL2VpnTypeTerminationVisitor
-from cosmo.types import L2VPNType, InterfaceType, VLANType, CosmoLoopbackType, L2VPNTerminationType, DeviceType
+from cosmo.netbox_types import L2VPNType, InterfaceType, VLANType, CosmoLoopbackType, L2VPNTerminationType, DeviceType
 
 
 class AbstractL2VPNVisitor(AbstractRouterExporterVisitor):

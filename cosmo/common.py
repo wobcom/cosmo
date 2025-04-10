@@ -1,5 +1,7 @@
 import abc
 
+APP_NAME = "cosmo"
+
 class AbstractRecoverableError(Exception, abc.ABC):
     pass
 
@@ -22,6 +24,8 @@ class L2VPNSerializationError(AbstractRecoverableError):
 # recursive type for the shape of cosmo output. use it when specifying something that
 # the visitors will export.
 CosmoOutputType = dict[str, str|dict[str, "CosmoOutputType"]|list["CosmoOutputType"]]
+
+JsonOutputType = CosmoOutputType
 
 # next() can raise StopIteration, so that's why I use this function
 def head(l):

@@ -1,4 +1,6 @@
 import json
+import re
+
 import yaml
 import pytest
 import os
@@ -49,11 +51,12 @@ def test_device_generation_nix(mocker):
     testEnv.stop()
     assert os.path.isfile('machines/test0001/generated-cosmo.json')
 
-def test_device_processing_error(mocker):
+def test_device_processing_error(mocker, capsys):
     testEnv = utils.CommonSetup(mocker, cfgFile='cosmo/tests/cosmo.devgen_nix.yml')
     with open(f"cosmo/tests/test_case_vendor_unknown.yaml") as f:
         test_data = yaml.safe_load(f)
         utils.RequestResponseMock.patchNetboxClient(mocker, **test_data)
-    with pytest.warns(UserWarning, match="unsupported platform vendor"):
-        assert cosmoMain() == 0
+    assert cosmoMain() == 0
+    captured = capsys.readouterr()
+    assert re.search(r"unsupported platform vendor", captured.out)
     testEnv.stop()

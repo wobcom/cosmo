@@ -2,19 +2,20 @@ import json
 import os
 import sys
 import pathlib
-import warnings
 
 import yaml
 import argparse
 
 from cosmo.clients.netbox import NetboxClient
-from cosmo.log import info
+from cosmo.log import info, logger, JsonLoggingStrategy, error, HumanReadableLoggingStrategy
 from cosmo.serializer import RouterSerializer, SwitchSerializer
 from cosmo.common import AbstractRecoverableError
 
 
 
 def main() -> int:
+    sys.excepthook = logger.exceptionHook
+
     parser = argparse.ArgumentParser(
         description="Automagically generate filter lists and BGP sessions for WAN-Core network"
     )
@@ -22,8 +23,17 @@ def main() -> int:
                         help='List of hosts to generate configurations')
     parser.add_argument('--config', '-c', default='cosmo.yml', metavar="CFGFILE",
                         help='Path of the yaml config file to use')
+    parser.add_argument('--json', '-j', action="store_true",
+                        help='Toggle machine readable output on')
 
     args = parser.parse_args()
+
+    if args.json:
+        logger.setLoggingStrategy(JsonLoggingStrategy())
+    else:
+        logger.setLoggingStrategy(HumanReadableLoggingStrategy(
+            netbox_instance_url=str(os.environ.get("NETBOX_URL")) # isn't validated so it's fine
+        ))
 
     if len(args.limit) > 1:
         allowed_hosts = args.limit
@@ -68,7 +78,7 @@ def main() -> int:
         if allowed_hosts and device['name'] not in allowed_hosts and device_fqdn not in allowed_hosts:
             continue
 
-        info(f"Generating {device_fqdn}")
+        info(f"generating...", device_fqdn)
 
         content = None
         try:
@@ -79,7 +89,7 @@ def main() -> int:
                 switch_serializer = SwitchSerializer(device)
                 content = switch_serializer.serialize()
         except AbstractRecoverableError as e:
-            warnings.warn(f"{device['name']} serialization error \"{e}\", skipping ...")
+            error(f"{device['name']} serialization error \"{e}\", skipping ...", device_fqdn)
             continue
 
         match cosmo_configuration['output_format']:
@@ -103,8 +113,8 @@ def main() -> int:
                         json.dump(content, json_file, indent=4)
             case other:
                 raise Exception(f"unsupported output format {other}")
-                return 1
 
+    logger.flush()
     return 0
 
 

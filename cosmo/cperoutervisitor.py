@@ -1,7 +1,7 @@
 from functools import singledispatchmethod
 from ipaddress import IPv6Network, IPv4Network
 
-from cosmo.types import IPAddressType, DeviceType
+from cosmo.netbox_types import IPAddressType, DeviceType
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
 

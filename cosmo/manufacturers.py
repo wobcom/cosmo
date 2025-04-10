@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import NoReturn
 
 from cosmo.common import DeviceSerializationError
-from cosmo.types import DeviceType, InterfaceType
+from cosmo.netbox_types import DeviceType, InterfaceType
 
 
 class AbstractManufacturer(ABC):

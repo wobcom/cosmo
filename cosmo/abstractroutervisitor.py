@@ -1,6 +1,6 @@
 from abc import ABC
 
-from cosmo.types import CosmoLoopbackType
+from cosmo.netbox_types import CosmoLoopbackType
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
 

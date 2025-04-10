@@ -1,12 +1,12 @@
 import ipaddress
-import warnings
 from abc import abstractmethod, ABCMeta
 from functools import singledispatchmethod
 from typing import NoReturn
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import head, CosmoOutputType, L2VPNSerializationError
-from cosmo.types import InterfaceType, VLANType, AbstractNetboxType, DeviceType, L2VPNType, CosmoLoopbackType, \
+from cosmo.log import warn
+from cosmo.netbox_types import InterfaceType, VLANType, AbstractNetboxType, DeviceType, L2VPNType, CosmoLoopbackType, \
     L2VPNTerminationType
 
 
@@ -14,7 +14,7 @@ from cosmo.types import InterfaceType, VLANType, AbstractNetboxType, DeviceType,
 class AbstractEncapCapability(metaclass=ABCMeta):
     @singledispatchmethod
     def accept(self, o):
-        warnings.warn(f"cannot find suitable encapsulation for type {type(o)}")
+        warn(f"cannot find suitable encapsulation.", o)
 
 
 class EthernetCccEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
@@ -113,11 +113,11 @@ class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
         return chosen_encap
 
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
-        warnings.warn(f"{self.getNetboxTypeName().upper()} L2VPN does not support {type(o)} terminations.")
+        warn(f"{self.getNetboxTypeName().upper()} L2VPN does not support {type(o)} terminations.", o)
         return None
 
     def processVLANTypeTermination(self, o: VLANType) -> dict | None:
-        warnings.warn(f"{self.getNetboxTypeName().upper()} L2VPN does not support {type(o)} terminations.")
+        warn(f"{self.getNetboxTypeName().upper()} L2VPN does not support {type(o)} terminations.", o)
         return None
 
     def spitInterfaceEncapFor(self, o: VLANType|InterfaceType):

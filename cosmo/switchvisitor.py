@@ -1,9 +1,9 @@
 import ipaddress
-import warnings
 from functools import singledispatchmethod
 
+from cosmo.log import warn
 from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
-from cosmo.types import IPAddressType, DeviceType, InterfaceType, VLANType, TagType
+from cosmo.netbox_types import IPAddressType, DeviceType, InterfaceType, VLANType, TagType
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
 
@@ -137,9 +137,9 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             "100g": 100_000,
         }
         if o.getTagValue() not in speeds:
-            warnings.warn(
-                f"Interface speed {o.getTagValue()} on interface "
-                f"{parent_interface.getName()} is not known, ignoring"
+            warn(
+                f"Interface speed {o.getTagValue()} is not known, ignoring.",
+                parent_interface
             )
         else:
             return {
@@ -154,9 +154,9 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         parent_interface = o.getParent(InterfaceType)
         fecs = ["off", "rs", "baser"]
         if o.getTagValue() not in fecs:
-            warnings.warn(
-                f"FEC mode {o.getTagValue()} on interface "
-                f"{parent_interface.getName()} is not known, ignoring"
+            warn(
+                f"FEC mode {o.getTagValue()} is not known, ignoring.",
+                parent_interface
             )
         else:
             return {

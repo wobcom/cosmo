@@ -1,10 +1,13 @@
 import abc
 import ipaddress
-import warnings
+from urllib.parse import urljoin
+
+import cosmo.log
 from collections.abc import Iterable
+from abc import abstractmethod
 from ipaddress import IPv4Interface, IPv6Interface
 
-from .common import without_keys
+from .common import without_keys, JsonOutputType
 from typing import Self, Iterator, TypeVar, NoReturn
 
 
@@ -53,7 +56,7 @@ class AbstractNetboxType(abc.ABC, Iterable):
         )
 
     def __repr__(self):
-        return self._getNetboxType()
+        return self.getNetboxType()
 
     def __eq__(self, other):
         if self.getID() and isinstance(other, AbstractNetboxType):
@@ -95,14 +98,14 @@ class AbstractNetboxType(abc.ABC, Iterable):
             return item
 
     @classmethod
-    def _getNetboxType(cls):
+    def getNetboxType(cls):
         # classes should have the same name as the type name
         # if not, you can override in parent class
         return cls.__name__
 
     @classmethod
     def register(cls) -> tuple:
-        return cls._getNetboxType(), cls
+        return cls.getNetboxType(), cls
 
     def hasParentAboveWithType(self, target_type: type[T]) -> bool:
         instance = self['__parent']
@@ -143,6 +146,47 @@ class AbstractNetboxType(abc.ABC, Iterable):
         else:
             return o
 
+    @abstractmethod
+    def getBasePath(self): # as in, netbox HTML view path
+        pass
+
+    def getRelPath(self) -> str:
+        return urljoin(self.getBasePath(), self.getID())
+
+    def getMetaInfo(self) -> "NetboxObjectMetaInfo":
+        return NetboxObjectMetaInfo(self)
+
+
+class NetboxObjectMetaInfo:
+    id: int
+    type: str
+    rel_path: str
+    device_rel_path: str
+    display_name: str
+    device_display_name: str
+
+    def __init__(self, o: AbstractNetboxType):
+        self.id = o.getID()
+        self.type = o.getNetboxType()
+        self.rel_path = o.getRelPath()
+        self.device_rel_path = (
+            o.getParent(DeviceType).getRelPath()
+            if not isinstance(o, DeviceType)
+            else o.getRelPath()
+        )
+        self.display_name = o.getName()
+        self.device_display_name = (
+            o.getParent(DeviceType).getName()
+            if not isinstance(o, DeviceType)
+            else o.getName()
+        )
+
+    def getFullObjectURL(self, netbox_instance_url: str):
+        return urljoin(netbox_instance_url, self.rel_path)
+
+    def toJSON(self):
+        return self.__dict__
+
 
 # POJO style store
 # why so many getters, you ask? the answer is simple:
@@ -158,6 +202,9 @@ class AbstractNetboxType(abc.ABC, Iterable):
 class DeviceType(AbstractNetboxType):
     def __repr__(self):
         return super().__repr__() + f"({self.getName()})"
+
+    def getBasePath(self):
+        return "/dcim/devices/"
 
     def isCompositeRoot(self) -> bool:
         return not bool(self.get('__parent', False))
@@ -176,19 +223,27 @@ class DeviceType(AbstractNetboxType):
 
 
 class DeviceTypeType(AbstractNetboxType):
-    pass
+    def getBasePath(self):
+        return "/dcim/device-types/"
 
 
 class PlatformType(AbstractNetboxType):
+    def getBasePath(self):
+        return "/dcim/platforms/"
+
     def getManufacturer(self):
         return self['manufacturer']
 
 
 class ManufacturerType(AbstractNetboxType):
-    pass
+    def getBasePath(self):
+        return "/dcim/manufacturers/"
 
 
 class IPAddressType(AbstractNetboxType):
+    def getBasePath(self):
+        return "/ipam/ip-addresses/"
+
     def getIPAddress(self) -> str:
         return self["address"]
 
@@ -203,6 +258,8 @@ class IPAddressType(AbstractNetboxType):
 
 class TagType(AbstractNetboxType):
     _delimiter = ':'
+    def getBasePath(self):
+        return "/extras/tags/"
     def getTagComponents(self):
         return self.get('name').split(self._delimiter)
     def getTagName(self):
@@ -212,10 +269,14 @@ class TagType(AbstractNetboxType):
 
 
 class RouteTargetType(AbstractNetboxType):
-    pass
+    def getBasePath(self):
+        return "/ipam/route-targets/"
 
 
 class VRFType(AbstractNetboxType):
+    def getBasePath(self):
+        return "/ipam/vrfs/"
+
     def getDescription(self) -> str:
         return self["description"]
 
@@ -233,6 +294,9 @@ class InterfaceType(AbstractNetboxType):
     def __repr__(self):
         return super().__repr__() + f"({self.getName()})"
 
+    def getBasePath(self):
+        return "/dcim/interfaces/"
+
     def getMACAddress(self) -> str|None:
         return self.get("mac_address")
 
@@ -240,9 +304,12 @@ class InterfaceType(AbstractNetboxType):
         cf = self.getCustomFields()
         if "untagged_vlan" in self.keys() and self["untagged_vlan"]:
             if cf.get("outer_tag"):
-                warnings.warn(f"{self} has untagged {self['untagged_vlan']} and outer_tag "
-                              f"{cf.get('outer_tag')}! outer_tag should not be used with "
-                              f"untagged_vlan. Please fix data source.")
+                cosmo.log.warn(
+                    f"has untagged {self['untagged_vlan']} and outer_tag "
+                    f"{cf.get('outer_tag')}! outer_tag should not be used with "
+                    f"untagged_vlan. Please fix data source.",
+                    self,
+                )
             return self["untagged_vlan"]
         elif cf.get("outer_tag"):
             # we have to build the VLANType object in the case of
@@ -379,6 +446,9 @@ class VLANType(AbstractNetboxType):
     def __repr__(self):
         return f"{super().__repr__()}({self.getVID()})"
 
+    def getBasePath(self):
+        return "/ipam/vlans/"
+
     def getVID(self):
         return self["vid"]
 
@@ -390,6 +460,9 @@ class VLANType(AbstractNetboxType):
 
 
 class L2VPNTerminationType(AbstractNetboxType):
+    def getBasePath(self):
+        return "/vpn/l2vpn-terminations/"
+
     def getAssignedObject(self) -> InterfaceType|VLANType:
         return self["assigned_object"]
 
@@ -397,6 +470,9 @@ class L2VPNTerminationType(AbstractNetboxType):
 class L2VPNType(AbstractNetboxType):
     def __repr__(self):
         return f"{super().__repr__()}({self.getName()})"
+
+    def getBasePath(self):
+        return "/vpn/l2vpns/"
 
     def getIdentifier(self) -> int|None:
         return self["identifier"]
@@ -414,6 +490,9 @@ class L2VPNType(AbstractNetboxType):
 class CosmoStaticRouteType(AbstractNetboxType):
     # TODO: fixme
     # hacky! does not respect usual workflow
+    def getBasePath(self):
+        return "/plugins/routing/static_routes/"
+
     def getNextHop(self) -> IPAddressType|None:
         if self["next_hop"]:
             return IPAddressType(self["next_hop"])
@@ -446,6 +525,9 @@ class CosmoLoopbackType(AbstractNetboxType):
     # TODO: refactor me for greater code reuse! (see netbox_v4.py)
     # this is an artificial type that we create in cosmo
     # it does not exist in netbox
+    def getBasePath(self):
+        return "" # no path
+
     def getIpv4(self) -> str | None:
         return self["ipv4"]
 

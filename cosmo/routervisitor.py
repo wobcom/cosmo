@@ -1,17 +1,17 @@
 import ipaddress
 import re
-import warnings
 from functools import singledispatchmethod
 from typing import Optional
 
 import deepmerge
 
+from cosmo.log import warn
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import InterfaceSerializationError, head, StaticRouteSerializationError
+from cosmo.common import InterfaceSerializationError, head, StaticRouteSerializationError, APP_NAME
 from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
 from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor, RouterL2VPNExporterVisitor
-from cosmo.types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
+from cosmo.netbox_types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
     L2VPNTerminationType, IPAddressType, CosmoStaticRouteType, DeviceTypeType, PlatformType
 
 
@@ -190,7 +190,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             parent_interface_type = parent_interface.getAssociatedType()
             # cases where no VLAN is authorized: we have only one sub interface, or it's a loopback or virtual
             if len(all_parent_sub_interfaces) > 1 and parent_interface_type not in [ "loopback", "virtual" ]:
-                warnings.warn(f"Sub interface {o.getName()} does not have a access VLAN configured!")
+                warn(f"sub interfaces should have an access VLAN configured!", o)
         # specific outer_tag case -> we cannot process the "virtual" untagged vlan
         # via type hinting / visitor, since it does not exist in the composite
         # tree, and is only represent by outer_tag CF.
@@ -348,9 +348,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
     def processUntaggedVLAN(self, o: VLANType):
         parent_interface = o.getParent(InterfaceType)
         if not parent_interface.isInAccessMode():
-            warnings.warn(
-                f"Interface {parent_interface} on device {o.getParent(DeviceType).getName()} "
-                "is mode ACCESS but has no untagged vlan, skipping"
+            warn(
+                "is mode ACCESS but has no untagged vlan, skipping",
+                parent_interface,
             )
         elif parent_interface.isSubInterface() and parent_interface.isEnabled():
             optional_root_interface_attrs = {}
@@ -396,9 +396,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
 
     def processSpeedTag(self, o: TagType):
         if not re.search("[0-9]+[tgmTGM]", o.getTagValue()):
-            warnings.warn(
-                f"Interface speed {o.getTagValue()} on interface "
-                f"{o.getParent(InterfaceType).getName()} is not known, ignoring"
+            warn(
+                f"Interface speed {o.getTagValue()} is not known, ignoring.",
+                o.getParent(InterfaceType)
             )
         else:
             return {
@@ -415,9 +415,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         parent_interface = o.getParent(InterfaceType)
         fecs = ["off", "rs", "baser"]
         if o.getTagValue() not in fecs:
-            warnings.warn(
-                f"FEC mode {o.getTagValue()} on interface "
-                f"{parent_interface.getName()} is not known, ignoring"
+            warn(
+                f"FEC mode {o.getTagValue()} is not known, ignoring.",
+                parent_interface
             )
         else:
             return {
@@ -530,9 +530,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         parent_mtu = parent_interface.getMTU() if parent_interface else None
         mtu = interface.getMTU() or parent_mtu
         if not sonderlocke and mtu is not None and mtu not in self._allowed_core_mtus:
-            warnings.warn(
-                f"Interface {interface.getName()} on device {interface.getParent(DeviceType).getName()} "
-                f"has MTU {mtu} set, which is not one of the allowed values for core interfaces."
+            warn(
+                f"MTU {mtu} is not one of the allowed values for core interfaces.",
+                interface
             )
         return {
             self._interfaces_key: {
@@ -559,7 +559,10 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         interface = o.getParent(InterfaceType)
         
         if interface.isSubInterface(): 
-            warnings.warn(f"Interface {interface.getName()} is a sub-interface, breakout tag needs to be set on parent interface.")
+            warn(
+                "this is a sub-interface. breakout tag needs to be set on parent interface.",
+                interface
+            )
         
         return {
             self._interfaces_key: {
@@ -628,6 +631,6 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 if o.getTagValue() == "cpe":
                     return self.bgpcpe_exporter.accept(o)
                 else:
-                    warnings.warn(f"unkown bgp tag {o.getTagValue()}")
+                    warn(f"{APP_NAME} doesn't know this bgp tag.", o)
             case _:
-                warnings.warn(f"unknown tag {o.getTagName()}")
+                warn(f"{APP_NAME} doesn't know this tag.", o)
