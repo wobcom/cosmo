@@ -56,7 +56,7 @@ class AbstractNetboxType(abc.ABC, Iterable):
         )
 
     def __repr__(self):
-        return self._getNetboxType()
+        return self.getNetboxType()
 
     def __eq__(self, other):
         if self.getID() and isinstance(other, AbstractNetboxType):
@@ -98,14 +98,14 @@ class AbstractNetboxType(abc.ABC, Iterable):
             return item
 
     @classmethod
-    def _getNetboxType(cls):
+    def getNetboxType(cls):
         # classes should have the same name as the type name
         # if not, you can override in parent class
         return cls.__name__
 
     @classmethod
     def register(cls) -> tuple:
-        return cls._getNetboxType(), cls
+        return cls.getNetboxType(), cls
 
     def hasParentAboveWithType(self, target_type: type[T]) -> bool:
         instance = self['__parent']
@@ -153,26 +153,39 @@ class AbstractNetboxType(abc.ABC, Iterable):
     def getRelPath(self) -> str:
         return urljoin(self.getBasePath(), self.getID())
 
-    def getFullURL(self, netbox_instance_url: str):
-        return urljoin(netbox_instance_url, self.getRelPath())
+    def getMetaInfo(self) -> "NetboxObjectMetaInfo":
+        return NetboxObjectMetaInfo(self)
 
-    def toJSON(self) -> JsonOutputType:
-        return {
-            "id": self.getID(),
-            "type": self._getNetboxType(),
-            "rel_path": self.getRelPath(),
-            "device_rel_path": (
-                self.getParent(DeviceType).getRelPath()
-                if not isinstance(self, DeviceType)
-                else self.getRelPath()
-            ),
-            "display_name": self.getName(),
-            "device_display_name": (
-                self.getParent(DeviceType).getName()
-                if not isinstance(self, DeviceType)
-                else self.getName()
-            ),
-        }
+
+class NetboxObjectMetaInfo:
+    id: int
+    type: str
+    rel_path: str
+    device_rel_path: str
+    display_name: str
+    device_display_name: str
+
+    def __init__(self, o: AbstractNetboxType):
+        self.id = o.getID()
+        self.type = o.getNetboxType()
+        self.rel_path = o.getRelPath()
+        self.device_rel_path = (
+            o.getParent(DeviceType).getRelPath()
+            if not isinstance(o, DeviceType)
+            else o.getRelPath()
+        )
+        self.display_name = o.getName()
+        self.device_display_name = (
+            o.getParent(DeviceType).getName()
+            if not isinstance(o, DeviceType)
+            else o.getName()
+        )
+
+    def getFullObjectURL(self, netbox_instance_url: str):
+        return urljoin(netbox_instance_url, self.rel_path)
+
+    def toJSON(self):
+        return self.__dict__
 
 
 # POJO style store

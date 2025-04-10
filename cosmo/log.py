@@ -10,7 +10,7 @@ from cosmo.netbox_types import AbstractNetboxType
 class AbstractLogLevel(metaclass=ABCMeta):
     name: str = "abstract_log_level"
     def __str__(self):
-        return f"[{self.name.upper()}]"
+        return self.name.upper()
 
 class InfoLogLevel(AbstractLogLevel):
     name = "info"
@@ -48,12 +48,12 @@ class JsonLoggingStrategy(AbstractLoggingStrategy):
 
     @staticmethod
     def _messageToJSON(m: M):
-        loglevel, message, obj = m
+        log_level, message, obj = m
         return {
-            "level": loglevel.name,
+            "level": log_level.name,
             "message": message,
-            "object": (obj.toJSON() if isinstance(obj, AbstractNetboxType) else {
-                "type": "cosmo_string", "value": str(obj)
+            "object": (obj.getMetaInfo().toJSON() if isinstance(obj, AbstractNetboxType) else {
+                "type": type(obj).__name__, "value": str(obj)
             }),
         }
 
@@ -92,26 +92,31 @@ class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
         super().__init__(*args, **kwargs)
         self.nb_instance_url = netbox_instance_url
 
-    def formatObject(self, obj: O):
+    def formatMessage(self, m: M) -> str:
+        log_level, message, obj = m
+        default_log = f"[{log_level}] {message}"
         match obj:
             case AbstractNetboxType():
-                url = obj.getFullURL(self.nb_instance_url)
-                return f" for {url} : "
+                meta_info = obj.getMetaInfo()
+                full_url = meta_info.getFullObjectURL(self.nb_instance_url)
+                return f"[{log_level}] [{meta_info.device_display_name.lower()}] [{meta_info.display_name}] " \
+                       f"{message}\n" \
+                       f" {full_url}"
             case None:
-                return " "
+                return default_log
             case str()|object():
-                return f" on {obj} : "
+                return f"[{log_level}] [{obj}] {message}"
             case _:
-                return " "
+                return default_log
 
     def info(self, message: str, on: O):
-        print(f"{InfoLogLevel()}{self.formatObject(on)}{message}")
+        print(self.formatMessage((InfoLogLevel(), message, on)))
 
     def warn(self, message: str, on: O):
-        print(f"{WarningLogLevel()}{self.formatObject(on)}{message}")
+        print(self.formatMessage((WarningLogLevel(), message, on)))
 
     def error(self, message: str, on: O):
-        print(f"{ErrorLogLevel()}{self.formatObject(on)}{message}")
+        print(self.formatMessage((ErrorLogLevel(), message, on)))
 
     def flush(self):
         pass
