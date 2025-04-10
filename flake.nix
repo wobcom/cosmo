@@ -4,17 +4,17 @@
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable-small";
 
-  outputs = { self, nixpkgs, flake-utils, poetry2nix }:
+  outputs = { self, nixpkgs, flake-utils }:
     {
-      # Nixpkgs overlay providing the application
-      overlay = nixpkgs.lib.composeManyExtensions [
-        (final: prev: let 
-          pyprojectFile = builtins.fromTOML (builtins.readFile ./pyproject.toml);
-        in {
-          # The application
-          cosmo = final.callPackage ./package.nix { version = pyprojectFile.tool.poetry.version; };
-        })
-      ];
+      overlay = (final: prev: let 
+        pyprojectFile = builtins.fromTOML (builtins.readFile ./pyproject.toml);
+        # We absolutly want to ship our own deps, so we use our own python and our own python3Packages.
+        pkgs = import nixpkgs {
+          inherit (final) system;
+        };
+      in {
+        cosmo = final.callPackage ./package.nix { python3 = pkgs.python3; python3Packages = pkgs.python3.pkgs; version = pyprojectFile.tool.poetry.version; };
+      });
     } // (flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
