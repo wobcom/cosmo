@@ -182,6 +182,12 @@ class AbstractAnyToAnyL2VpnTypeTerminationVisitor(AbstractL2VpnTypeTerminationVi
 #                                    |  so that it does not appear in subclasses of any2any
 #                                    v or p2p since we're enumerating from there
 class AbstractEPLEVPLL2VpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta):
+    def localInterfaceValidationTemplateMethod(self, local: InterfaceType):
+        pass
+
+    def remoteInterfaceValidationTemplateMethod(self, remote: InterfaceType):
+        pass
+
     def processInterfaceTypeTermination(self, o: InterfaceType):
         parent_l2vpn = o.getParent(L2VPNType)
         local = next(filter(
@@ -199,6 +205,8 @@ class AbstractEPLEVPLL2VpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, metacl
             raise L2VPNSerializationError(
                 f"Incorrect termination type {type(remote)} for L2VPN {parent_l2vpn.getName()}."
             )
+        self.localInterfaceValidationTemplateMethod(local)
+        self.remoteInterfaceValidationTemplateMethod(remote)
         # + l2circuits
         associated_device = remote.getAssociatedDevice()
         if not isinstance(associated_device, DeviceType):
@@ -245,6 +253,20 @@ class EPLL2VpnTypeTerminationVisitorAbstract(AbstractEPLEVPLL2VpnTypeCommon, Abs
     @staticmethod
     def getAcceptedTerminationTypes() -> T:
         return InterfaceType
+
+    @staticmethod
+    def commonInterfaceValidationTemplateMethod(interface: InterfaceType, kind: str):
+        if interface.getUntaggedVLAN():
+            raise L2VPNSerializationError(
+                f"Using EPL but {kind} interface {interface.getName()}"
+                f" is a VLAN-based termination. Please switch to EVPL."
+            )
+
+    def remoteInterfaceValidationTemplateMethod(self, remote: InterfaceType):
+        self.commonInterfaceValidationTemplateMethod(remote, "remote")
+
+    def localInterfaceValidationTemplateMethod(self, local: InterfaceType):
+        self.commonInterfaceValidationTemplateMethod(local, "local")
 
 
 # for MRO, common need to be 1st
