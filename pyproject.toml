@@ -1,10 +1,15 @@
-[tool.poetry]
+[project]
 name = "cosmo"
 version = "0.10.1"
 license = "mit"
 description = "???"
-authors = ["Ember Keske <ember.keske@wobcom.de>", "Johann Wagner <johann.wagner@wobcom.de>", "Yureka <yuka@yuka.dev>", "Fiona Weber <fiona.weber@wobcom.de>", "Lou Lecrivain <lou.lecrivain@wdz.de>"]
-
+authors = [
+    { name="Ember Keske", email="ember.keske@wobcom.de" },
+    { name="Johann Wagner", email="johann.wagner@wobcom.de" },
+    { name="Yureka", email="yuka@yuka.dev>"},
+    { name="Fiona Weber", email="fiona.weber@wobcom.de"},
+    { name="Lou Lecrivain", email="lou.lecrivain@wdz.de>"}
+]
 [tool.poetry.scripts]
 cosmo = "cosmo.__main__:main"
 
