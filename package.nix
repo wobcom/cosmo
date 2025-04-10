@@ -1,8 +1,9 @@
-{ python3Packages, ... }:
+{ python3Packages, version, ... }:
 
 python3Packages.buildPythonApplication rec {
+  inherit version;
+  
   pname = "cosmo";
-  version = "0.0.0";
   pyproject = true;
 
   src = ./.;
