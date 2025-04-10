@@ -275,6 +275,8 @@ class EVPLL2VpnTypeTerminationVisitorAbstract(AbstractEPLEVPLL2VpnTypeCommon, Ab
     def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
         return [
             VlanCccEncapCapability,
+            # Note: Even this is a virtual EPL, it can still end on a full port on one side.
+            EthernetCccEncapCapability
         ]
 
     @staticmethod
