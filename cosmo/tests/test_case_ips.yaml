@@ -23,6 +23,7 @@ device_list:
         name: fxp0.0
         tagged_vlans: [ ]
         untagged_vlan: null
+        vrf: null
       - custom_fields:
           inner_tag: null
           outer_tag: null

@@ -1,5 +1,5 @@
 fqdnSuffix: infra.example.com
-
+asn: 65542
 devices:
   router:
     - "router1"
