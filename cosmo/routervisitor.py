@@ -270,15 +270,12 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             }
         }
 
-    def getRouterId(self, o: DeviceType) -> str:
-        return str(ipaddress.ip_interface(str(self.loopbacks_by_device[o.getName()].getIpv4())).ip)
-
     @accept.register
     def _(self, o: VRFType):
         parent_interface = o.getParent(InterfaceType)
         if not parent_interface.isSubInterface():
             return # guard: do not process root interface
-        router_id = self.getRouterId(o.getParent(DeviceType))
+        router_id = o.getParent(DeviceType).getRouterID()
         if o.getRouteDistinguisher():
             rd = router_id + ":" + o.getRouteDistinguisher()
         elif len(o.getExportTargets()):

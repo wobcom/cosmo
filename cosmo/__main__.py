@@ -48,6 +48,10 @@ def main() -> int:
     with open(args.config, 'r') as cfg_file:
         cosmo_configuration = yaml.safe_load(cfg_file)
 
+    if not 'asn' in cosmo_configuration:
+        error(f"Field 'asn' not defined in configuration file", None)
+        return 1
+
     info(f"Fetching information from Netbox, make sure VPN is enabled on your system.")
 
     netbox_url = os.environ.get("NETBOX_URL")
@@ -82,7 +86,7 @@ def main() -> int:
         content = None
         try:
             if device['name'] in cosmo_configuration['devices']['router']:
-                router_serializer = RouterSerializer(device, cosmo_data['l2vpn_list'], cosmo_data["loopbacks"])
+                router_serializer = RouterSerializer(device, cosmo_data['l2vpn_list'], cosmo_data["loopbacks"], cosmo_configuration["asn"])
                 content = router_serializer.serialize()
             elif device['name'] in cosmo_configuration['devices']['switch']:
                 switch_serializer = SwitchSerializer(device)

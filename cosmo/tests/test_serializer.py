@@ -24,7 +24,7 @@ def get_router_s_from_path(path):
     test_data = _yaml_load(path)
     return [
         RouterSerializer(device=device, l2vpn_list=test_data['l2vpn_list'],
-                         loopbacks=test_data.get('loopbacks', {})).allowPrivateIPs()
+                         loopbacks=test_data.get('loopbacks', {}), asn=65542).allowPrivateIPs()
         for device in test_data['device_list']]
 
 
@@ -42,7 +42,7 @@ def get_switch_sd_from_path(path):
 
 
 def test_router_platforms():
-    
+
     [juniper_s] = get_router_s_from_path("./test_case_2.yaml")
     juniper_manufacturer = ManufacturerFactoryFromDevice(DeviceType(juniper_s.device)).get()
     assert juniper_manufacturer.getRoutingInstanceName() == "mgmt_junos"
@@ -56,7 +56,7 @@ def test_router_platforms():
     with pytest.raises(Exception):
         s = get_router_s_from_path("./test_case_vendor_unknown.yaml")
         s.serialize()
-        
+
     with pytest.raises(Exception):
         s = get_router_s_from_path("./test_case_no_manuf_slug.yaml")
         s.serialize()
@@ -65,7 +65,7 @@ def test_router_platforms():
 def test_l2vpn_errors(capsys):
     serialize = lambda y: \
         RouterSerializer(device=y['device_list'][0], l2vpn_list=y['l2vpn_list'],
-                         loopbacks=y['loopbacks']).serialize()
+                         loopbacks=y['loopbacks'], asn=65542).serialize()
 
     template = _yaml_load("./test_case_l2x_err_template.yaml")
 
@@ -133,31 +133,6 @@ def test_l2vpn_errors(capsys):
             DeviceSerializationError,
             match=r"VPWS L2VPN does not support|Found unsupported L2VPN termination in"):
         serialize(vpws_non_interface_term)
-
-    vpws_missing_identifier = copy.deepcopy(template)
-    vpws_missing_identifier['l2vpn_list'].append({
-        '__typename': 'L2VPNType',
-        'id': '54',
-        'identifier': None,
-        'name': 'WAN: WAN: missing L2VPN identifier',
-        'type': 'evpn-vpws',
-        'terminations': [
-            {
-                '__typename': 'L2VPNTerminationType',
-                'assigned_object': {
-                    '__typename': "InterfaceType"
-                }
-            },
-            {
-                '__typename': 'L2VPNTerminationType',
-                'assigned_object': {
-                    '__typename': "InterfaceType"
-                }
-            }
-        ]
-    })
-    with pytest.raises(DeviceSerializationError, match="L2VPN identifier is mandatory."):
-        serialize(vpws_missing_identifier)
 
 
 def test_router_physical_interface():
@@ -311,7 +286,7 @@ def test_router_case_mpls_evpn(capsys):
         assert ri['instance_type'] == "evpn"
         assert ri['protocols']['evpn'] == {}
 
-        assert ri['route_distinguisher'] == '9136:338'
+        assert ri['route_distinguisher'] == '65542:338'
         assert ri['vrf_target'] == 'target:1:338'
 
 
@@ -342,7 +317,7 @@ def test_router_case_vpws():
         assert ri['protocols']['evpn']['interfaces']['et-0/0/0.0']['vpws_service_id']['local'] == 184384 + (index * -1)
         assert ri['protocols']['evpn']['interfaces']['et-0/0/0.0']['vpws_service_id']['remote'] == 184383 + (index * 1)
 
-        assert ri['route_distinguisher'] == '9136:2708'
+        assert ri['route_distinguisher'] == '65542:2708'
         assert ri['vrf_target'] == 'target:1:2708'
 
 
@@ -396,9 +371,9 @@ def test_router_case_local_l3vpn():
 
     assert ri['route_distinguisher'] == '45.139.136.10:407'
     assert len(ri['import_targets']) == 1
-    assert ri['import_targets'][0] == "target:9136:407"
+    assert ri['import_targets'][0] == "target:65542:407"
     assert len(ri['export_targets']) == 1
-    assert ri['export_targets'][0] == "target:9136:407"
+    assert ri['export_targets'][0] == "target:65542:407"
 
     assert ri['routing_options'] == {}
 

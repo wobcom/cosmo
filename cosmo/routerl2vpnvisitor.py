@@ -32,10 +32,6 @@ class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
         terminations = o.getTerminations()
         identifier = o.getIdentifier()
         l2vpn_type = self.getL2VpnTypeTerminationObjectFrom(o)
-        if l2vpn_type.needsL2VPNIdentifierAsMandatory() and identifier is None:
-            raise L2VPNSerializationError(
-                f"for {o.getName()}: L2VPN identifier is mandatory."
-            )
         if not l2vpn_type.isValidNumberOfTerminations(len(terminations)):
             raise L2VPNSerializationError(
                 f"for {o.getName()}: "
