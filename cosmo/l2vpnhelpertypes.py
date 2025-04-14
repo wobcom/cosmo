@@ -355,60 +355,6 @@ class EVPNVPWSVpnTypeTerminationVisitor(AbstractVPWSEVPNVPWSVpnTypeCommon, Abstr
         return "evpn-vpws"
 
 
-class VXLANEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVisitor):
-    @staticmethod
-    def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
-        return [VlanBridgeEncapCapability]
-
-    @staticmethod
-    def getNetboxTypeName() -> str:
-        return "vxlan"
-
-    @staticmethod
-    def getAcceptedTerminationTypes() -> T:
-        return VLANType
-
-    def needsL2VPNIdentifierAsMandatory(self) -> bool:
-        return True
-
-    def processVLANTypeTermination(self, o: VLANType) -> dict | None:
-        def spitNameForInterfaces(int_or_vlan: InterfaceType | VLANType):
-            if isinstance(int_or_vlan, InterfaceType):
-                return int_or_vlan.getName()
-        parent_l2vpn = o.getParent(L2VPNType)
-        vlan_id = None
-        if o.hasParentAboveWithType(InterfaceType):
-            vlan_id = o.getParent(InterfaceType).getUntaggedVLAN().getVID()
-        return {
-            self._vrf_key: {
-                parent_l2vpn.getName().replace("WAN: ", ""): {
-                    "description": f"Virtual Switch {parent_l2vpn.getName().replace('WAN: VS_', '')}",
-                    "instance-type": "virtual-switch",
-                    "route_distinguisher": f"{self.asn}:{str(parent_l2vpn.getIdentifier())}",
-                    "vrf_target": f"target:1:{str(parent_l2vpn.getIdentifier())}",
-                    "protocols": {
-                        "evpn": {
-                            "vni": [parent_l2vpn.getIdentifier()]
-                        }
-                    },
-                    "bridge_domains": [
-                        {
-                            # I have to do this, otherwise deepmerge will assume non-uniqueness and we'll have
-                            # duplicated bridge_domains. this is because we're within a dict within a list.
-                            "interfaces": [spitNameForInterfaces(iov) for iov in parent_l2vpn.getTerminations()],
-                            "vlan_id": vlan_id,
-                            "name": parent_l2vpn.getName(),
-                            "vxlan": {
-                                "ingress_node_replication": True,
-                                "vni": parent_l2vpn.getIdentifier(),
-                            }
-                        }
-                    ]
-                }
-            }
-        } | self.spitInterfaceEncapFor(o)
-
-
 class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVisitor):
     @staticmethod
     def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
@@ -475,7 +421,6 @@ class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVi
 class L2VpnVisitorClassFactoryFromL2VpnTypeObject:
     _all_l2vpn_types = (
         MPLSEVPNL2VpnTypeTerminationVisitor,
-        VXLANEVPNL2VpnTypeTerminationVisitor,
         VPWSL2VpnTypeTerminationVisitor,
         EVPNVPWSVpnTypeTerminationVisitor,
         EVPLL2VpnTypeTerminationVisitorAbstract,
