@@ -1,5 +1,5 @@
 output_format: "nix"
-
+asn: 65542
 devices:
   router:
     - "TEST0001"

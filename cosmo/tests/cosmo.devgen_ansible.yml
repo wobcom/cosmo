@@ -1,5 +1,5 @@
 output_format: "ansible"
-
+asn: 65542
 devices:
   router:
     - "TEST0001"

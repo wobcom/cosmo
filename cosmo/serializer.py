@@ -9,7 +9,7 @@ from cosmo.routervisitor import RouterDeviceExporterVisitor
 
 
 class RouterSerializer:
-    def __init__(self, device, l2vpn_list, loopbacks):
+    def __init__(self, device, l2vpn_list, loopbacks, asn):
         try:
             match device["platform"]["manufacturer"]["slug"]:
                 case 'juniper':
@@ -29,6 +29,7 @@ class RouterSerializer:
         self.device = device
         self.l2vpn_list = l2vpn_list
         self.loopbacks = loopbacks
+        self.asn = asn
 
         self.l2vpns = {}
         self.l3vpns = {}
@@ -51,7 +52,7 @@ class RouterSerializer:
         # breakpoint()
         visitor = RouterDeviceExporterVisitor(
             loopbacks_by_device={k: CosmoLoopbackType(v) for k, v in self.loopbacks.items()},
-            asn=9136,
+            asn=self.asn,
         )
         for value in iter(DeviceType(self.device)):
             try:
