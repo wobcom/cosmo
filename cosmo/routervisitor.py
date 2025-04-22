@@ -24,6 +24,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         self.bgpcpe_exporter = RouterBgpCpeExporterVisitor()
         self.loopbacks_by_device = loopbacks_by_device
         self.allow_private_ips = False
+        self.asn = asn
 
     def allowPrivateIPs(self):
         self.allow_private_ips = True
@@ -278,10 +279,11 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         router_id = o.getParent(DeviceType).getRouterID()
         if o.getRouteDistinguisher():
             rd = router_id + ":" + o.getRouteDistinguisher()
-        elif len(o.getExportTargets()):
-            rd = router_id + ":" + o.getID()
         else:
-            rd = None
+            rd = router_id + ":" + o.getID()
+        default_targets = [ f"target:{self.asn}{'L' if self.asn > 65536 else ''}:{o.getID()}" ]
+        import_targets = [target.getName() for target in o.getImportTargets()]
+        export_targets = [target.getName() for target in o.getExportTargets()]
         return {
             self._vrf_key: {
                 o.getName(): {
@@ -289,8 +291,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                     "description": o.getDescription(),
                     "instance_type": "vrf",
                     "route_distinguisher": rd,
-                    "import_targets": [target.getName() for target in o.getImportTargets()],
-                    "export_targets": [target.getName() for target in o.getExportTargets()],
+                    "import_targets": import_targets if import_targets else default_targets,
+                    "export_targets": export_targets if export_targets else default_targets,
                     "routing_options": {
                         # should always have this key present
                     },
