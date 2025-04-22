@@ -460,6 +460,21 @@ def test_router_case_policer():
     assert d['interfaces']['ae0']['units'][101]['families']['inet6']['sampling'] == True
 
 
+def test_router_isis():
+    [sd] = get_router_sd_from_path("./test_case_isis.yaml")
+
+    # check that system id is set correctly
+    assert "0000.1234.0010" == sd['isis']['system_id']
+
+
+def test_router_isis_errors(capsys):
+    [sd] = get_router_sd_from_path("./test_case_isis_errors.yaml")
+
+    # check that system id validation works
+    capture = capsys.readouterr() # warn if isis-system-id is invalid
+    assert re.search("IS-IS System ID .* is invalid", capture.out)
+
+
 def test_switch_lldp():
     [sd] = get_switch_sd_from_path('./test_case_switch_lldp.yaml')
 
