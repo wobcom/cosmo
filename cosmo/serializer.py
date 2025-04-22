@@ -56,7 +56,8 @@ class RouterSerializer:
             asn=9136,
         )
         latest_errors: list[AbstractRecoverableError] = []
-        for value in iter(DeviceType(self.device)):
+        device = DeviceType(self.device)
+        for value in iter(device):
             try:
                 new = visitor.accept(value)
                 if new:
@@ -66,7 +67,9 @@ class RouterSerializer:
                 latest_errors.append(e)
                 continue  # continue, process as much as possible
         if latest_errors:
-            raise head(latest_errors)  # do not return if error during processing
+            first_error = head(latest_errors)
+            # do not return if error during processing
+            raise DeviceSerializationError(str(first_error), on=device) from first_error
         return deepsort(device_stub)
 
 
@@ -88,7 +91,8 @@ class SwitchSerializer:
             ["override"]
         )
         latest_errors: list[AbstractRecoverableError] = []
-        for value in iter(DeviceType(self.device)):
+        device = DeviceType(self.device)
+        for value in iter(device):
             try:
                 new = SwitchDeviceExporterVisitor().accept(value)
                 if new:
@@ -98,5 +102,6 @@ class SwitchSerializer:
                 latest_errors.append(e)
                 continue
         if latest_errors:
-            raise head(latest_errors)
+            first_error = head(latest_errors)
+            raise DeviceSerializationError(str(first_error), on=device) from first_error
         return deepsort(device_stub)

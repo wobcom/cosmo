@@ -9,8 +9,7 @@ import argparse
 from cosmo.clients.netbox import NetboxClient
 from cosmo.log import info, logger, JsonLoggingStrategy, error, HumanReadableLoggingStrategy
 from cosmo.serializer import RouterSerializer, SwitchSerializer
-from cosmo.common import AbstractRecoverableError
-
+from cosmo.common import DeviceSerializationError
 
 
 def main() -> int:
@@ -88,10 +87,11 @@ def main() -> int:
             elif device['name'] in cosmo_configuration['devices']['switch']:
                 switch_serializer = SwitchSerializer(device)
                 content = switch_serializer.serialize()
-        except AbstractRecoverableError as e:
+        except DeviceSerializationError as dse:
             error(
-                f"{type(e).__name__} was encountered during processing, device WILL NOT BE GENERATED.",
-                device_fqdn
+                f"Device will not be generated, {type(dse).__name__}"
+                f"(\"{dse}\") was encountered while processing.",
+                dse.context_object
             )
             continue
 

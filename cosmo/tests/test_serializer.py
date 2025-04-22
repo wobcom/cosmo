@@ -3,7 +3,7 @@ import yaml
 import pytest
 import copy
 
-from cosmo.common import L2VPNSerializationError
+from cosmo.common import DeviceSerializationError
 from coverage.html import os
 
 from cosmo.serializer import RouterSerializer, SwitchSerializer
@@ -81,7 +81,7 @@ def test_l2vpn_errors(capsys):
                 '__typename': 'L2VPNTerminationType',
                 'assigned_object': {}
             }]})
-    with pytest.raises(L2VPNSerializationError, match=r"VPWS circuits are only allowed to have 2 terminations"):
+    with pytest.raises(DeviceSerializationError, match=r"VPWS circuits are only allowed to have 2 terminations"):
         serialize(vpws_incorrect_terminations)
 
     unsupported_type_terminations = copy.deepcopy(template)
@@ -101,7 +101,7 @@ def test_l2vpn_errors(capsys):
                 'assigned_object': {}
             }]})
     with pytest.raises(
-            L2VPNSerializationError,
+            DeviceSerializationError,
             match=r"VPWS L2VPN does not support|Found unsupported L2VPN termination in"):
         serialize(unsupported_type_terminations)
 
@@ -124,7 +124,7 @@ def test_l2vpn_errors(capsys):
                 '__typename': "VLANType"
             }}]})
     with pytest.raises(
-            L2VPNSerializationError,
+            DeviceSerializationError,
             match=r"VPWS L2VPN does not support|Found unsupported L2VPN termination in"):
         serialize(vpws_non_interface_term)
 
@@ -150,7 +150,7 @@ def test_l2vpn_errors(capsys):
             }
         ]
     })
-    with pytest.raises(L2VPNSerializationError, match="L2VPN identifier is mandatory."):
+    with pytest.raises(DeviceSerializationError, match="L2VPN identifier is mandatory."):
         serialize(vpws_missing_identifier)
 
 

@@ -1,10 +1,12 @@
 import abc
+from typing import Optional
 
 APP_NAME = "cosmo"
 
 class AbstractRecoverableError(Exception, abc.ABC):
-    pass
-
+    def __init__(self, text: str, on: Optional[object] = None, *args):
+        super().__init__(text, *args)
+        self.context_object = on
 
 class DeviceSerializationError(AbstractRecoverableError):
     pass
