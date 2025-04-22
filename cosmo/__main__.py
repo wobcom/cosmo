@@ -89,7 +89,10 @@ def main() -> int:
                 switch_serializer = SwitchSerializer(device)
                 content = switch_serializer.serialize()
         except AbstractRecoverableError as e:
-            error(f"{device['name']} serialization error \"{e}\", skipping ...", device_fqdn)
+            error(
+                f"{type(e).__name__} was encountered during processing, device WILL NOT BE GENERATED.",
+                device_fqdn
+            )
             continue
 
         match cosmo_configuration['output_format']:

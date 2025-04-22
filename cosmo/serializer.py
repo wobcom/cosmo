@@ -1,6 +1,8 @@
+from typing import Never
+
 from deepmerge import Merger
 
-from cosmo.common import deepsort, DeviceSerializationError, AbstractRecoverableError
+from cosmo.common import deepsort, DeviceSerializationError, AbstractRecoverableError, head, CosmoOutputType
 from cosmo.log import error
 from cosmo.netbox_types import DeviceType, CosmoLoopbackType
 from cosmo.switchvisitor import SwitchDeviceExporterVisitor
@@ -34,8 +36,8 @@ class RouterSerializer:
         self.l3vpns = {}
         self.routing_instances = {}
 
-    def serialize(self):
-        device_stub = {}
+    def serialize(self) -> CosmoOutputType|Never:
+        device_stub: CosmoOutputType = {}
         # like always_merger but with append_unique strategy
         # for lists
         merger = Merger(
@@ -53,14 +55,18 @@ class RouterSerializer:
             loopbacks_by_device={k: CosmoLoopbackType(v) for k, v in self.loopbacks.items()},
             asn=9136,
         )
+        latest_errors: list[AbstractRecoverableError] = []
         for value in iter(DeviceType(self.device)):
             try:
                 new = visitor.accept(value)
                 if new:
                     device_stub = merger.merge(device_stub, new)
-            except AbstractRecoverableError as are:
-                error(f"serialization error \"{are}\"", value)
-                continue
+            except AbstractRecoverableError as e:
+                error(f"serialization error \"{e}\"", value)
+                latest_errors.append(e)
+                continue  # continue, process as much as possible
+        if latest_errors:
+            raise head(latest_errors)  # do not return if error during processing
         return deepsort(device_stub)
 
 
@@ -68,8 +74,8 @@ class SwitchSerializer:
     def __init__(self, device):
         self.device = device
 
-    def serialize(self):
-        device_stub = {}
+    def serialize(self) -> CosmoOutputType|Never:
+        device_stub: CosmoOutputType = {}
         # like always_merger but with append_unique strategy
         # for lists
         merger = Merger(
@@ -81,12 +87,16 @@ class SwitchSerializer:
             ["override"],
             ["override"]
         )
+        latest_errors: list[AbstractRecoverableError] = []
         for value in iter(DeviceType(self.device)):
             try:
                 new = SwitchDeviceExporterVisitor().accept(value)
                 if new:
                     device_stub = merger.merge(device_stub, new)
-            except AbstractRecoverableError as are:
-                error(f"serialization error \"{are}\"", value)
+            except AbstractRecoverableError as e:
+                error(f"serialization error \"{e}\"", value)
+                latest_errors.append(e)
                 continue
+        if latest_errors:
+            raise head(latest_errors)
         return deepsort(device_stub)
