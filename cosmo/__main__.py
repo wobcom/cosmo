@@ -91,7 +91,7 @@ def main() -> int:
             error(
                 f"Device will not be generated, {type(dse).__name__}"
                 f"(\"{dse}\") was encountered while processing.",
-                dse.context_object
+                dse.associated_object
             )
             continue
 

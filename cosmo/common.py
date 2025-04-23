@@ -6,7 +6,7 @@ APP_NAME = "cosmo"
 class AbstractRecoverableError(Exception, abc.ABC):
     def __init__(self, text: str, on: Optional[object] = None, *args):
         super().__init__(text, *args)
-        self.context_object = on
+        self.associated_object = on
 
 class DeviceSerializationError(AbstractRecoverableError):
     pass
