@@ -170,13 +170,16 @@ def test_router_physical_interface():
     assert sd['interfaces']['et-0/0/3']['breakout'] == '4x10g'
 
 
-def test_router_logical_interface():
+def test_router_logical_interface(capsys):
     [sd] = get_router_sd_from_path("./test_case_2.yaml")
 
-    assert len(sd['interfaces']['et-0/0/0']['units']) == 2
+    assert len(sd['interfaces']['et-0/0/0']['units']) == 4
 
     assert 139 in sd['interfaces']['et-0/0/0']['units']
     assert 150 in sd['interfaces']['et-0/0/0']['units']
+    assert 1 in sd['interfaces']['et-0/0/0']['units']
+    assert 2 in sd['interfaces']['et-0/0/0']['units']
+
     # should be present but shut down
     assert sd['interfaces']['et-0/0/0']['units'][150]['shutdown']
 
@@ -184,6 +187,11 @@ def test_router_logical_interface():
 
     assert "Customer: Test-VLAN" == unit['description']
     assert 139 == unit['vlan']
+
+    # we should have a warning for #1 and #2, which do not respect numbering conventions
+    output = capsys.readouterr()
+    assert re.search(r"0.1] sub-interface number should be same as VLAN \(123\)", output.out)
+    assert re.search(r"0.2] sub-interface number should be same as VLAN \(456\)", output.out)
 
 
 def test_router_lag():

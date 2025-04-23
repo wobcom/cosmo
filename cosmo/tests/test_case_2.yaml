@@ -56,6 +56,54 @@ device_list:
       storm_control__broadcast: null
       storm_control__multicast: null
       storm_control__unknown_unicast: null
+    description: 'Customer: incorrectly numbered sub-interface with VLAN'
+    __typename: InterfaceType
+    enabled: true
+    id: '189032'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: ACCESS
+    mtu: null
+    name: et-0/0/0.1
+    tagged_vlans: []
+    tags: [ ]
+    type: VIRTUAL
+    untagged_vlan:
+      __typename: VLANType
+      id: '823746'
+      name: TEST-VLAN-123
+      vid: 123
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: 456
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: 'Customer: incorrectly numbered sub-interface with outer_tag'
+    __typename: InterfaceType
+    enabled: true
+    id: '189033'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: ACCESS
+    mtu: null
+    name: et-0/0/0.2
+    tagged_vlans: []
+    tags: [ ]
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
     description: 'Customer: Test-VLAN'
     __typename: InterfaceType
     enabled: true
