@@ -354,7 +354,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             )
         elif parent_interface.isSubInterface() and parent_interface.isEnabled():
             optional_root_interface_attrs = {}
-            if parent_interface.getUnitNumber == 0:
+            if parent_interface.getUnitNumber() == 0:
                 optional_root_interface_attrs = {
                     self._interfaces_key: {
                         parent_interface.getSubInterfaceParentInterfaceName(): {
