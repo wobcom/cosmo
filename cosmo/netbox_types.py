@@ -536,8 +536,10 @@ class CosmoLoopbackType(AbstractNetboxType):
 
 
 class CosmoIPPoolType(AbstractNetboxType):
-    
-    def getPrefixes(self) -> list[str]:
+    def getBasePath(self):
+        return "" # type does not exist in netbox
+
+    def getPrefixes(self) -> list[IPv6Interface|IPv4Interface]:
         return [
             ipaddress.ip_interface(p["prefix"]) for p in self["ip_prefixes"]
         ]
