@@ -3,7 +3,7 @@ import yaml
 import pytest
 import copy
 
-from cosmo.common import L2VPNSerializationError
+from cosmo.common import DeviceSerializationError
 from coverage.html import os
 
 from cosmo.serializer import RouterSerializer, SwitchSerializer
@@ -81,9 +81,8 @@ def test_l2vpn_errors(capsys):
                 '__typename': 'L2VPNTerminationType',
                 'assigned_object': {}
             }]})
-    serialize(vpws_incorrect_terminations)
-    capture = capsys.readouterr()
-    assert re.search("VPWS circuits are only allowed to have 2 terminations", capture.out)
+    with pytest.raises(DeviceSerializationError, match=r"VPWS circuits are only allowed to have 2 terminations"):
+        serialize(vpws_incorrect_terminations)
 
     unsupported_type_terminations = copy.deepcopy(template)
     unsupported_type_terminations['l2vpn_list'].append({
@@ -101,9 +100,10 @@ def test_l2vpn_errors(capsys):
                 '__typename': 'L2VPNTerminationType',
                 'assigned_object': {}
             }]})
-    serialize(unsupported_type_terminations)
-    capture = capsys.readouterr()
-    assert re.search("VPWS L2VPN does not support|Found unsupported L2VPN termination in", capture.out)
+    with pytest.raises(
+            DeviceSerializationError,
+            match=r"VPWS L2VPN does not support|Found unsupported L2VPN termination in"):
+        serialize(unsupported_type_terminations)
 
     vpws_non_interface_term = copy.deepcopy(template)
     vpws_non_interface_term['l2vpn_list'].append({
@@ -123,9 +123,10 @@ def test_l2vpn_errors(capsys):
                 'assigned_object': {
                 '__typename': "VLANType"
             }}]})
-    serialize(vpws_non_interface_term)
-    capture = capsys.readouterr()
-    assert re.search("VPWS L2VPN does not support|Found unsupported L2VPN termination in", capture.out)
+    with pytest.raises(
+            DeviceSerializationError,
+            match=r"VPWS L2VPN does not support|Found unsupported L2VPN termination in"):
+        serialize(vpws_non_interface_term)
 
     vpws_missing_identifier = copy.deepcopy(template)
     vpws_missing_identifier['l2vpn_list'].append({
@@ -149,9 +150,8 @@ def test_l2vpn_errors(capsys):
             }
         ]
     })
-    serialize(vpws_missing_identifier)
-    capture = capsys.readouterr()
-    assert re.search("L2VPN identifier is mandatory.", capture.out)
+    with pytest.raises(DeviceSerializationError, match="L2VPN identifier is mandatory."):
+        serialize(vpws_missing_identifier)
 
 
 def test_router_physical_interface():
