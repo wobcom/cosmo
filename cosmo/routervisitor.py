@@ -208,6 +208,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                         }
                     }
                 }
+            # sub-interface but not .0, enforce numbering conventions
+            elif o.getUnitNumber() != o.getUntaggedVLAN().getVID():
+                warn(f"sub-interface number should be same as VLAN ({o.getUntaggedVLAN().getVID()})", o)
         return deepmerge.always_merger.merge({
             self._interfaces_key: {
                 **o.spitInterfacePathWith({
@@ -362,6 +365,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                         }
                     }
                 }
+            # sub-interface but not .0, enforce numbering conventions
+            elif parent_interface.getUnitNumber() != o.getVID():
+                warn(f"sub-interface number should be same as VLAN ({o.getVID()})", parent_interface)
             return deepmerge.always_merger.merge({
                 self._interfaces_key: {
                     **parent_interface.spitInterfacePathWith({
