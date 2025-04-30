@@ -21,7 +21,7 @@ def get_router_s_from_path(path):
     test_data = _yaml_load(path)
     return [
         RouterSerializer(device=device, l2vpn_list=test_data['l2vpn_list'],
-                         loopbacks=test_data.get('loopbacks', {}))
+                         loopbacks=test_data.get('loopbacks', {})).allowPrivateIPs()
         for device in test_data['device_list']]
 
 
