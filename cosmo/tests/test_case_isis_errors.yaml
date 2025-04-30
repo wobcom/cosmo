@@ -1,0 +1,71 @@
+device_list:
+- device_type:
+    __typename: DeviceTypeType
+    slug: mx204
+  id: '1746'
+  __typename: DeviceType
+  interfaces:
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: null
+    __typename: InterfaceType
+    enabled: true
+    id: '30747'
+    ip_addresses: []
+    lag: null
+    mac_address: 94:BF:41:41:41:F3
+    mode: null
+    mtu: null
+    name: et-0/0/0
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: 'Core: Backbone Link'
+    __typename: InterfaceType
+    enabled: false
+    id: '183189'
+    ip_addresses:
+      - address: 192.0.2.0/31
+        role: null
+        __typename: IPAddressType
+      - address: 2001:DB8::/127
+        role: null
+        __typename: IPAddressType
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: et-0/0/0.0
+    tagged_vlans: [ ]
+    tags: [ ]
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+  name: TEST0001
+  platform:
+    __typename: PlatformType
+    manufacturer:
+      __typename: ManufacturerType
+      slug: juniper
+    slug: junos-21-4r3-s5-4
+  primary_ip4:
+    __typename: IPAddressType
+    address: 45.139.136.10/32
+  serial: 4242
+  staticroute_set: []
+  custom_fields:
+    isis_system_id: "invalid_system_id"
+l2vpn_list: []
+loopbacks:
+  TEST0001:
+    ipv4: 45.139.136.10/32

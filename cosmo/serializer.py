@@ -35,6 +35,11 @@ class RouterSerializer:
         self.l2vpns = {}
         self.l3vpns = {}
         self.routing_instances = {}
+        self.allow_private_ips = False
+
+    def allowPrivateIPs(self):
+        self.allow_private_ips = True
+        return self
 
     def serialize(self) -> CosmoOutputType|Never:
         device_stub: CosmoOutputType = {}
@@ -55,6 +60,8 @@ class RouterSerializer:
             loopbacks_by_device={k: CosmoLoopbackType(v) for k, v in self.loopbacks.items()},
             asn=9136,
         )
+        if self.allow_private_ips:
+            visitor.allowPrivateIPs()
         latest_errors: list[AbstractRecoverableError] = []
         device = DeviceType(self.device)
         for value in iter(device):

@@ -21,7 +21,7 @@ def get_router_s_from_path(path):
     test_data = _yaml_load(path)
     return [
         RouterSerializer(device=device, l2vpn_list=test_data['l2vpn_list'],
-                         loopbacks=test_data.get('loopbacks', {}))
+                         loopbacks=test_data.get('loopbacks', {})).allowPrivateIPs()
         for device in test_data['device_list']]
 
 
@@ -458,6 +458,21 @@ def test_router_case_policer():
     assert d['interfaces']['ae0']['units'][101]['families']['inet']['filters'] == ['input-list [ EDGE_FILTER ]']
     assert d['interfaces']['ae0']['units'][101]['families']['inet6']['filters'] == ['input-list [ EDGE_FILTER_V6 ]']
     assert d['interfaces']['ae0']['units'][101]['families']['inet6']['sampling'] == True
+
+
+def test_router_isis():
+    [sd] = get_router_sd_from_path("./test_case_isis.yaml")
+
+    # check that system id is set correctly
+    assert "0000.1234.0010" == sd['isis']['system_id']
+
+
+def test_router_isis_errors(capsys):
+    [sd] = get_router_sd_from_path("./test_case_isis_errors.yaml")
+
+    # check that system id validation works
+    capture = capsys.readouterr() # warn if isis-system-id is invalid
+    assert re.search("IS-IS System ID .* is invalid", capture.out)
 
 
 def test_switch_lldp():

@@ -46,8 +46,12 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         if not o.isCompositeRoot(): # not root, do not process!
             return
         manufacturer = ManufacturerFactoryFromDevice(o).get()
+        isis = {}
+        if isis_system_id := o.getISISIdentifier():
+            isis["isis"] = { "system_id": isis_system_id }
         return {
             "serial": o.getSerial(),
+            **isis,
             self._vrf_key: {
                 manufacturer.getRoutingInstanceName(): {
                     "description": self._mgmt_vrf_name,

@@ -1,5 +1,6 @@
 import abc
 import ipaddress
+import re
 from urllib.parse import urljoin
 
 import cosmo.log
@@ -137,6 +138,9 @@ class AbstractNetboxType(abc.ABC, Iterable):
     def getSlug(self):
         return self.get("slug")
 
+    def getCustomFields(self) -> dict:
+        return dict(self.get("custom_fields", {}))
+
     @classmethod
     def tuplize(cls, o):
         if isinstance(o, list) or isinstance(o, set):
@@ -220,6 +224,16 @@ class DeviceType(AbstractNetboxType):
 
     def getSerial(self) -> str:
         return self.get("serial", "")
+
+    def getISISIdentifier(self) -> str|None:
+        sys_id = self.getCustomFields().get("isis_system_id")
+        if sys_id and not re.match(r"\d{4}.\d{4}.\d{4}", sys_id):
+            cosmo.log.warn(
+                f"IS-IS System ID {sys_id} is invalid",
+                self,
+            )
+            return None
+        return sys_id
 
 
 class DeviceTypeType(AbstractNetboxType):
@@ -437,9 +451,6 @@ class InterfaceType(AbstractNetboxType):
 
     def getConnectedEndpoints(self) -> list[DeviceType]:
         return self.get("connected_endpoints", [])
-
-    def getCustomFields(self) -> dict:
-        return dict(self.get("custom_fields", {}))
 
 
 class VLANType(AbstractNetboxType):
