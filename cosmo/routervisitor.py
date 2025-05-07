@@ -12,7 +12,7 @@ from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDev
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
 from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor, RouterL2VPNExporterVisitor
 from cosmo.netbox_types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
-    L2VPNTerminationType, IPAddressType, CosmoStaticRouteType, DeviceTypeType, PlatformType
+    L2VPNTerminationType, IPAddressType, CosmoStaticRouteType, DeviceTypeType, PlatformType, CosmoIPPoolType
 
 
 class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
@@ -56,6 +56,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 manufacturer.getRoutingInstanceName(): {
                     "description": self._mgmt_vrf_name,
                 }
+            },
+            self._pools_key: {
+                # this one should always exist
             },
             self._l2circuits_key: {
                 # this one should always exist
@@ -351,6 +354,25 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                 # device-wide static route
                 **self.processStaticRouteCommon(o)
             }
+
+    @accept.register
+    def _(self, o: CosmoIPPoolType):
+        device = o.getParent(DeviceType)
+
+        if not o.isUniqueToDevice():
+            warn(f"Pool {o.getName()} is not unique to {device.getName()}", o)
+            return
+
+        if o.hasIPRanges():
+            warn(f"Pool {o.getName()} has assigned IP ranges, which are ignored...", o)
+
+        return {
+            self._pools_key: {
+                o.getName(): {
+                    "networks": [{ "prefix": str(p) } for p in o.getPrefixes()]
+                }
+            }
+        }
 
     def processUntaggedVLAN(self, o: VLANType):
         parent_interface = o.getParent(InterfaceType)

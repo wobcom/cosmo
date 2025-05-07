@@ -544,3 +544,20 @@ class CosmoLoopbackType(AbstractNetboxType):
 
     def getIpv6(self) -> str | None:
         return self["ipv6"]
+
+
+class CosmoIPPoolType(AbstractNetboxType):
+    def getBasePath(self):
+        return "" # type does not exist in netbox
+
+    def getPrefixes(self) -> list[IPv6Interface|IPv4Interface]:
+        return [
+            ipaddress.ip_interface(p["prefix"]) for p in self["ip_prefixes"]
+        ]
+        
+    def isUniqueToDevice(self) -> bool:
+        return len(self["devices"]) == 1
+    
+    def hasIPRanges(self) -> bool:
+        return len(self["ip_ranges"]) > 0
+        
