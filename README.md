@@ -10,14 +10,9 @@ Also, we generate a device manifest with values which may be interesting for all
 
 ### Device Values
 
-This contains three different variables, which are going to be included in our Ansible solution.
-It contains `junos__device_model` which tells us the Juniper model and the base configuration, i.e. port speed.
-Also, it contains `junos__generated_interfaces` which contains all information to render the list of interfaces.
-Furthermore, it generates a `junos__generated_routing_instances` containing all information for Junos Routing Instances.
-
-Our Ansible playbook merges the `junos__generated*` values with the group variables and host variables to be able to do
-overrides and
-additional, very specific config. We add e.g. ISIS addresses manually, because we haven't found a good representation in
+This contains multiple variables, which are going to be included in our Ansible solution.
+Our Ansible playbook merges the generated values with the group variables and host variables to be able to do
+overrides and additional, very specific config. We add e.g. ISIS addresses manually, because we haven't found a good representation in
 Netbox yet.
 
 ### Device Manifest
@@ -57,6 +52,9 @@ export NETBOX_API_TOKEN=abc123
 
 Cosmo can be used by simply calling the following command to regenerate all files in `machines`.
 Note: **It will only consider devices listed in `cosmo.yaml`**
+
+Note: We use some additional plugins in Netbox. We discover the Netbox version and installed plugins
+automagically and adapt accordingly, e.g. do not generate ip-pools and static routes, if there are no plugins for those.
 
 ```shell
 $ cosmo
