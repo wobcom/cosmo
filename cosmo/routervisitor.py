@@ -5,7 +5,7 @@ from typing import Optional
 
 import deepmerge
 
-from cosmo.log import warn
+from cosmo.log import warn, error
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import InterfaceSerializationError, head, StaticRouteSerializationError, APP_NAME
 from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
@@ -556,16 +556,25 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             lambda i: i.getName() == interface.getSubInterfaceParentInterfaceName(),
             interface.getParent(DeviceType).getInterfaces()
         )))
-        sonderlocke = any(map(
-            lambda i: i.getTagName() == "sonderlocke" and i.getTagValue() == "mtu", interface.getTags()
-        ))
+        
         parent_mtu = parent_interface.getMTU() if parent_interface else None
         mtu = interface.getMTU() or parent_mtu
-        if not sonderlocke and mtu is not None and mtu not in self._allowed_core_mtus:
+        
+        if mtu is None:
+            raise InterfaceSerializationError(
+                f"MTU must be set for {interface.getName()}, because it is a core interfaces.", 
+            )
+        
+        has_sonderlocke_tag = any(map(
+            lambda i: i.getTagName() == "sonderlocke" and i.getTagValue() == "mtu", interface.getTags()
+        ))
+        # We will not do MTU validation, if it has a sonderlocke:mtu tag assigned.
+        if not has_sonderlocke_tag and mtu is not None and mtu not in self._allowed_core_mtus:
             warn(
                 f"MTU {mtu} is not one of the allowed values for core interfaces.",
                 interface
             )
+            
         return {
             self._interfaces_key: {
                 **interface.spitInterfacePathWith({
