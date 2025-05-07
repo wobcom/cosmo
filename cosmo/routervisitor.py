@@ -551,37 +551,70 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         }
 
     def processCoreTag(self, o: TagType):
+        manufacturer = ManufacturerFactoryFromDevice(o.getParent(DeviceType)).get()
+        
         interface = o.getParent(InterfaceType)
         parent_interface = head(list(filter( # as in, netbox parent
             lambda i: i.getName() == interface.getSubInterfaceParentInterfaceName(),
             interface.getParent(DeviceType).getInterfaces()
         )))
         
-        parent_mtu = parent_interface.getMTU() if parent_interface else None
-        mtu = interface.getMTU() or parent_mtu
         
-        if mtu is None:
-            raise InterfaceSerializationError(
-                f"MTU must be set for {interface.getName()}, because it is a core interfaces.", 
-            )
+        # JunOS:
+        # Wenn Parent Interface MTU: Parent Interface MTU validiieren und nicht auf AF setzen
+        # Wenn kein Parent Interface MTU: Fehler
         
-        has_sonderlocke_tag = any(map(
+        # RtBrick:
+        # Wenn Parent Interface MTU: Egal, ignorieren
+        # Wenn kein Parent Interface MTU: Interface MTU validieren und auf AF propagieren
+        
+        # if hasMTUInheritance and (parent.mtu-14 not in _allowed_core_mtus OR parent.mtu-14 < (unit.mtu or 9216)):
+        #   explosion("parent mtu is not alright")
+        # elif unit.mtu is None and not (hasMTUInheritance and (parent.mtu-14 not in _allowed_core_mtus)):
+        #   mtu = 9216
+        # elif unit.mtu in _allowed_core_mtus or sonderlocke:
+        #   mtu = unit.mtu
+        # elif not hasMTUInheritance
+        #   explosion("no valid MTU set")
+        
+        existingParentMTU = parent_interface.getMTU()
+        unitMTU = interface.getMTU()
+        
+        mtuStub = {}
+        
+        isSonderlocke = any(map(
             lambda i: i.getTagName() == "sonderlocke" and i.getTagValue() == "mtu", interface.getTags()
         ))
-        # We will not do MTU validation, if it has a sonderlocke:mtu tag assigned.
-        if not has_sonderlocke_tag and mtu is not None and mtu not in self._allowed_core_mtus:
-            warn(
-                f"MTU {mtu} is not one of the allowed values for core interfaces.",
-                interface
-            )
+        
+        if unitMTU and not (unitMTU in self._allowed_core_mtus) and not isSonderlocke:
+            raise InterfaceSerializationError(f"{interface.getName()} has an invalid MTU configured.")
+        
+        unitMTUWithDefault = unitMTU or 9216
+
+        if manufacturer.hasMTUInheritance():
+            if not existingParentMTU:
+                raise InterfaceSerializationError(f"{parent_interface.getName()} has no MTU configured, but Device uses MTU inheritance.")
             
+            validExactParentMTU = existingParentMTU - 14 in self._allowed_core_mtus
+            validParentMTU = validExactParentMTU or existingParentMTU - 14 > unitMTUWithDefault
+
+            if not (validExactParentMTU or validParentMTU):
+                raise InterfaceSerializationError(f"{interface.getName()} and {parent_interface.getName()} have incompatible MTU configurations.")
+            
+            if not validExactParentMTU:
+                mtuStub["mtu"] = unitMTUWithDefault
+                
+        else:
+            mtuStub["mtu"] = unitMTUWithDefault
+        
         return {
             self._interfaces_key: {
                 **interface.spitInterfacePathWith({
                     "families": {
                         "iso": {},
                         "mpls": {},
-                    }
+                    },
+                    **mtuStub,
                 })
             }
         }

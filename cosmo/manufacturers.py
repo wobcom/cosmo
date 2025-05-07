@@ -30,7 +30,10 @@ class AbstractManufacturer(ABC):
     @abstractmethod
     def isManagementInterface(self, o: InterfaceType):
         pass
-
+    @staticmethod
+    @abstractmethod
+    def hasMTUInheritance():
+        pass
 
 class JuniperManufacturer(AbstractManufacturer):
     _platform_re = re.compile(r"REPLACEME")
@@ -45,7 +48,9 @@ class JuniperManufacturer(AbstractManufacturer):
         return "mgmt_junos"
     def isManagementInterface(self, o: InterfaceType):
         return len(o['ip_addresses']) >= 1 and o.getName().startswith("fxp0")
-
+    @staticmethod
+    def hasMTUInheritance():
+        return True
 
 class RtBrickManufacturer(AbstractManufacturer):
     _platform_re = re.compile(r"REPLACEME")
@@ -63,7 +68,9 @@ class RtBrickManufacturer(AbstractManufacturer):
             o.getName().startswith("ma1") or
             o.getName().startswith("bmc0")
         )
-
+    @staticmethod
+    def hasMTUInheritance():
+        return False
 
 class CumulusNetworksManufacturer(AbstractManufacturer):
     _platform_re = re.compile(r"^cumulus-linux[a-zA-Z0-9-]*")
@@ -78,7 +85,9 @@ class CumulusNetworksManufacturer(AbstractManufacturer):
         return "mgmt"
     def isManagementInterface(self, o: InterfaceType):
         return len(o['ip_addresses']) >= 1 and o.getName().startswith("eth")
-
+    @staticmethod
+    def hasMTUInheritance():
+        return False
 
 # This is needed in order to avoid accidentally initializing the ABC.
 # Also enables us to extract type matching from the ABC.
