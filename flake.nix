@@ -13,7 +13,7 @@
           inherit (final) system;
         };
       in {
-        cosmo = final.callPackage ./package.nix { python3 = pkgs.python3; python3Packages = pkgs.python3.pkgs; version = pyprojectFile.tool.poetry.version; };
+        cosmo = pkgs.callPackage ./package.nix { version = pyprojectFile.tool.poetry.version; };
       });
     } // (flake-utils.lib.eachDefaultSystem (system:
       let
