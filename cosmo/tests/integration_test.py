@@ -56,7 +56,6 @@ def test_device_processing_error(mocker, capsys):
     with open(f"cosmo/tests/test_case_vendor_unknown.yaml") as f:
         test_data = yaml.safe_load(f)
         utils.RequestResponseMock.patchNetboxClient(mocker, **test_data)
-    assert cosmoMain() == 0
-    captured = capsys.readouterr()
-    assert re.search(r"unsupported platform vendor", captured.out)
+    with pytest.raises(Exception, match="Cannot find suitable manufacturer for device .*"):
+        cosmoMain()
     testEnv.stop()

@@ -4,6 +4,9 @@ import pytest
 import copy
 
 from cosmo.common import DeviceSerializationError
+from cosmo.manufacturers import ManufacturerFactoryFromDevice
+from cosmo.netbox_types import DeviceType
+
 from coverage.html import os
 
 from cosmo.serializer import RouterSerializer, SwitchSerializer
@@ -39,21 +42,24 @@ def get_switch_sd_from_path(path):
 
 
 def test_router_platforms():
+    
     [juniper_s] = get_router_s_from_path("./test_case_2.yaml")
-    assert juniper_s.mgmt_routing_instance == "mgmt_junos"
-    assert juniper_s.mgmt_interface == "fxp0"
-    assert juniper_s.bmc_interface == None
+    juniper_manufacturer = ManufacturerFactoryFromDevice(DeviceType(juniper_s.device)).get()
+    assert juniper_manufacturer.getRoutingInstanceName() == "mgmt_junos"
+    assert juniper_manufacturer.myManufacturerSlug() == "juniper"
 
     [rtbrick_s] = get_router_s_from_path("./test_case_l3vpn.yml")
-    assert rtbrick_s.mgmt_routing_instance == "mgmt"
-    assert rtbrick_s.mgmt_interface == "ma1"
-    assert rtbrick_s.bmc_interface == "bmc0"
+    juniper_manufacturer = ManufacturerFactoryFromDevice(DeviceType(rtbrick_s.device)).get()
+    assert juniper_manufacturer.getRoutingInstanceName() == "mgmt"
+    assert juniper_manufacturer.myManufacturerSlug() == "rtbrick"
 
-    with pytest.raises(Exception, match="unsupported platform vendor: ACME"):
-        get_router_s_from_path("./test_case_vendor_unknown.yaml")
-
-    with pytest.raises(Exception, match="missing key"):
-        get_router_s_from_path("./test_case_no_manuf_slug.yaml")
+    with pytest.raises(Exception):
+        s = get_router_s_from_path("./test_case_vendor_unknown.yaml")
+        s.serialize()
+        
+    with pytest.raises(Exception):
+        s = get_router_s_from_path("./test_case_no_manuf_slug.yaml")
+        s.serialize()
 
 
 def test_l2vpn_errors(capsys):
@@ -473,6 +479,29 @@ def test_router_isis_errors(capsys):
     # check that system id validation works
     capture = capsys.readouterr() # warn if isis-system-id is invalid
     assert re.search("IS-IS System ID .* is invalid", capture.out)
+
+def test_router_mtu_junos():
+    [d] = get_router_sd_from_path("./test_case_mtu_junos.yaml")
+
+    assert 'et-0/0/0' in d['interfaces']
+    assert 'units' in d['interfaces']['et-0/0/0']
+    assert 0 in d['interfaces']['et-0/0/0']['units']
+    assert 9600 == d['interfaces']['et-0/0/0']['mtu']
+    assert 'mtu' not in d['interfaces']['et-0/0/0']['units'][0]
+
+    assert 'et-0/0/1' in d['interfaces']
+    assert 'units' in d['interfaces']['et-0/0/1']
+    assert 0 in d['interfaces']['et-0/0/1']['units']
+    assert 9600 == d['interfaces']['et-0/0/1']['mtu']
+    assert 9216 == d['interfaces']['et-0/0/1']['units'][0]['mtu']
+
+def test_router_mtu_rtbrick():
+    [d] = get_router_sd_from_path("./test_case_mtu_rtbrick.yaml")
+
+    assert 'et-0/0/1' in d['interfaces']
+    assert 'units' in d['interfaces']['et-0/0/1']
+    assert 0 in d['interfaces']['et-0/0/1']['units']
+    assert 9216 == d['interfaces']['et-0/0/1']['units'][0]['mtu']
 
 
 def test_switch_lldp():

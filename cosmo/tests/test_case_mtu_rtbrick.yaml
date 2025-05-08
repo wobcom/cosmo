@@ -1,0 +1,64 @@
+device_list:
+- device_type:
+    __typename: DeviceTypeType
+    slug: mx204
+  __typename: DeviceType
+  id: '1746'
+  interfaces:
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    __typename: InterfaceType
+    description: ''
+    enabled: true
+    id: '30747'
+    ip_addresses: []
+    lag: null
+    mac_address: 94:BF:41:41:41:F3
+    mode: null
+    name: et-0/0/1
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    __typename: InterfaceType
+    description: ''
+    enabled: true
+    id: '30148'
+    ip_addresses: []
+    lag: null
+    mac_address: 94:BF:41:41:41:F3
+    mode: null
+    name: et-0/0/1.0
+    tagged_vlans: []
+    tags:
+    - name: core
+      slug: core
+      __typename: TagType
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+    parent:
+      __typename: InterfaceType
+      id: '30747'
+      name: "et-0/0/1"
+  name: TEST0001
+  platform:
+    __typename: PlatformType
+    manufacturer:
+      __typename: ManufacturerType
+      slug: rtbrick
+    slug: rtbrick-consolidated-bng-q2c-24-1-1-1
+  primary_ip4:
+    __typename: IPAddressType
+    address: 45.139.136.10/32
+  serial: 4242
+  staticroute_set: []
+l2vpn_list: []
+loopbacks:
+  TEST0001:
+    ipv4: 45.139.136.10/32
