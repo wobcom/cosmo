@@ -480,6 +480,29 @@ def test_router_isis_errors(capsys):
     capture = capsys.readouterr() # warn if isis-system-id is invalid
     assert re.search("IS-IS System ID .* is invalid", capture.out)
 
+def test_router_mtu_junos():
+    [d] = get_router_sd_from_path("./test_case_mtu_junos.yaml")
+
+    assert 'et-0/0/0' in d['interfaces']
+    assert 'units' in d['interfaces']['et-0/0/0']
+    assert 0 in d['interfaces']['et-0/0/0']['units']
+    assert 9600 == d['interfaces']['et-0/0/0']['mtu']
+    assert 'mtu' not in d['interfaces']['et-0/0/0']['units'][0]
+
+    assert 'et-0/0/1' in d['interfaces']
+    assert 'units' in d['interfaces']['et-0/0/1']
+    assert 0 in d['interfaces']['et-0/0/1']['units']
+    assert 9600 == d['interfaces']['et-0/0/1']['mtu']
+    assert 9216 == d['interfaces']['et-0/0/1']['units'][0]['mtu']
+
+def test_router_mtu_rtbrick():
+    [d] = get_router_sd_from_path("./test_case_mtu_rtbrick.yaml")
+
+    assert 'et-0/0/1' in d['interfaces']
+    assert 'units' in d['interfaces']['et-0/0/1']
+    assert 0 in d['interfaces']['et-0/0/1']['units']
+    assert 9216 == d['interfaces']['et-0/0/1']['units'][0]['mtu']
+
 
 def test_switch_lldp():
     [sd] = get_switch_sd_from_path('./test_case_switch_lldp.yaml')
