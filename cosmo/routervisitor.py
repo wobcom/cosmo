@@ -559,15 +559,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             interface.getParent(DeviceType).getInterfaces()
         )))
         
-        
-        # JunOS:
-        # Wenn Parent Interface MTU: Parent Interface MTU validiieren und nicht auf AF setzen
-        # Wenn kein Parent Interface MTU: Fehler
-        
-        # RtBrick:
-        # Wenn Parent Interface MTU: Egal, ignorieren
-        # Wenn kein Parent Interface MTU: Interface MTU validieren und auf AF propagieren
-        
+        # Note: 
+        # The following code was developed by the pseudo code:
+        # 
         # if hasMTUInheritance and (parent.mtu-14 not in _allowed_core_mtus OR parent.mtu-14 < (unit.mtu or 9216)):
         #   explosion("parent mtu is not alright")
         # elif unit.mtu is None and not (hasMTUInheritance and (parent.mtu-14 not in _allowed_core_mtus)):
