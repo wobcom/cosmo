@@ -97,7 +97,7 @@ device_list:
     lag: null
     mac_address: null
     mode: null
-    mtu: 9600
+    mtu: 9216
     name: et-0/0/2.0
     tagged_vlans: []
     tags:

@@ -3,12 +3,16 @@ from abc import ABC, abstractmethod
 from typing import NoReturn
 
 from cosmo.common import DeviceSerializationError
-from cosmo.netbox_types import DeviceType, InterfaceType
+from cosmo.netbox_types import DeviceType, InterfaceType, PlatformType
 
 
 class AbstractManufacturer(ABC):
     @classmethod
     def isCompatibleWith(cls, device: DeviceType):
+        # Note: If the platform cannot be parsed, getPlatform will be a string.
+        if not isinstance(device.getPlatform(), PlatformType):
+            return False
+        
         if device.getPlatform().getManufacturer():
             return device.getPlatform().getManufacturer().getSlug() == cls.myManufacturerSlug()
         else:
@@ -105,6 +109,6 @@ class ManufacturerFactoryFromDevice:
         for c in self._all_manufacturers:
             if c.isCompatibleWith(self._device):
                 return c()
-        raise DeviceSerializationError(
+        raise Exception(
             f"Cannot find suitable manufacturer for device {self._device}"
         )
