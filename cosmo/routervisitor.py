@@ -369,7 +369,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         return {
             self._pools_key: {
                 o.getName(): {
-                    "networks": [{ "prefix": str(p) } for p in o.getPrefixes()]
+                    "prefixes": [str(p) for p in o.getPrefixes()]
                 }
             }
         }
