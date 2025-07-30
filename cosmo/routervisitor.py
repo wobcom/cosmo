@@ -131,6 +131,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         ip_version = o.getIPInterfaceObject().version
         role = {}
         ipv6_ra = {}
+        sampling = {}
         if o.getRole() and o.getRole().lower() == "secondary":
             role = {"secondary": True}
         elif any(
@@ -147,6 +148,16 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             role = {"primary": True}
         if parent_interface.getCustomFields().get("ipv6_ra", False) and ip_version == 6:
             ipv6_ra = { "ipv6_ra": True }
+        # sampling is enabled on all interface families that:
+        # have an address
+        # are not in a VRF
+        # are not mgmt or loopback interfaces
+        if (
+            parent_interface.getVRF() == None
+            and not manufacturer.isManagementInterface(parent_interface)
+            and not parent_interface.isLoopback()
+        ):
+            sampling = { "sampling": True }
         return {
             self._interfaces_key: {
                 **parent_interface.spitInterfacePathWith({
@@ -155,7 +166,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                             "address": {
                                o.getIPInterfaceObject().with_prefixlen: role
                             }
-                        } | ipv6_ra
+                        } | ipv6_ra | sampling
                     }
                 })
             }
@@ -488,13 +499,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
 
     def processEdgeTag(self, o: TagType):
         parent_interface = o.getParent(InterfaceType)
-        optional_sampling = {}
         optional_arp_policer = {}
-        if not any([
-            t.getTagName() == "disable_sampling" or (t.getTagName() == "edge" and t.getTagValue() == "customer")
-            for t in parent_interface.getTags()
-        ]):
-            optional_sampling = { "sampling": True }
         if o.getTagValue() == "peering-ixp":
             optional_arp_policer = { "policer": ["arp POLICER_IXP_ARP"]}
         return {
@@ -503,10 +508,10 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                     "families": {
                         "inet": {
                             "filters": ["input-list [ EDGE_FILTER ]"],
-                        } | optional_sampling | optional_arp_policer,
+                        } | optional_arp_policer,
                         "inet6": {
                             "filters": ["input-list [ EDGE_FILTER_V6 ]"]
-                        } | optional_sampling,
+                        },
                     }
                 })
             }

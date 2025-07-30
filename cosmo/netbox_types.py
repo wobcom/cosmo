@@ -462,7 +462,7 @@ class InterfaceType(AbstractNetboxType):
             return raw_type_l
 
     def isLoopback(self):
-        return self.getAssociatedType() == "loopback"
+        return self.getAssociatedType() == "loopback" or self.getName().startswith("lo")
 
     def getAssociatedDevice(self) -> DeviceType | None:
         return self.get("device")
