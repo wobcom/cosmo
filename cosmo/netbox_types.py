@@ -8,8 +8,9 @@ from collections.abc import Iterable
 from abc import abstractmethod
 from ipaddress import IPv4Interface, IPv6Interface
 
-from .common import without_keys, JsonOutputType, DeviceSerializationError
+from .common import without_keys, JsonOutputType, DeviceSerializationError, InterfaceSerializationError, head
 from typing import Self, Iterator, TypeVar, NoReturn, Never
+
 
 T = TypeVar('T', bound="AbstractNetboxType")
 class AbstractNetboxType(abc.ABC, Iterable):
@@ -461,8 +462,28 @@ class InterfaceType(AbstractNetboxType):
         elif raw_type_l in authorized_types:
             return raw_type_l
 
-    def isLoopback(self):
-        return self.getAssociatedType() == "loopback" or self.getName().startswith("lo")
+    def isLoopbackOrParentIsLoopback(self) -> bool:
+        if self.getAssociatedType() == "loopback":
+            return True
+        elif self.isSubInterface():
+            parent_interface_name = self.getSubInterfaceParentInterfaceName()
+            parent_interface = head(list(filter(
+                lambda i: i.getName() == parent_interface_name,
+                self.getParent(DeviceType).getInterfaces()
+            )))
+            if not parent_interface:
+                raise InterfaceSerializationError(
+                    f"Cannot find parent interface of {self.getName()}, please ensure it is defined and that "
+                    f"parent-child association is correct in data source.", on=self
+                )
+            return parent_interface.isLoopbackOrParentIsLoopback()
+        elif self.getName().startswith("lo"):
+            raise InterfaceSerializationError(
+                f"Interface {self.getName()} is named as a loopback but is not marked"
+                f"as such in the data source, please fix.",
+                on=self
+            )
+        return False
 
     def getAssociatedDevice(self) -> DeviceType | None:
         return self.get("device")

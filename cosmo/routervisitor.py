@@ -123,7 +123,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         if manufacturer.isManagementInterface(parent_interface) and parent_interface.isSubInterface():
             optional_attrs = self.processMgmtInterfaceIPAddress(o)
         if (
-                parent_interface.isLoopback()
+                parent_interface.isLoopbackOrParentIsLoopback()
                 and not o.getIPInterfaceObject().network.prefixlen == o.getIPInterfaceObject().max_prefixlen
                 and not parent_interface.getVRF() # only force /32 loopback in default vrf
         ):
@@ -155,7 +155,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         if (
             parent_interface.getVRF() == None
             and not manufacturer.isManagementInterface(parent_interface)
-            and not parent_interface.isLoopback()
+            and not parent_interface.isLoopbackOrParentIsLoopback()
         ):
             sampling = { "sampling": True }
         return {

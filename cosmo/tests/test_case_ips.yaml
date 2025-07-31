@@ -9,6 +9,11 @@ device_list:
           inner_tag: null
           outer_tag: null
         __typename: InterfaceType
+        name: "fxp0"
+      - custom_fields:
+          inner_tag: null
+          outer_tag: null
+        __typename: InterfaceType
         description: "management interface"
         enabled: true
         id: '49837'
@@ -24,6 +29,10 @@ device_list:
         tagged_vlans: [ ]
         untagged_vlan: null
         vrf: null
+      - name: ifp-0/0/2
+        __typename: InterfaceType
+      - name: ifp-0/0/3
+        __typename: InterfaceType
       - custom_fields:
           inner_tag: null
           outer_tag: null

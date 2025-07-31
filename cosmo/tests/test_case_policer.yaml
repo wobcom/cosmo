@@ -5,6 +5,11 @@ device_list:
   id: '1886'
   interfaces:
   - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    __typename: InterfaceType
+    name: ae0
+  - custom_fields:
       bpdufilter: null
       inner_tag: null
       ipv6_ra: false
