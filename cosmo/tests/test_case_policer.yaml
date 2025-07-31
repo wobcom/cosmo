@@ -74,10 +74,10 @@ device_list:
       id: '399'
       description: ''
       export_targets:
-        - name: target:9136:399
+        - name: target:65542:399
           __typename: RouteTargetType
       import_targets:
-        - name: target:9136:399
+        - name: target:65542:399
           __typename: RouteTargetType
       name: L3VPN
       rd: null

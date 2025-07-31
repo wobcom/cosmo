@@ -1,9 +1,10 @@
-import abc
+from abc import ABC
 from typing import Optional
 
 APP_NAME = "cosmo"
 
-class AbstractRecoverableError(Exception, abc.ABC):
+
+class AbstractRecoverableError(Exception, ABC):
     def __init__(self, text: str, on: Optional[object] = None, *args):
         super().__init__(text, *args)
         self.associated_object = on

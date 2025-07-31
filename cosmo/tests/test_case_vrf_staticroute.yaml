@@ -109,11 +109,11 @@ device_list:
     vrf:
       description: Test VRF
       export_targets:
-      - name: target:9136:111000000
+      - name: target:65542:111000000
         __typename: RouteTargetType
       id: '399'
       import_targets:
-      - name: target:9136:111000000
+      - name: target:65542:111000000
         __typename: RouteTargetType
       name: L3VPN-TEST
       rd: null

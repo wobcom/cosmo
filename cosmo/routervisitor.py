@@ -1,21 +1,20 @@
-import ipaddress
 import re
 from functools import singledispatchmethod
-from typing import Optional
 
 import deepmerge
 
-from cosmo.log import warn, error
+from cosmo.log import warn
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import InterfaceSerializationError, head, StaticRouteSerializationError, APP_NAME
-from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
+from cosmo.vrfhelper import TVRFHelpers
+from cosmo.manufacturers import ManufacturerFactoryFromDevice
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
 from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor, RouterL2VPNExporterVisitor
 from cosmo.netbox_types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
     L2VPNTerminationType, IPAddressType, CosmoStaticRouteType, DeviceTypeType, PlatformType, CosmoIPPoolType
 
 
-class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
+class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
     def __init__(self, loopbacks_by_device: dict[str, CosmoLoopbackType], asn: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Note: I have to use composition since singledispatchmethod does not work well with inheritance
@@ -24,6 +23,10 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         self.bgpcpe_exporter = RouterBgpCpeExporterVisitor()
         self.loopbacks_by_device = loopbacks_by_device
         self.allow_private_ips = False
+        self.asn = asn
+
+    def getASN(self) -> int:
+        return self.asn
 
     def allowPrivateIPs(self):
         self.allow_private_ips = True
@@ -270,21 +273,19 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             }
         }
 
-    def getRouterId(self, o: DeviceType) -> str:
-        return str(ipaddress.ip_interface(str(self.loopbacks_by_device[o.getName()].getIpv4())).ip)
-
     @accept.register
     def _(self, o: VRFType):
         parent_interface = o.getParent(InterfaceType)
         if not parent_interface.isSubInterface():
             return # guard: do not process root interface
-        router_id = self.getRouterId(o.getParent(DeviceType))
+        router_id = o.getParent(DeviceType).getRouterID()
         if o.getRouteDistinguisher():
             rd = router_id + ":" + o.getRouteDistinguisher()
-        elif len(o.getExportTargets()):
-            rd = router_id + ":" + o.getID()
         else:
-            rd = None
+            rd = router_id + ":" + o.getID()
+        default_targets = [ self.assembleRT(o.getID()) ]
+        import_targets = [target.getName() for target in o.getImportTargets()]
+        export_targets = [target.getName() for target in o.getExportTargets()]
         return {
             self._vrf_key: {
                 o.getName(): {
@@ -292,8 +293,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
                     "description": o.getDescription(),
                     "instance_type": "vrf",
                     "route_distinguisher": rd,
-                    "import_targets": [target.getName() for target in o.getImportTargets()],
-                    "export_targets": [target.getName() for target in o.getExportTargets()],
+                    "import_targets": import_targets if import_targets else default_targets,
+                    "export_targets": export_targets if export_targets else default_targets,
                     "routing_options": {
                         # should always have this key present
                     },

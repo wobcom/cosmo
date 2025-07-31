@@ -8,9 +8,8 @@ from collections.abc import Iterable
 from abc import abstractmethod
 from ipaddress import IPv4Interface, IPv6Interface
 
-from .common import without_keys, JsonOutputType
-from typing import Self, Iterator, TypeVar, NoReturn
-
+from .common import without_keys, JsonOutputType, DeviceSerializationError
+from typing import Self, Iterator, TypeVar, NoReturn, Never
 
 T = TypeVar('T', bound="AbstractNetboxType")
 class AbstractNetboxType(abc.ABC, Iterable):
@@ -235,6 +234,31 @@ class DeviceType(AbstractNetboxType):
             return None
         return sys_id
 
+    def getRouterID(self) -> str|Never:
+        # Deriving the router ID is a bit tricky, there is no 'correct' way.
+        # For us it's the primary loopback IPv4 address
+
+        # get first loopback interface in default vrf
+        loopback = next(filter(
+            lambda x: (x.isLoopbackChild() and x.getVRF() is None),
+            self.getInterfaces()
+        ), None)
+
+        if loopback is None:
+            raise DeviceSerializationError("Can't derive Router ID, no suitable loopback interface found.")
+
+        # get first IPv4 of that interface
+        address = next(filter(
+            lambda i: isinstance(i, IPv4Interface),
+            map(lambda i: i.getIPInterfaceObject(), loopback.getIPAddresses())
+        ), None)
+
+        if address is None:
+            raise DeviceSerializationError("Can't derive Router ID, no suitable loopback IP address found.")
+
+        # return that IP without subnet mask and hope for the best
+        return str(address.ip)
+
 
 class DeviceTypeType(AbstractNetboxType):
     def getBasePath(self):
@@ -449,6 +473,9 @@ class InterfaceType(AbstractNetboxType):
     def hasParentInterface(self) -> bool:
         return bool(self.get("parent"))
 
+    def isLoopbackChild(self):
+        return '.' in self.getName() and self.getName().startswith("lo")
+
     def getConnectedEndpoints(self) -> list[DeviceType]:
         return self.get("connected_endpoints", [])
 
@@ -485,8 +512,11 @@ class L2VPNType(AbstractNetboxType):
     def getBasePath(self):
         return "/vpn/l2vpns/"
 
-    def getIdentifier(self) -> int|None:
-        return self["identifier"]
+    def getIdentifier(self) -> int:
+        if self["identifier"]:
+            return self["identifier"]
+        else:
+            return self["id"]
 
     def getType(self) -> str:
         return self["type"]
@@ -554,10 +584,9 @@ class CosmoIPPoolType(AbstractNetboxType):
         return [
             ipaddress.ip_interface(p["prefix"]) for p in self["ip_prefixes"]
         ]
-        
+
     def isUniqueToDevice(self) -> bool:
         return len(self["devices"]) == 1
-    
+
     def hasIPRanges(self) -> bool:
         return len(self["ip_ranges"]) > 0
-        

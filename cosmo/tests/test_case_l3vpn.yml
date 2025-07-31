@@ -55,11 +55,11 @@ device_list:
     vrf:
       description: ''
       export_targets:
-        - name: target:9136:407
+        - name: target:65542:407
           __typename: RouteTargetType
       id: '407'
       import_targets:
-        - name: target:9136:407
+        - name: target:65542:407
           __typename: RouteTargetType
       name: L3VPN
       rd: null
