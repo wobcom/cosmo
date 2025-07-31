@@ -4,7 +4,8 @@ from functools import singledispatchmethod
 from typing import NoReturn
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import head, CosmoOutputType, L2VPNSerializationError, ASN2B_MAX
+from cosmo.common import head, CosmoOutputType, L2VPNSerializationError
+from cosmo.vrfhelper import TVRFHelpers
 from cosmo.log import warn
 from cosmo.netbox_types import InterfaceType, VLANType, AbstractNetboxType, DeviceType, L2VPNType, CosmoLoopbackType, \
     L2VPNTerminationType
@@ -68,18 +69,19 @@ class VlanBridgeEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
 T = tuple[type[AbstractNetboxType], type[AbstractNetboxType]]|type[AbstractNetboxType]
 
 # FIXME simplify this!
-class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metaclass=ABCMeta):
+class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, TVRFHelpers, metaclass=ABCMeta):
     def __init__(self, *args, associated_l2vpn: L2VPNType, loopbacks_by_device: dict[str, CosmoLoopbackType],
                  asn: int, **kwargs):
         super().__init__(*args, **kwargs)
         self.associated_l2vpn = associated_l2vpn
         self.loopbacks_by_device = loopbacks_by_device
         self.asn = asn
-        # when using 32 bit ASN we have to append L to the route target prefix
-        self.rt = str(asn) if asn <= ASN2B_MAX else f"{asn}L"
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.associated_l2vpn})"
+
+    def getASN(self) -> int:
+        return self.asn
 
     @staticmethod
     @abstractmethod
@@ -328,7 +330,7 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, met
                     "description": f"VPWS: {parent_l2vpn.getName().replace('WAN: VS_', '')}",
                     "instance_type": "evpn-vpws",
                     "route_distinguisher": f"{router_id}:{str(parent_l2vpn.getIdentifier())}",
-                    "vrf_target": f"target:{self.rt}:{str(parent_l2vpn.getIdentifier())}",
+                    "vrf_target": self.assembleRT(parent_l2vpn.getIdentifier()),
                     "protocols": {
                         "evpn": {
                             "interfaces": {

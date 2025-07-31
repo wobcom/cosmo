@@ -1,9 +1,10 @@
-import abc
+from abc import ABC
 from typing import Optional
 
 APP_NAME = "cosmo"
 
-class AbstractRecoverableError(Exception, abc.ABC):
+
+class AbstractRecoverableError(Exception, ABC):
     def __init__(self, text: str, on: Optional[object] = None, *args):
         super().__init__(text, *args)
         self.associated_object = on
@@ -45,6 +46,3 @@ def without_keys(d, keys) -> dict:
     if type(keys) != list:
         keys = [keys]
     return {k: v for k,v in d.items() if k not in keys}
-
-# https://datatracker.ietf.org/doc/rfc1930/
-ASN2B_MAX = 65535

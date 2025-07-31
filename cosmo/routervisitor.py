@@ -5,7 +5,8 @@ import deepmerge
 
 from cosmo.log import warn
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import InterfaceSerializationError, head, StaticRouteSerializationError, APP_NAME, ASN2B_MAX
+from cosmo.common import InterfaceSerializationError, head, StaticRouteSerializationError, APP_NAME
+from cosmo.vrfhelper import TVRFHelpers, ASN2B_MAX
 from cosmo.manufacturers import ManufacturerFactoryFromDevice
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
 from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor, RouterL2VPNExporterVisitor
@@ -13,7 +14,7 @@ from cosmo.netbox_types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceT
     L2VPNTerminationType, IPAddressType, CosmoStaticRouteType, DeviceTypeType, PlatformType, CosmoIPPoolType
 
 
-class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
+class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
     def __init__(self, loopbacks_by_device: dict[str, CosmoLoopbackType], asn: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Note: I have to use composition since singledispatchmethod does not work well with inheritance
@@ -23,6 +24,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
         self.loopbacks_by_device = loopbacks_by_device
         self.allow_private_ips = False
         self.asn = asn
+
+    def getASN(self) -> int:
+        return self.asn
 
     def allowPrivateIPs(self):
         self.allow_private_ips = True
@@ -279,7 +283,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             rd = router_id + ":" + o.getRouteDistinguisher()
         else:
             rd = router_id + ":" + o.getID()
-        default_targets = [ f"target:{self.asn}{'L' if self.asn > ASN2B_MAX else ''}:{o.getID()}"]
+        default_targets = [ self.assembleRT(o.getID()) ]
         import_targets = [target.getName() for target in o.getImportTargets()]
         export_targets = [target.getName() for target in o.getExportTargets()]
         return {
