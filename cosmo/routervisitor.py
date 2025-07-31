@@ -6,7 +6,7 @@ import deepmerge
 from cosmo.log import warn
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import InterfaceSerializationError, head, StaticRouteSerializationError, APP_NAME
-from cosmo.vrfhelper import TVRFHelpers, ASN2B_MAX
+from cosmo.vrfhelper import TVRFHelpers
 from cosmo.manufacturers import ManufacturerFactoryFromDevice
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
 from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor, RouterL2VPNExporterVisitor

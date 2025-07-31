@@ -512,7 +512,7 @@ class L2VPNType(AbstractNetboxType):
     def getBasePath(self):
         return "/vpn/l2vpns/"
 
-    def getIdentifier(self) -> int|None:
+    def getIdentifier(self) -> int:
         if self["identifier"]:
             return self["identifier"]
         else:
