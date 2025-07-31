@@ -9,8 +9,7 @@ from abc import abstractmethod
 from ipaddress import IPv4Interface, IPv6Interface
 
 from .common import without_keys, JsonOutputType, DeviceSerializationError
-from typing import Self, Iterator, TypeVar, NoReturn
-
+from typing import Self, Iterator, TypeVar, NoReturn, Never
 
 T = TypeVar('T', bound="AbstractNetboxType")
 class AbstractNetboxType(abc.ABC, Iterable):
@@ -235,29 +234,27 @@ class DeviceType(AbstractNetboxType):
             return None
         return sys_id
 
-    def getRouterID(self) -> str:
+    def getRouterID(self) -> str|Never:
         # Deriving the router ID is a bit tricky, there is no 'correct' way.
         # For us it's the primary loopback IPv4 address
 
         # get first loopback interface in default vrf
         loopback = next(filter(
-            lambda x: (x.isLoopbackChild() and x.getVRF() == None),
+            lambda x: (x.isLoopbackChild() and x.getVRF() is None),
             self.getInterfaces()
         ), None)
 
-        if loopback == None:
+        if loopback is None:
             raise DeviceSerializationError("Can't derive Router ID, no suitable loopback interface found.")
-            return ""
 
         # get first IPv4 of that interface
         address = next(filter(
-            lambda i: type(i) is IPv4Interface,
+            lambda i: isinstance(i, IPv4Interface),
             map(lambda i: i.getIPInterfaceObject(), loopback.getIPAddresses())
         ), None)
 
-        if address == None:
+        if address is None:
             raise DeviceSerializationError("Can't derive Router ID, no suitable loopback IP address found.")
-            return ""
 
         # return that IP without subnet mask and hope for the best
         return str(address.ip)
@@ -392,9 +389,7 @@ class InterfaceType(AbstractNetboxType):
         return ret
 
     def getVRF(self) -> VRFType|None:
-        if self["vrf"]:
-            return VRFType(self["vrf"])
-        return None
+        return self.get("vrf")
 
     def spitInterfacePathWith(self, d: dict) -> dict:
         """

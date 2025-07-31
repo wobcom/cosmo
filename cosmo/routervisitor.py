@@ -1,14 +1,12 @@
-import ipaddress
 import re
 from functools import singledispatchmethod
-from typing import Optional
 
 import deepmerge
 
-from cosmo.log import warn, error
+from cosmo.log import warn
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import InterfaceSerializationError, head, StaticRouteSerializationError, APP_NAME
-from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
+from cosmo.common import InterfaceSerializationError, head, StaticRouteSerializationError, APP_NAME, ASN2B_MAX
+from cosmo.manufacturers import ManufacturerFactoryFromDevice
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
 from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor, RouterL2VPNExporterVisitor
 from cosmo.netbox_types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
@@ -281,7 +279,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor):
             rd = router_id + ":" + o.getRouteDistinguisher()
         else:
             rd = router_id + ":" + o.getID()
-        default_targets = [ f"target:{self.asn}{'L' if self.asn > 65536 else ''}:{o.getID()}" ]
+        default_targets = [ f"target:{self.asn}{'L' if self.asn > ASN2B_MAX else ''}:{o.getID()}"]
         import_targets = [target.getName() for target in o.getImportTargets()]
         export_targets = [target.getName() for target in o.getExportTargets()]
         return {

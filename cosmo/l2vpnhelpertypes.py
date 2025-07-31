@@ -4,7 +4,7 @@ from functools import singledispatchmethod
 from typing import NoReturn
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import head, CosmoOutputType, L2VPNSerializationError
+from cosmo.common import head, CosmoOutputType, L2VPNSerializationError, ASN2B_MAX
 from cosmo.log import warn
 from cosmo.netbox_types import InterfaceType, VLANType, AbstractNetboxType, DeviceType, L2VPNType, CosmoLoopbackType, \
     L2VPNTerminationType
@@ -76,7 +76,7 @@ class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, metacla
         self.loopbacks_by_device = loopbacks_by_device
         self.asn = asn
         # when using 32 bit ASN we have to append L to the route target prefix
-        self.rt = str(asn) if asn <= 2**16 else f"{asn}L"
+        self.rt = str(asn) if asn <= ASN2B_MAX else f"{asn}L"
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.associated_l2vpn})"
