@@ -5,21 +5,52 @@ import deepmerge
 
 from cosmo.log import warn
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import InterfaceSerializationError, head, StaticRouteSerializationError, APP_NAME
+from cosmo.common import (
+    InterfaceSerializationError,
+    head,
+    StaticRouteSerializationError,
+    APP_NAME,
+)
 from cosmo.vrfhelper import TVRFHelpers
 from cosmo.manufacturers import ManufacturerFactoryFromDevice
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
-from cosmo.routerl2vpnvisitor import RouterL2VPNValidatorVisitor, RouterL2VPNExporterVisitor
-from cosmo.netbox_types import L2VPNType, VRFType, CosmoLoopbackType, InterfaceType, TagType, VLANType, DeviceType, \
-    L2VPNTerminationType, IPAddressType, CosmoStaticRouteType, DeviceTypeType, PlatformType, CosmoIPPoolType
+from cosmo.routerl2vpnvisitor import (
+    RouterL2VPNValidatorVisitor,
+    RouterL2VPNExporterVisitor,
+)
+from cosmo.netbox_types import (
+    L2VPNType,
+    VRFType,
+    CosmoLoopbackType,
+    InterfaceType,
+    TagType,
+    VLANType,
+    DeviceType,
+    L2VPNTerminationType,
+    IPAddressType,
+    CosmoStaticRouteType,
+    DeviceTypeType,
+    PlatformType,
+    CosmoIPPoolType,
+)
 
 
 class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
-    def __init__(self, loopbacks_by_device: dict[str, CosmoLoopbackType], asn: int, *args, **kwargs):
+    def __init__(
+        self,
+        loopbacks_by_device: dict[str, CosmoLoopbackType],
+        asn: int,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         # Note: I have to use composition since singledispatchmethod does not work well with inheritance
-        self.l2vpn_exporter = RouterL2VPNExporterVisitor(loopbacks_by_device=loopbacks_by_device, asn=asn)
-        self.l2vpn_validator = RouterL2VPNValidatorVisitor(loopbacks_by_device=loopbacks_by_device, asn=asn)
+        self.l2vpn_exporter = RouterL2VPNExporterVisitor(
+            loopbacks_by_device=loopbacks_by_device, asn=asn
+        )
+        self.l2vpn_validator = RouterL2VPNValidatorVisitor(
+            loopbacks_by_device=loopbacks_by_device, asn=asn
+        )
         self.bgpcpe_exporter = RouterBgpCpeExporterVisitor()
         self.loopbacks_by_device = loopbacks_by_device
         self.allow_private_ips = False
@@ -46,12 +77,12 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
 
     @accept.register
     def _(self, o: DeviceType):
-        if not o.isCompositeRoot(): # not root, do not process!
+        if not o.isCompositeRoot():  # not root, do not process!
             return
         manufacturer = ManufacturerFactoryFromDevice(o).get()
         isis = {}
         if isis_system_id := o.getISISIdentifier():
-            isis["isis"] = { "system_id": isis_system_id }
+            isis["isis"] = {"system_id": isis_system_id}
         return {
             "serial": o.getSerial(),
             **isis,
@@ -65,7 +96,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             },
             self._l2circuits_key: {
                 # this one should always exist
-            }
+            },
         }
 
     @accept.register
@@ -90,7 +121,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                             f"{manufacturer.getRoutingInstanceName()}.inet.0": {
                                 "static": {
                                     "0.0.0.0/0": {
-                                        "next_hop": str(o.getIPInterfaceObject().network[1]),
+                                        "next_hop": str(
+                                            o.getIPInterfaceObject().network[1]
+                                        ),
                                     }
                                 }
                             }
@@ -112,22 +145,30 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                 f"You seem to have configured an IP directly on interface {parent_interface.getName()}. "
                 f"This is forbidden. Please make a virtual interface, assign the IP(s) on it and retry!"
             )
-        if not (o.isGlobal() or
-                self.allow_private_ips or
-                parent_interface.getVRF() or
-                manufacturer.isManagementInterface(parent_interface)):
+        if not (
+            o.isGlobal()
+            or self.allow_private_ips
+            or parent_interface.getVRF()
+            or manufacturer.isManagementInterface(parent_interface)
+        ):
             raise InterfaceSerializationError(
                 f"Private IP {o.getIPAddress()} used on interface {parent_interface.getName()} "
                 f"in default VRF for device {o.getParent(DeviceType).getName()}. Did you forget to configure a VRF?"
             )
-        if manufacturer.isManagementInterface(parent_interface) and parent_interface.isSubInterface():
+        if (
+            manufacturer.isManagementInterface(parent_interface)
+            and parent_interface.isSubInterface()
+        ):
             optional_attrs = self.processMgmtInterfaceIPAddress(o)
         if (
-                parent_interface.isLoopbackOrParentIsLoopback()
-                and not o.getIPInterfaceObject().network.prefixlen == o.getIPInterfaceObject().max_prefixlen
-                and not parent_interface.getVRF() # only force /32 loopback in default vrf
+            parent_interface.isLoopbackOrParentIsLoopback()
+            and not o.getIPInterfaceObject().network.prefixlen
+            == o.getIPInterfaceObject().max_prefixlen
+            and not parent_interface.getVRF()  # only force /32 loopback in default vrf
         ):
-            raise InterfaceSerializationError(f"IP {o.getIPAddress()} is not a valid loopback IP address.")
+            raise InterfaceSerializationError(
+                f"IP {o.getIPAddress()} is not a valid loopback IP address."
+            )
         ip_version = o.getIPInterfaceObject().version
         role = {}
         ipv6_ra = {}
@@ -135,19 +176,20 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         if o.getRole() and o.getRole().lower() == "secondary":
             role = {"secondary": True}
         elif any(
-                [
-                    (
-                            str(addr.getRole()).lower() == "secondary"
-                            # primary and secondary are per network
-                            # IP can only be primary if another address is in the same network and marked as secondary
-                            and o.getIPInterfaceObject().network == addr.getIPInterfaceObject().network
-                    )
-                    for addr in parent_interface.getIPAddresses()
-                ]
+            [
+                (
+                    str(addr.getRole()).lower() == "secondary"
+                    # primary and secondary are per network
+                    # IP can only be primary if another address is in the same network and marked as secondary
+                    and o.getIPInterfaceObject().network
+                    == addr.getIPInterfaceObject().network
+                )
+                for addr in parent_interface.getIPAddresses()
+            ]
         ):
             role = {"primary": True}
         if parent_interface.getCustomFields().get("ipv6_ra", False) and ip_version == 6:
-            ipv6_ra = { "ipv6_ra": True }
+            ipv6_ra = {"ipv6_ra": True}
         # sampling is enabled on all interface families that:
         # have an address
         # are not in a VRF
@@ -157,18 +199,22 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             and not manufacturer.isManagementInterface(parent_interface)
             and not parent_interface.isLoopbackOrParentIsLoopback()
         ):
-            sampling = { "sampling": True }
+            sampling = {"sampling": True}
         return {
             self._interfaces_key: {
-                **parent_interface.spitInterfacePathWith({
-                    "families": {
-                        {4: "inet", 6: "inet6"}[ip_version]: {
-                            "address": {
-                               o.getIPInterfaceObject().with_prefixlen: role
+                **parent_interface.spitInterfacePathWith(
+                    {
+                        "families": {
+                            {4: "inet", 6: "inet6"}[ip_version]: {
+                                "address": {
+                                    o.getIPInterfaceObject().with_prefixlen: role
+                                }
                             }
-                        } | ipv6_ra | sampling
+                            | ipv6_ra
+                            | sampling
+                        }
                     }
-                })
+                )
             }
         } | optional_attrs
 
@@ -179,7 +225,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
     @staticmethod
     def processInterfaceCommon(o: InterfaceType):
         description = o.getDescription()
-        edge_tag = head(list(filter(lambda t: t.getTagName().lower() == "edge", o.getTags())))
+        edge_tag = head(
+            list(filter(lambda t: t.getTagName().lower() == "edge", o.getTags()))
+        )
         if edge_tag:
             match edge_tag.getTagValue():
                 case "customer":
@@ -188,29 +236,43 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                     description = f"Transit: {description}"
                 case _:
                     description = f"Peering: {description}"
-        return {
-        } | ({"shutdown": True} if not o.isEnabled() else {}) \
-          | ({"description": description} if o.getDescription() else {}) \
-          | ({"mtu": o.getMTU()} if o.getMTU() else {}) \
-          | ({"type": o.getAssociatedType()} if not o.isSubInterface() else {}) \
-          | ({"mac_address": o.getMACAddress()} if o.getMACAddress() and o.isSubInterface() else {})
+        return (
+            {}
+            | ({"shutdown": True} if not o.isEnabled() else {})
+            | ({"description": description} if o.getDescription() else {})
+            | ({"mtu": o.getMTU()} if o.getMTU() else {})
+            | ({"type": o.getAssociatedType()} if not o.isSubInterface() else {})
+            | (
+                {"mac_address": o.getMACAddress()}
+                if o.getMACAddress() and o.isSubInterface()
+                else {}
+            )
+        )
 
     def processSubInterface(self, o: InterfaceType):
         # easy checks first, narrow down afterward
         if not o.getUntaggedVLAN() and not o.getUnitNumber() == 0:
             # costlier checks it is then
             device = o.getParent(DeviceType)
-            parent_interface = next(filter(
-                lambda i: i.getName() == o.getSubInterfaceParentInterfaceName(),
-                device.getInterfaces()
-            ))
-            all_parent_sub_interfaces = list(filter(
-                lambda i: i.getName().startswith(parent_interface.getName()) and i.isSubInterface(),
-                device.getInterfaces()
-            ))
+            parent_interface = next(
+                filter(
+                    lambda i: i.getName() == o.getSubInterfaceParentInterfaceName(),
+                    device.getInterfaces(),
+                )
+            )
+            all_parent_sub_interfaces = list(
+                filter(
+                    lambda i: i.getName().startswith(parent_interface.getName())
+                    and i.isSubInterface(),
+                    device.getInterfaces(),
+                )
+            )
             parent_interface_type = parent_interface.getAssociatedType()
             # cases where no VLAN is authorized: we have only one sub interface, or it's a loopback or virtual
-            if len(all_parent_sub_interfaces) > 1 and parent_interface_type not in [ "loopback", "virtual" ]:
+            if len(all_parent_sub_interfaces) > 1 and parent_interface_type not in [
+                "loopback",
+                "virtual",
+            ]:
                 warn(f"sub interfaces should have an access VLAN configured!", o)
         # specific outer_tag case -> we cannot process the "virtual" untagged vlan
         # via type hinting / visitor, since it does not exist in the composite
@@ -220,8 +282,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         optional_interface_attrs = {}
         optional_root_interface_attrs = {}
         if "outer_tag" in o.getCustomFields() and o.getUntaggedVLAN():
-            optional_interface_attrs = { "vlan": o.getUntaggedVLAN().getVID() }
-            if o.getUnitNumber() == 0: # native vlan
+            optional_interface_attrs = {"vlan": o.getUntaggedVLAN().getVID()}
+            if o.getUnitNumber() == 0:  # native vlan
                 optional_root_interface_attrs = {
                     self._interfaces_key: {
                         o.getSubInterfaceParentInterfaceName(): {
@@ -231,34 +293,45 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                 }
             # sub-interface but not .0, enforce numbering conventions
             elif o.getUnitNumber() != o.getUntaggedVLAN().getVID():
-                warn(f"sub-interface number should be same as VLAN ({o.getUntaggedVLAN().getVID()})", o)
-        return deepmerge.always_merger.merge({
-            self._interfaces_key: {
-                **o.spitInterfacePathWith({
-                    **self.processInterfaceCommon(o),
-                    **optional_interface_attrs,
-                })
-            }
-        }, optional_root_interface_attrs)
-
+                warn(
+                    f"sub-interface number should be same as VLAN ({o.getUntaggedVLAN().getVID()})",
+                    o,
+                )
+        return deepmerge.always_merger.merge(
+            {
+                self._interfaces_key: {
+                    **o.spitInterfacePathWith(
+                        {
+                            **self.processInterfaceCommon(o),
+                            **optional_interface_attrs,
+                        }
+                    )
+                }
+            },
+            optional_root_interface_attrs,
+        )
 
     def processInterfaceLagInfo(self, o: InterfaceType):
         return {
             self._interfaces_key: {
-                **o.spitInterfacePathWith({
-                    **self.processInterfaceCommon(o),
-                    "type": "lag", # dict priority
-                })
+                **o.spitInterfacePathWith(
+                    {
+                        **self.processInterfaceCommon(o),
+                        "type": "lag",  # dict priority
+                    }
+                )
             }
         }
 
     def processLagMember(self, o: InterfaceType):
         return {
             self._interfaces_key: {
-                **o.getParent(InterfaceType).spitInterfacePathWith({
-                    "type": "lag_member",
-                    "lag_parent": o.getName(),
-                })
+                **o.getParent(InterfaceType).spitInterfacePathWith(
+                    {
+                        "type": "lag_member",
+                        "lag_parent": o.getName(),
+                    }
+                )
             }
         }
 
@@ -275,9 +348,12 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             return self.processInterfaceLagInfo(o)
         # interface in interface is lag info
         if o.hasParentAboveWithType(InterfaceType):
-            if "lag" in o.getParent(InterfaceType).keys() and o.getParent(InterfaceType)["lag"] == o:
+            if (
+                "lag" in o.getParent(InterfaceType).keys()
+                and o.getParent(InterfaceType)["lag"] == o
+            ):
                 return self.processLagMember(o)
-            return # guard: do not process (can be connected_endpoint, parent, etc...)
+            return  # guard: do not process (can be connected_endpoint, parent, etc...)
         return {
             self._interfaces_key: {
                 **o.spitInterfacePathWith(self.processInterfaceCommon(o))
@@ -288,24 +364,28 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
     def _(self, o: VRFType):
         parent_interface = o.getParent(InterfaceType)
         if not parent_interface.isSubInterface():
-            return # guard: do not process root interface
+            return  # guard: do not process root interface
         router_id = o.getParent(DeviceType).getRouterID()
         if o.getRouteDistinguisher():
             rd = router_id + ":" + o.getRouteDistinguisher()
         else:
             rd = router_id + ":" + o.getID()
-        default_targets = [ self.assembleRT(o.getID()) ]
+        default_targets = [self.assembleRT(o.getID())]
         import_targets = [target.getName() for target in o.getImportTargets()]
         export_targets = [target.getName() for target in o.getExportTargets()]
         return {
             self._vrf_key: {
                 o.getName(): {
-                    "interfaces": [ parent_interface.getName() ],
+                    "interfaces": [parent_interface.getName()],
                     "description": o.getDescription(),
                     "instance_type": "vrf",
                     "route_distinguisher": rd,
-                    "import_targets": import_targets if import_targets else default_targets,
-                    "export_targets": export_targets if export_targets else default_targets,
+                    "import_targets": (
+                        import_targets if import_targets else default_targets
+                    ),
+                    "export_targets": (
+                        export_targets if export_targets else default_targets
+                    ),
                     "routing_options": {
                         # should always have this key present
                     },
@@ -339,10 +419,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                     table: {
                         "static": {
                             o.getPrefix(): {
-                                               "next_hop": next_hop,
-                                           } | (
-                                               {"metric": o.getMetric()} if o.getMetric() else {}
-                                           )
+                                "next_hop": next_hop,
+                            }
+                            | ({"metric": o.getMetric()} if o.getMetric() else {})
                         }
                     }
                 }
@@ -356,9 +435,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             return {
                 # vrf-wide static route
                 self._vrf_key: {
-                    vrf_object.getName(): {
-                        **self.processStaticRouteCommon(o)
-                    }
+                    vrf_object.getName(): {**self.processStaticRouteCommon(o)}
                 }
             }
         else:
@@ -380,9 +457,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
 
         return {
             self._pools_key: {
-                o.getName(): {
-                    "prefixes": [str(p) for p in o.getPrefixes()]
-                }
+                o.getName(): {"prefixes": [str(p) for p in o.getPrefixes()]}
             }
         }
 
@@ -405,15 +480,23 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                 }
             # sub-interface but not .0, enforce numbering conventions
             elif parent_interface.getUnitNumber() != o.getVID():
-                warn(f"sub-interface number should be same as VLAN ({o.getVID()})", parent_interface)
-            return deepmerge.always_merger.merge({
-                self._interfaces_key: {
-                    **parent_interface.spitInterfacePathWith({
-                        **self.processInterfaceCommon(parent_interface),
-                        "vlan": o.getVID()
-                    }),
-                }
-            }, optional_root_interface_attrs)
+                warn(
+                    f"sub-interface number should be same as VLAN ({o.getVID()})",
+                    parent_interface,
+                )
+            return deepmerge.always_merger.merge(
+                {
+                    self._interfaces_key: {
+                        **parent_interface.spitInterfacePathWith(
+                            {
+                                **self.processInterfaceCommon(parent_interface),
+                                "vlan": o.getVID(),
+                            }
+                        ),
+                    }
+                },
+                optional_root_interface_attrs,
+            )
 
     @accept.register
     def _(self, o: VLANType):
@@ -421,20 +504,25 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             return self.l2vpn_exporter.accept(o)
         parent_interface = o.getParent(InterfaceType)
         if (
-                parent_interface and o == parent_interface.getUntaggedVLAN()
-                # guard: skip VLAN processing if it is in L2VPN termination. should reappear in device.
-                and not parent_interface.hasParentAboveWithType(L2VPNTerminationType)
+            parent_interface
+            and o == parent_interface.getUntaggedVLAN()
+            # guard: skip VLAN processing if it is in L2VPN termination. should reappear in device.
+            and not parent_interface.hasParentAboveWithType(L2VPNTerminationType)
         ):
             return self.processUntaggedVLAN(o)
 
     def processAutonegTag(self, o: TagType):
         return {
             self._interfaces_key: {
-                **o.getParent(InterfaceType).spitInterfacePathWith({
-                    "gigether": {
-                        "autonegotiation": True if o.getTagValue() == "on" else False
+                **o.getParent(InterfaceType).spitInterfacePathWith(
+                    {
+                        "gigether": {
+                            "autonegotiation": (
+                                True if o.getTagValue() == "on" else False
+                            )
+                        }
                     }
-                })
+                )
             }
         }
 
@@ -442,16 +530,14 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         if not re.search("[0-9]+[tgmTGM]", o.getTagValue()):
             warn(
                 f"Interface speed {o.getTagValue()} is not known, ignoring.",
-                o.getParent(InterfaceType)
+                o.getParent(InterfaceType),
             )
         else:
             return {
                 self._interfaces_key: {
-                    **o.getParent(InterfaceType).spitInterfacePathWith({
-                        "gigether":  {
-                            "speed": o.getTagValue()
-                        }
-                    })
+                    **o.getParent(InterfaceType).spitInterfacePathWith(
+                        {"gigether": {"speed": o.getTagValue()}}
+                    )
                 }
             }
 
@@ -460,21 +546,22 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         fecs = ["off", "rs", "baser"]
         if o.getTagValue() not in fecs:
             warn(
-                f"FEC mode {o.getTagValue()} is not known, ignoring.",
-                parent_interface
+                f"FEC mode {o.getTagValue()} is not known, ignoring.", parent_interface
             )
         else:
             return {
                 self._interfaces_key: {
-                    **parent_interface.spitInterfacePathWith({
-                        "gigether": {
-                            "fec": {
-                                "off": "none",
-                                "baser": "fec74",
-                                "rs": "fec91",
-                            }[o.getTagValue()]
+                    **parent_interface.spitInterfacePathWith(
+                        {
+                            "gigether": {
+                                "fec": {
+                                    "off": "none",
+                                    "baser": "fec74",
+                                    "rs": "fec91",
+                                }[o.getTagValue()]
+                            }
                         }
-                    })
+                    )
                 }
             }
 
@@ -482,18 +569,14 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         parent_interface = o.getParent(InterfaceType)
         policer_in, policer_out = {}, {}
         if o.getTagName() in ["policer_in", "policer"]:
-            policer_in = {
-                "input": f"POLICER_{o.getTagValue()}"
-            }
+            policer_in = {"input": f"POLICER_{o.getTagValue()}"}
         if o.getTagName() in ["policer_out", "policer"]:
-            policer_out = {
-                "output": f"POLICER_{o.getTagValue()}"
-            }
+            policer_out = {"output": f"POLICER_{o.getTagValue()}"}
         return {
             self._interfaces_key: {
-                **parent_interface.spitInterfacePathWith({
-                    "policer": {} | policer_in | policer_out
-                })
+                **parent_interface.spitInterfacePathWith(
+                    {"policer": {} | policer_in | policer_out}
+                )
             }
         }
 
@@ -501,19 +584,20 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         parent_interface = o.getParent(InterfaceType)
         optional_arp_policer = {}
         if o.getTagValue() == "peering-ixp":
-            optional_arp_policer = { "policer": ["arp POLICER_IXP_ARP"]}
+            optional_arp_policer = {"policer": ["arp POLICER_IXP_ARP"]}
         return {
             self._interfaces_key: {
-                **parent_interface.spitInterfacePathWith({
-                    "families": {
-                        "inet": {
-                            "filters": ["input-list [ EDGE_FILTER ]"],
-                        } | optional_arp_policer,
-                        "inet6": {
-                            "filters": ["input-list [ EDGE_FILTER_V6 ]"]
-                        },
+                **parent_interface.spitInterfacePathWith(
+                    {
+                        "families": {
+                            "inet": {
+                                "filters": ["input-list [ EDGE_FILTER ]"],
+                            }
+                            | optional_arp_policer,
+                            "inet6": {"filters": ["input-list [ EDGE_FILTER_V6 ]"]},
+                        }
                     }
-                })
+                )
             }
         }
 
@@ -521,53 +605,49 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         parent_interface = o.getParent(InterfaceType)
         ipv6_rpf = {}
         ipv4_rpf = {}
-        if o.getTagValue() == "disable": # do not process, urpf is disabled
+        if o.getTagValue() == "disable":  # do not process, urpf is disabled
             return
-        if any(map( # any short-circuits
-            lambda i: i.getIPInterfaceObject().version == 4,
-            parent_interface.getIPAddresses()
-        )):
-            ipv4_rpf = {
-                "inet": {
-                    "rpf_check": {
-                        "mode": o.getTagValue()
-                    }
-                }
-            }
-        if any(map( # any short-circuits
-            lambda i: i.getIPInterfaceObject().version == 6,
-            parent_interface.getIPAddresses()
-        )):
-            ipv6_rpf = {
-                "inet6": {
-                    "rpf_check": {
-                        "mode": o.getTagValue()
-                    }
-                }
-            }
-        if not len(ipv4_rpf)+len(ipv6_rpf):
+        if any(
+            map(  # any short-circuits
+                lambda i: i.getIPInterfaceObject().version == 4,
+                parent_interface.getIPAddresses(),
+            )
+        ):
+            ipv4_rpf = {"inet": {"rpf_check": {"mode": o.getTagValue()}}}
+        if any(
+            map(  # any short-circuits
+                lambda i: i.getIPInterfaceObject().version == 6,
+                parent_interface.getIPAddresses(),
+            )
+        ):
+            ipv6_rpf = {"inet6": {"rpf_check": {"mode": o.getTagValue()}}}
+        if not len(ipv4_rpf) + len(ipv6_rpf):
             return
         return {
             self._interfaces_key: {
-                **parent_interface.spitInterfacePathWith({
-                    "families": {
-                    } | ipv6_rpf | ipv4_rpf
-                })
+                **parent_interface.spitInterfacePathWith(
+                    {"families": {} | ipv6_rpf | ipv4_rpf}
+                )
             }
         }
 
     def processCoreTag(self, o: TagType):
         manufacturer = ManufacturerFactoryFromDevice(o.getParent(DeviceType)).get()
-        
+
         interface = o.getParent(InterfaceType)
-        parent_interface = head(list(filter( # as in, netbox parent
-            lambda i: i.getName() == interface.getSubInterfaceParentInterfaceName(),
-            interface.getParent(DeviceType).getInterfaces()
-        )))
-        
-        # Note: 
+        parent_interface = head(
+            list(
+                filter(  # as in, netbox parent
+                    lambda i: i.getName()
+                    == interface.getSubInterfaceParentInterfaceName(),
+                    interface.getParent(DeviceType).getInterfaces(),
+                )
+            )
+        )
+
+        # Note:
         # The following code was developed by the pseudo code:
-        # 
+        #
         # if hasMTUInheritance and (parent.mtu-14 not in _allowed_core_mtus OR parent.mtu-14 < (unit.mtu or 9216)):
         #   explosion("parent mtu is not alright")
         # elif unit.mtu is None and not (hasMTUInheritance and (parent.mtu-14 not in _allowed_core_mtus)):
@@ -576,46 +656,59 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         #   mtu = unit.mtu
         # elif not hasMTUInheritance
         #   explosion("no valid MTU set")
-        
+
         existingParentMTU = parent_interface.getMTU()
         unitMTU = interface.getMTU()
-        
+
         mtuStub = {}
-        
-        isSonderlocke = any(map(
-            lambda i: i.getTagName() == "sonderlocke" and i.getTagValue() == "mtu", interface.getTags()
-        ))
-        
+
+        isSonderlocke = any(
+            map(
+                lambda i: i.getTagName() == "sonderlocke" and i.getTagValue() == "mtu",
+                interface.getTags(),
+            )
+        )
+
         if unitMTU and not (unitMTU in self._allowed_core_mtus) and not isSonderlocke:
-            raise InterfaceSerializationError(f"{interface.getName()} has an invalid MTU configured.")
-        
+            raise InterfaceSerializationError(
+                f"{interface.getName()} has an invalid MTU configured."
+            )
+
         unitMTUWithDefault = unitMTU or 9216
 
         if manufacturer.hasMTUInheritance():
             if not existingParentMTU:
-                raise InterfaceSerializationError(f"{parent_interface.getName()} has no MTU configured, but Device uses MTU inheritance.")
-            
+                raise InterfaceSerializationError(
+                    f"{parent_interface.getName()} has no MTU configured, but Device uses MTU inheritance."
+                )
+
             validExactParentMTU = existingParentMTU - 14 in self._allowed_core_mtus
-            validParentMTU = validExactParentMTU or existingParentMTU - 14 > unitMTUWithDefault
+            validParentMTU = (
+                validExactParentMTU or existingParentMTU - 14 > unitMTUWithDefault
+            )
 
             if not (validExactParentMTU or validParentMTU):
-                raise InterfaceSerializationError(f"{interface.getName()} and {parent_interface.getName()} have incompatible MTU configurations.")
-            
+                raise InterfaceSerializationError(
+                    f"{interface.getName()} and {parent_interface.getName()} have incompatible MTU configurations."
+                )
+
             if not validExactParentMTU:
                 mtuStub["mtu"] = unitMTUWithDefault
-                
+
         else:
             mtuStub["mtu"] = unitMTUWithDefault
-        
+
         return {
             self._interfaces_key: {
-                **interface.spitInterfacePathWith({
-                    "families": {
-                        "iso": {},
-                        "mpls": {},
-                    },
-                    **mtuStub,
-                })
+                **interface.spitInterfacePathWith(
+                    {
+                        "families": {
+                            "iso": {},
+                            "mpls": {},
+                        },
+                        **mtuStub,
+                    }
+                )
             }
         }
 
@@ -623,26 +716,30 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         parent_interface = o.getParent(InterfaceType)
         return {
             self._interfaces_key: {
-                **parent_interface.spitInterfacePathWith({
-                    "dhcp_profile": [ o.getTagValue() ],
-                })
+                **parent_interface.spitInterfacePathWith(
+                    {
+                        "dhcp_profile": [o.getTagValue()],
+                    }
+                )
             }
         }
 
     def processBreakoutTag(self, o: TagType):
         interface = o.getParent(InterfaceType)
-        
-        if interface.isSubInterface(): 
+
+        if interface.isSubInterface():
             warn(
                 "this is a sub-interface. breakout tag needs to be set on parent interface.",
-                interface
+                interface,
             )
-        
+
         return {
             self._interfaces_key: {
-                **interface.spitInterfacePathWith({
-                    "breakout": o.getTagValue(),
-                })
+                **interface.spitInterfacePathWith(
+                    {
+                        "breakout": o.getTagValue(),
+                    }
+                )
             }
         }
 
@@ -650,17 +747,23 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         parent_interface = o.getParent(InterfaceType)
         opt_unnumbered_interface = {}
         if parent_interface.getVRF():
-            loopback_interface = head(list(filter(
-                lambda i: i.getName().startswith('lo') and i.getVRF() == parent_interface.getVRF(),
-                parent_interface.getParent(DeviceType).getInterfaces()
-            )))
-            opt_unnumbered_interface = {"unnumbered_interface": loopback_interface.getName()}
+            loopback_interface = head(
+                list(
+                    filter(
+                        lambda i: i.getName().startswith("lo")
+                        and i.getVRF() == parent_interface.getVRF(),
+                        parent_interface.getParent(DeviceType).getInterfaces(),
+                    )
+                )
+            )
+            opt_unnumbered_interface = {
+                "unnumbered_interface": loopback_interface.getName()
+            }
         return {
             self._interfaces_key: {
-                **parent_interface.spitInterfacePathWith({
-                    "unnumbered": True,
-                    **opt_unnumbered_interface
-                })
+                **parent_interface.spitInterfacePathWith(
+                    {"unnumbered": True, **opt_unnumbered_interface}
+                )
             }
         }
 
@@ -668,9 +771,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         parent_interface = o.getParent(InterfaceType)
         return {
             self._interfaces_key: {
-                **parent_interface.spitInterfacePathWith({
-                    "port_profile": [ o.getTagValue() ]
-                })
+                **parent_interface.spitInterfacePathWith(
+                    {"port_profile": [o.getTagValue()]}
+                )
             }
         }
 
@@ -685,7 +788,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                 return self.processFecTag(o)
             case "urpf":
                 return self.processUrpfTag(o)
-            case "policer"|"policer_in"|"policer_out":
+            case "policer" | "policer_in" | "policer_out":
                 return self.processPolicerTag(o)
             case "dhcp":
                 return self.processDhcpTag(o)
@@ -696,7 +799,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             case "breakout":
                 return self.processBreakoutTag(o)
             case "sonderlocke":
-                pass # ignore, as it is treated in "core" tag handler
+                pass  # ignore, as it is treated in "core" tag handler
             case "access":
                 return self.processAccessTag(o)
             case "unnumbered":

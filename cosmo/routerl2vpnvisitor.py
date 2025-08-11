@@ -3,12 +3,28 @@ from functools import singledispatchmethod
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import head, L2VPNSerializationError
-from cosmo.l2vpnhelpertypes import L2VpnVisitorClassFactoryFromL2VpnTypeObject, AbstractL2VpnTypeTerminationVisitor
-from cosmo.netbox_types import L2VPNType, InterfaceType, VLANType, CosmoLoopbackType, L2VPNTerminationType, DeviceType
+from cosmo.l2vpnhelpertypes import (
+    L2VpnVisitorClassFactoryFromL2VpnTypeObject,
+    AbstractL2VpnTypeTerminationVisitor,
+)
+from cosmo.netbox_types import (
+    L2VPNType,
+    InterfaceType,
+    VLANType,
+    CosmoLoopbackType,
+    L2VPNTerminationType,
+    DeviceType,
+)
 
 
 class AbstractL2VPNVisitor(AbstractRouterExporterVisitor):
-    def __init__(self, *args, loopbacks_by_device: dict[str, CosmoLoopbackType], asn: int, **kwargs):
+    def __init__(
+        self,
+        *args,
+        loopbacks_by_device: dict[str, CosmoLoopbackType],
+        asn: int,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.loopbacks_by_device = loopbacks_by_device
         self.asn = asn
@@ -17,9 +33,13 @@ class AbstractL2VPNVisitor(AbstractRouterExporterVisitor):
     def accept(self, o):
         return super().accept(o)
 
-    def getL2VpnTypeTerminationObjectFrom(self, o: L2VPNType) -> AbstractL2VpnTypeTerminationVisitor:
+    def getL2VpnTypeTerminationObjectFrom(
+        self, o: L2VPNType
+    ) -> AbstractL2VpnTypeTerminationVisitor:
         return L2VpnVisitorClassFactoryFromL2VpnTypeObject(o).get()(
-            associated_l2vpn=o, loopbacks_by_device=self.loopbacks_by_device, asn=self.asn
+            associated_l2vpn=o,
+            loopbacks_by_device=self.loopbacks_by_device,
+            asn=self.asn,
         )
 
 
@@ -37,9 +57,14 @@ class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
                 f"for {o.getName()}: "
                 f"{l2vpn_type.getInvalidNumberOfTerminationsErrorMessage(len(terminations))}"
             )
-        if any([not isinstance(t, l2vpn_type.getAcceptedTerminationTypes()) for t in terminations]):
+        if any(
+            [
+                not isinstance(t, l2vpn_type.getAcceptedTerminationTypes())
+                for t in terminations
+            ]
+        ):
             raise L2VPNSerializationError(
-                f"Found unsupported L2VPN termination in \"{o.getName()}\". "
+                f'Found unsupported L2VPN termination in "{o.getName()}". '
                 f"Accepted types are: {l2vpn_type.getAcceptedTerminationTypes()}"
             )
 
@@ -69,8 +94,7 @@ class RouterL2VPNExporterVisitor(AbstractL2VPNVisitor):
         # to current device. if no termination passes the test, then l2vpn
         # is not processed.
         device_interfaces = o.getParent(DeviceType).getInterfaces()
-        if (
-            any(i in device_interfaces for i in o.getInterfacesAsUntagged()) or
-            any(i in device_interfaces for i in o.getInterfacesAsTagged())
+        if any(i in device_interfaces for i in o.getInterfacesAsUntagged()) or any(
+            i in device_interfaces for i in o.getInterfacesAsTagged()
         ):
             return l2vpn_type.processVLANTypeTermination(o)

@@ -8,11 +8,19 @@ from collections.abc import Iterable
 from abc import abstractmethod
 from ipaddress import IPv4Interface, IPv6Interface
 
-from .common import without_keys, JsonOutputType, DeviceSerializationError, InterfaceSerializationError, head
+from .common import (
+    without_keys,
+    JsonOutputType,
+    DeviceSerializationError,
+    InterfaceSerializationError,
+    head,
+)
 from typing import Self, Iterator, TypeVar, NoReturn, Never
 
 
-T = TypeVar('T', bound="AbstractNetboxType")
+T = TypeVar("T", bound="AbstractNetboxType")
+
+
 class AbstractNetboxType(abc.ABC, Iterable):
     def __init__(self, *args, **kwargs):
         self._store = dict()
@@ -35,7 +43,7 @@ class AbstractNetboxType(abc.ABC, Iterable):
 
     # I have to write the union in quotes because of this Python bug:
     # https://bugs.python.org/issue45857
-    def __iter__(self) -> Iterator['AbstractNetboxType|str|int|bool|None']:
+    def __iter__(self) -> Iterator["AbstractNetboxType|str|int|bool|None"]:
         yield self
         for k, v in without_keys(self._store, ["__parent", "__typename"]).items():
             if isinstance(v, dict):
@@ -81,10 +89,16 @@ class AbstractNetboxType(abc.ABC, Iterable):
     def convert(self, item):
         if isinstance(item, dict):
             if "__typename" in item.keys():
-                c = {k: v for k, v in [c.register() for c in AbstractNetboxType.__subclasses__()]}[item["__typename"]]
+                c = {
+                    k: v
+                    for k, v in [
+                        c.register() for c in AbstractNetboxType.__subclasses__()
+                    ]
+                }[item["__typename"]]
                 o = c()
                 o._store.update(
-                    {k: o.convert(v) for k, v in without_keys(item, "__parent").items()} | {"__parent": self}
+                    {k: o.convert(v) for k, v in without_keys(item, "__parent").items()}
+                    | {"__parent": self}
                 )
                 return o
             else:
@@ -109,24 +123,24 @@ class AbstractNetboxType(abc.ABC, Iterable):
         return cls.getNetboxType(), cls
 
     def hasParentAboveWithType(self, target_type: type[T]) -> bool:
-        instance = self['__parent']
+        instance = self["__parent"]
         return type(instance) == target_type
 
-    def getParent(self, target_type: type[T]) -> T|NoReturn:
+    def getParent(self, target_type: type[T]) -> T | NoReturn:
         ke = KeyError(
-                f"Cannot find any object above {type(self).__name__} which is of type {target_type.__name__}. "
-                f"It is likely you made wrong assumptions regarding the shape of the Netbox input data, or "
-                f"forgot to use hasParentAboveWithType()."
+            f"Cannot find any object above {type(self).__name__} which is of type {target_type.__name__}. "
+            f"It is likely you made wrong assumptions regarding the shape of the Netbox input data, or "
+            f"forgot to use hasParentAboveWithType()."
         )
-        if '__parent' not in self.keys():
+        if "__parent" not in self.keys():
             raise ke
         else:
-            instance = self['__parent']
+            instance = self["__parent"]
             while type(instance) != target_type:
                 if "__parent" not in instance.keys():
                     raise ke
                 else:
-                    instance = instance['__parent']
+                    instance = instance["__parent"]
             return instance
 
     def getID(self):
@@ -151,7 +165,7 @@ class AbstractNetboxType(abc.ABC, Iterable):
             return o
 
     @abstractmethod
-    def getBasePath(self): # as in, netbox HTML view path
+    def getBasePath(self):  # as in, netbox HTML view path
         pass
 
     def getRelPath(self) -> str:
@@ -211,21 +225,21 @@ class DeviceType(AbstractNetboxType):
         return "/dcim/devices/"
 
     def isCompositeRoot(self) -> bool:
-        return not bool(self.get('__parent', False))
+        return not bool(self.get("__parent", False))
 
     def getDeviceType(self):
-        return self['device_type']
+        return self["device_type"]
 
     def getPlatform(self):
-        return self['platform']
+        return self["platform"]
 
     def getInterfaces(self) -> list["InterfaceType"]:
-        return self.get('interfaces', [])
+        return self.get("interfaces", [])
 
     def getSerial(self) -> str:
         return self.get("serial", "")
 
-    def getISISIdentifier(self) -> str|None:
+    def getISISIdentifier(self) -> str | None:
         sys_id = self.getCustomFields().get("isis_system_id")
         if sys_id and not re.match(r"\d{4}.\d{4}.\d{4}", sys_id):
             cosmo.log.warn(
@@ -235,27 +249,37 @@ class DeviceType(AbstractNetboxType):
             return None
         return sys_id
 
-    def getRouterID(self) -> str|Never:
+    def getRouterID(self) -> str | Never:
         # Deriving the router ID is a bit tricky, there is no 'correct' way.
         # For us it's the primary loopback IPv4 address
 
         # get first loopback interface in default vrf
-        loopback = next(filter(
-            lambda x: (x.isLoopbackChild() and x.getVRF() is None),
-            self.getInterfaces()
-        ), None)
+        loopback = next(
+            filter(
+                lambda x: (x.isLoopbackChild() and x.getVRF() is None),
+                self.getInterfaces(),
+            ),
+            None,
+        )
 
         if loopback is None:
-            raise DeviceSerializationError("Can't derive Router ID, no suitable loopback interface found.")
+            raise DeviceSerializationError(
+                "Can't derive Router ID, no suitable loopback interface found."
+            )
 
         # get first IPv4 of that interface
-        address = next(filter(
-            lambda i: isinstance(i, IPv4Interface),
-            map(lambda i: i.getIPInterfaceObject(), loopback.getIPAddresses())
-        ), None)
+        address = next(
+            filter(
+                lambda i: isinstance(i, IPv4Interface),
+                map(lambda i: i.getIPInterfaceObject(), loopback.getIPAddresses()),
+            ),
+            None,
+        )
 
         if address is None:
-            raise DeviceSerializationError("Can't derive Router ID, no suitable loopback IP address found.")
+            raise DeviceSerializationError(
+                "Can't derive Router ID, no suitable loopback IP address found."
+            )
 
         # return that IP without subnet mask and hope for the best
         return str(address.ip)
@@ -271,7 +295,7 @@ class PlatformType(AbstractNetboxType):
         return "/dcim/platforms/"
 
     def getManufacturer(self):
-        return self['manufacturer']
+        return self["manufacturer"]
 
 
 class ManufacturerType(AbstractNetboxType):
@@ -286,7 +310,7 @@ class IPAddressType(AbstractNetboxType):
     def getIPAddress(self) -> str:
         return self["address"]
 
-    def getIPInterfaceObject(self) -> IPv4Interface|IPv6Interface:
+    def getIPInterfaceObject(self) -> IPv4Interface | IPv6Interface:
         return ipaddress.ip_interface(self.getIPAddress())
 
     def isGlobal(self) -> bool:
@@ -295,14 +319,19 @@ class IPAddressType(AbstractNetboxType):
     def getRole(self) -> str:
         return self.get("role")
 
+
 class TagType(AbstractNetboxType):
-    _delimiter = ':'
+    _delimiter = ":"
+
     def getBasePath(self):
         return "/extras/tags/"
+
     def getTagComponents(self):
-        return self.get('name').split(self._delimiter)
+        return self.get("name").split(self._delimiter)
+
     def getTagName(self):
         return self.getTagComponents()[0]
+
     def getTagValue(self):
         return self.getTagComponents()[1]
 
@@ -336,7 +365,7 @@ class InterfaceType(AbstractNetboxType):
     def getBasePath(self):
         return "/dcim/interfaces/"
 
-    def getMACAddress(self) -> str|None:
+    def getMACAddress(self) -> str | None:
         return self.get("mac_address")
 
     def getUntaggedVLAN(self):
@@ -353,10 +382,9 @@ class InterfaceType(AbstractNetboxType):
         elif cf.get("outer_tag"):
             # we have to build the VLANType object in the case of
             # outer_tag usage, since there's no native type in netbox
-            return VLANType({
-                "vid": int(cf["outer_tag"]),
-                "interfaces_as_untagged": [ self ]
-            })
+            return VLANType(
+                {"vid": int(cf["outer_tag"]), "interfaces_as_untagged": [self]}
+            )
 
     def getTaggedVLANS(self) -> list:
         return self.get("tagged_vlans", [])
@@ -377,19 +405,19 @@ class InterfaceType(AbstractNetboxType):
     def isSubInterface(self):
         return "." in self.getName()
 
-    def getUnitNumber(self) -> int|None:
+    def getUnitNumber(self) -> int | None:
         ret = None
         if self.isSubInterface():
-            ret = int(self.getName().split('.')[1])
+            ret = int(self.getName().split(".")[1])
         return ret
 
-    def getSubInterfaceParentInterfaceName(self) -> str|None:
+    def getSubInterfaceParentInterfaceName(self) -> str | None:
         ret = None
         if self.isSubInterface():
-            ret = self.getName().split('.')[0]
+            ret = self.getName().split(".")[0]
         return ret
 
-    def getVRF(self) -> VRFType|None:
+    def getVRF(self) -> VRFType | None:
         return self.get("vrf")
 
     def spitInterfacePathWith(self, d: dict) -> dict:
@@ -411,21 +439,13 @@ class InterfaceType(AbstractNetboxType):
         if self.isSubInterface():
             return {
                 self.getSubInterfaceParentInterfaceName(): {
-                    "units": {
-                        self.getUnitNumber(): {
-                            **d
-                        }
-                    }
+                    "units": {self.getUnitNumber(): {**d}}
                 }
             }
         else:
-            return {
-                self.getName(): {
-                    **d
-                }
-            }
+            return {self.getName(): {**d}}
 
-    def getMode(self) -> str|None:
+    def getMode(self) -> str | None:
         return self.get("mode")
 
     def isInAccessMode(self):
@@ -443,15 +463,15 @@ class InterfaceType(AbstractNetboxType):
         return self.get("description")
 
     def hasDescription(self):
-        return self.getDescription() != '' and self.getDescription() is not None
+        return self.getDescription() != "" and self.getDescription() is not None
 
     def getRawType(self) -> str:
-        return self.get("type", '')
+        return self.get("type", "")
 
     def getAssociatedType(self):
         # TODO: move me in manufacturer strategy?
         raw_type_l = self.getRawType().lower()
-        authorized_types = [ "lag", "loopback", "virtual", "access" ]
+        authorized_types = ["lag", "loopback", "virtual", "access"]
         access = any([tag.getTagName() == "access" for tag in self.getTags()])
         if access and "lag" == raw_type_l:
             return "lag-access"
@@ -467,21 +487,26 @@ class InterfaceType(AbstractNetboxType):
             return True
         elif self.isSubInterface():
             parent_interface_name = self.getSubInterfaceParentInterfaceName()
-            parent_interface = head(list(filter(
-                lambda i: i.getName() == parent_interface_name,
-                self.getParent(DeviceType).getInterfaces()
-            )))
+            parent_interface = head(
+                list(
+                    filter(
+                        lambda i: i.getName() == parent_interface_name,
+                        self.getParent(DeviceType).getInterfaces(),
+                    )
+                )
+            )
             if not parent_interface:
                 raise InterfaceSerializationError(
                     f"Cannot find parent interface of {self.getName()}, please ensure it is defined and that "
-                    f"parent-child association is correct in data source.", on=self
+                    f"parent-child association is correct in data source.",
+                    on=self,
                 )
             return parent_interface.isLoopbackOrParentIsLoopback()
         elif self.getName().startswith("lo"):
             raise InterfaceSerializationError(
                 f"Interface {self.getName()} is named as a loopback but is not marked"
                 f"as such in the data source, please fix.",
-                on=self
+                on=self,
             )
         return False
 
@@ -495,7 +520,7 @@ class InterfaceType(AbstractNetboxType):
         return bool(self.get("parent"))
 
     def isLoopbackChild(self):
-        return '.' in self.getName() and self.getName().startswith("lo")
+        return "." in self.getName() and self.getName().startswith("lo")
 
     def getConnectedEndpoints(self) -> list[DeviceType]:
         return self.get("connected_endpoints", [])
@@ -522,7 +547,7 @@ class L2VPNTerminationType(AbstractNetboxType):
     def getBasePath(self):
         return "/vpn/l2vpn-terminations/"
 
-    def getAssignedObject(self) -> InterfaceType|VLANType:
+    def getAssignedObject(self) -> InterfaceType | VLANType:
         return self["assigned_object"]
 
 
@@ -543,10 +568,12 @@ class L2VPNType(AbstractNetboxType):
         return self["type"]
 
     def getL2VPNTerminationTypeList(self) -> list[L2VPNTerminationType]:
-        return self['terminations']
+        return self["terminations"]
 
-    def getTerminations(self) -> list[InterfaceType|VLANType]:
-        return list(map(lambda t: t.getAssignedObject(), self.getL2VPNTerminationTypeList()))
+    def getTerminations(self) -> list[InterfaceType | VLANType]:
+        return list(
+            map(lambda t: t.getAssignedObject(), self.getL2VPNTerminationTypeList())
+        )
 
 
 class CosmoStaticRouteType(AbstractNetboxType):
@@ -555,12 +582,12 @@ class CosmoStaticRouteType(AbstractNetboxType):
     def getBasePath(self):
         return "/plugins/routing/static_routes/"
 
-    def getNextHop(self) -> IPAddressType|None:
+    def getNextHop(self) -> IPAddressType | None:
         if self["next_hop"]:
             return IPAddressType(self["next_hop"])
         return None
 
-    def getInterface(self) -> InterfaceType|None:
+    def getInterface(self) -> InterfaceType | None:
         if self["interface"]:
             return InterfaceType(self["interface"])
         return None
@@ -571,10 +598,10 @@ class CosmoStaticRouteType(AbstractNetboxType):
     def getPrefix(self) -> str:
         return self["prefix"]["prefix"]
 
-    def getMetric(self) -> int|None:
+    def getMetric(self) -> int | None:
         return self["metric"]
 
-    def getVRF(self) -> VRFType|None:
+    def getVRF(self) -> VRFType | None:
         if self["vrf"]:
             return VRFType(self["vrf"])
         return None
@@ -588,7 +615,7 @@ class CosmoLoopbackType(AbstractNetboxType):
     # this is an artificial type that we create in cosmo
     # it does not exist in netbox
     def getBasePath(self):
-        return "" # no path
+        return ""  # no path
 
     def getIpv4(self) -> str | None:
         return self["ipv4"]
@@ -599,12 +626,10 @@ class CosmoLoopbackType(AbstractNetboxType):
 
 class CosmoIPPoolType(AbstractNetboxType):
     def getBasePath(self):
-        return "" # type does not exist in netbox
+        return ""  # type does not exist in netbox
 
-    def getPrefixes(self) -> list[IPv6Interface|IPv4Interface]:
-        return [
-            ipaddress.ip_interface(p["prefix"]) for p in self["ip_prefixes"]
-        ]
+    def getPrefixes(self) -> list[IPv6Interface | IPv4Interface]:
+        return [ipaddress.ip_interface(p["prefix"]) for p in self["ip_prefixes"]]
 
     def isUniqueToDevice(self) -> bool:
         return len(self["devices"]) == 1

@@ -23,8 +23,8 @@ class NetboxAPIClient:
 
         json = r.json()
 
-        if 'errors' in json:
-            for e in json['errors']:
+        if "errors" in json:
+            for e in json["errors"]:
                 print(e)
 
         return json
@@ -50,7 +50,7 @@ class NetboxAPIClient:
 
             data = r.json()
 
-            url = data['next']
-            return_array.extend(data['results'])
+            url = data["next"]
+            return_array.extend(data["results"])
 
         return return_array

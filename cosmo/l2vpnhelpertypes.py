@@ -7,8 +7,15 @@ from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import head, CosmoOutputType, L2VPNSerializationError
 from cosmo.vrfhelper import TVRFHelpers
 from cosmo.log import warn
-from cosmo.netbox_types import InterfaceType, VLANType, AbstractNetboxType, DeviceType, L2VPNType, CosmoLoopbackType, \
-    L2VPNTerminationType
+from cosmo.netbox_types import (
+    InterfaceType,
+    VLANType,
+    AbstractNetboxType,
+    DeviceType,
+    L2VPNType,
+    CosmoLoopbackType,
+    L2VPNTerminationType,
+)
 
 
 # FIXME simplify this!
@@ -27,11 +34,17 @@ class EthernetCccEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
     def _(self, o: InterfaceType):
         if len(o.getTaggedVLANS()) or o.getUntaggedVLAN():
             return
-        root_name = o.getSubInterfaceParentInterfaceName() if o.isSubInterface() else o.getName()
-        sub_units = list(filter( # costlier check it is then
-            lambda i: i.getName().startswith(root_name) and i.isSubInterface(),
-            o.getParent(DeviceType).getInterfaces()
-        ))
+        root_name = (
+            o.getSubInterfaceParentInterfaceName()
+            if o.isSubInterface()
+            else o.getName()
+        )
+        sub_units = list(
+            filter(  # costlier check it is then
+                lambda i: i.getName().startswith(root_name) and i.isSubInterface(),
+                o.getParent(DeviceType).getInterfaces(),
+            )
+        )
         if len(sub_units) == 1:
             return "ethernet-ccc"
 
@@ -58,20 +71,27 @@ class VlanBridgeEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
         return super().accept(o)
 
     @accept.register
-    def _(self, o: InterfaceType|VLANType):
+    def _(self, o: InterfaceType | VLANType):
         return "vlan-bridge"
-
-
 
 
 # generic supported termination types. it's this shape so that it can be directly used by isinstance()
 # (same shape as _ClassInfo)
-T = tuple[type[AbstractNetboxType], type[AbstractNetboxType]]|type[AbstractNetboxType]
+T = tuple[type[AbstractNetboxType], type[AbstractNetboxType]] | type[AbstractNetboxType]
+
 
 # FIXME simplify this!
-class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, TVRFHelpers, metaclass=ABCMeta):
-    def __init__(self, *args, associated_l2vpn: L2VPNType, loopbacks_by_device: dict[str, CosmoLoopbackType],
-                 asn: int, **kwargs):
+class AbstractL2VpnTypeTerminationVisitor(
+    AbstractRouterExporterVisitor, TVRFHelpers, metaclass=ABCMeta
+):
+    def __init__(
+        self,
+        *args,
+        associated_l2vpn: L2VPNType,
+        loopbacks_by_device: dict[str, CosmoLoopbackType],
+        asn: int,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.associated_l2vpn = associated_l2vpn
         self.loopbacks_by_device = loopbacks_by_device
@@ -110,54 +130,66 @@ class AbstractL2VpnTypeTerminationVisitor(AbstractRouterExporterVisitor, TVRFHel
         return False
 
     def getChosenEncapType(self, o: AbstractNetboxType) -> str | None:
-        chosen_encap = head(list(filter(
-            lambda encap: encap is not None,
-            [t().accept(o) for t in self.getSupportedEncapTraits()]
-        )))
+        chosen_encap = head(
+            list(
+                filter(
+                    lambda encap: encap is not None,
+                    [t().accept(o) for t in self.getSupportedEncapTraits()],
+                )
+            )
+        )
         return chosen_encap
 
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
-        warn(f"{self.getNetboxTypeName().upper()} L2VPN does not support {type(o)} terminations.", o)
+        warn(
+            f"{self.getNetboxTypeName().upper()} L2VPN does not support {type(o)} terminations.",
+            o,
+        )
         return None
 
     def processVLANTypeTermination(self, o: VLANType) -> dict | None:
-        warn(f"{self.getNetboxTypeName().upper()} L2VPN does not support {type(o)} terminations.", o)
+        warn(
+            f"{self.getNetboxTypeName().upper()} L2VPN does not support {type(o)} terminations.",
+            o,
+        )
         return None
 
-    def spitInterfaceEncapFor(self, o: VLANType|InterfaceType):
+    def spitInterfaceEncapFor(self, o: VLANType | InterfaceType):
         encap_type = self.getChosenEncapType(o)
-        inner_info = {"encapsulation": encap_type} if encap_type else {} # encap type is optional!
-        if encap_type == "ethernet-ccc" and isinstance(o, InterfaceType) and o.isSubInterface():
+        inner_info = (
+            {"encapsulation": encap_type} if encap_type else {}
+        )  # encap type is optional!
+        if (
+            encap_type == "ethernet-ccc"
+            and isinstance(o, InterfaceType)
+            and o.isSubInterface()
+        ):
             return {  # ethernet-ccc is on physical interface
                 self._interfaces_key: {
                     o.getSubInterfaceParentInterfaceName(): inner_info
                 }
             }
-        elif isinstance(o, InterfaceType): # other types are on virtual interface
-            return {
-                self._interfaces_key: {
-                    **o.spitInterfacePathWith(inner_info)
-                }
-            }
+        elif isinstance(o, InterfaceType):  # other types are on virtual interface
+            return {self._interfaces_key: {**o.spitInterfacePathWith(inner_info)}}
         elif isinstance(o, VLANType):
             linked_interfaces = list(
-                    filter(
-                        lambda i: i.getAssociatedDevice() == o.getParent(DeviceType),
-                        [
-                            *o.getInterfacesAsUntagged(),
-                            *o.getInterfacesAsTagged(),
-                        ]
-                    )
+                filter(
+                    lambda i: i.getAssociatedDevice() == o.getParent(DeviceType),
+                    [
+                        *o.getInterfacesAsUntagged(),
+                        *o.getInterfacesAsTagged(),
+                    ],
+                )
             )
             interface_props: CosmoOutputType = dict()
             for i in linked_interfaces:
                 interface_props = interface_props | i.spitInterfacePathWith(inner_info)
-            return {
-                self._interfaces_key: interface_props
-            }
+            return {self._interfaces_key: interface_props}
 
 
-class AbstractP2PL2VpnTypeTerminationVisitor(AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta):
+class AbstractP2PL2VpnTypeTerminationVisitor(
+    AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta
+):
     _p2p_authorized_terminations_n = 2
 
     def isValidNumberOfTerminations(self, i: int):
@@ -165,12 +197,16 @@ class AbstractP2PL2VpnTypeTerminationVisitor(AbstractL2VpnTypeTerminationVisitor
 
     @classmethod
     def getInvalidNumberOfTerminationsErrorMessage(cls, i: int):
-        return (f"{cls.getNetboxTypeName().upper()} circuits are only allowed to have "
-                f"{cls._p2p_authorized_terminations_n} terminations. "
-                f"{super().getInvalidNumberOfTerminationsErrorMessage(i)}")
+        return (
+            f"{cls.getNetboxTypeName().upper()} circuits are only allowed to have "
+            f"{cls._p2p_authorized_terminations_n} terminations. "
+            f"{super().getInvalidNumberOfTerminationsErrorMessage(i)}"
+        )
 
 
-class AbstractAnyToAnyL2VpnTypeTerminationVisitor(AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta):
+class AbstractAnyToAnyL2VpnTypeTerminationVisitor(
+    AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta
+):
     _any_to_any_min_terminations_n = 1
 
     def isValidNumberOfTerminations(self, i: int):
@@ -178,14 +214,18 @@ class AbstractAnyToAnyL2VpnTypeTerminationVisitor(AbstractL2VpnTypeTerminationVi
 
     @classmethod
     def getInvalidNumberOfTerminationsErrorMessage(cls, i: int):
-        return (f"{cls.getNetboxTypeName().upper()} circuits should have at least "
-                f"{cls._any_to_any_min_terminations_n} terminations. "
-                f"{super().getInvalidNumberOfTerminationsErrorMessage(i)}")
+        return (
+            f"{cls.getNetboxTypeName().upper()} circuits should have at least "
+            f"{cls._any_to_any_min_terminations_n} terminations. "
+            f"{super().getInvalidNumberOfTerminationsErrorMessage(i)}"
+        )
 
 
 #                                    |  so that it does not appear in subclasses of any2any
 #                                    v or p2p since we're enumerating from there
-class AbstractEPLEVPLL2VpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta):
+class AbstractEPLEVPLL2VpnTypeCommon(
+    AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta
+):
     def localInterfaceValidationTemplateMethod(self, local: InterfaceType):
         pass
 
@@ -194,17 +234,17 @@ class AbstractEPLEVPLL2VpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, metacl
 
     def processInterfaceTypeTermination(self, o: InterfaceType):
         parent_l2vpn = o.getParent(L2VPNType)
-        local = head(list(filter(
-            lambda i: (
-                    isinstance(i, InterfaceType)
-                    and i == o
-            ),
-            parent_l2vpn.getTerminations()
-        )))
-        remote = head(list(filter(
-            lambda i: i != local,
-            parent_l2vpn.getTerminations()
-        )))
+        local = head(
+            list(
+                filter(
+                    lambda i: (isinstance(i, InterfaceType) and i == o),
+                    parent_l2vpn.getTerminations(),
+                )
+            )
+        )
+        remote = head(
+            list(filter(lambda i: i != local, parent_l2vpn.getTerminations()))
+        )
         if not isinstance(remote, InterfaceType):
             raise L2VPNSerializationError(
                 f"Incorrect termination type {type(remote)} for L2VPN {parent_l2vpn.getName()}."
@@ -229,24 +269,32 @@ class AbstractEPLEVPLL2VpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, metacl
                 parent_l2vpn.getName().replace("WAN: ", ""): {
                     "interfaces": {
                         o.getName(): {
-                            "local_label": 1_000_000 + int(local.getParent(L2VPNTerminationType).getID()),
-                            "remote_label": 1_000_000 + int(remote.getParent(L2VPNTerminationType).getID()),
-                            "remote_ip": str(ipaddress.ip_interface(str(remote_end_loopback.getIpv4())).ip),
+                            "local_label": 1_000_000
+                            + int(local.getParent(L2VPNTerminationType).getID()),
+                            "remote_label": 1_000_000
+                            + int(remote.getParent(L2VPNTerminationType).getID()),
+                            "remote_ip": str(
+                                ipaddress.ip_interface(
+                                    str(remote_end_loopback.getIpv4())
+                                ).ip
+                            ),
                         }
                     },
                     "description": f"{parent_l2vpn.getType().upper()}: "
-                                   f"{parent_l2vpn.getName().replace('WAN: ', '')} "
-                                   f"via {associated_device.getName()}",
+                    f"{parent_l2vpn.getName().replace('WAN: ', '')} "
+                    f"via {associated_device.getName()}",
                 }
             }
         } | self.spitInterfaceEncapFor(o)
 
 
 # for MRO, common need to be 1st
-class EPLL2VpnTypeTerminationVisitorAbstract(AbstractEPLEVPLL2VpnTypeCommon, AbstractP2PL2VpnTypeTerminationVisitor):
+class EPLL2VpnTypeTerminationVisitorAbstract(
+    AbstractEPLEVPLL2VpnTypeCommon, AbstractP2PL2VpnTypeTerminationVisitor
+):
     @staticmethod
     def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
-        return [ # order is important!
+        return [  # order is important!
             EthernetCccEncapCapability,
         ]
 
@@ -274,13 +322,15 @@ class EPLL2VpnTypeTerminationVisitorAbstract(AbstractEPLEVPLL2VpnTypeCommon, Abs
 
 
 # for MRO, common need to be 1st
-class EVPLL2VpnTypeTerminationVisitorAbstract(AbstractEPLEVPLL2VpnTypeCommon, AbstractP2PL2VpnTypeTerminationVisitor):
+class EVPLL2VpnTypeTerminationVisitorAbstract(
+    AbstractEPLEVPLL2VpnTypeCommon, AbstractP2PL2VpnTypeTerminationVisitor
+):
     @staticmethod
     def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
         return [
             VlanCccEncapCapability,
             # Note: Even this is a virtual EPL, it can still end on a full port on one side.
-            EthernetCccEncapCapability
+            EthernetCccEncapCapability,
         ]
 
     @staticmethod
@@ -292,7 +342,9 @@ class EVPLL2VpnTypeTerminationVisitorAbstract(AbstractEPLEVPLL2VpnTypeCommon, Ab
         return InterfaceType
 
 
-class AbstractVPWSEVPNVPWSVpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta):
+class AbstractVPWSEVPNVPWSVpnTypeCommon(
+    AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta
+):
     @staticmethod
     def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
         return [
@@ -310,18 +362,17 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, met
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
         parent_l2vpn = o.getParent(L2VPNType)
         # find local end
-        local = next(filter(
-            lambda i: (
+        local = next(
+            filter(
+                lambda i: (
                     isinstance(i, InterfaceType)
                     and i.getAssociatedDevice() == o.getParent(DeviceType)
-            ),
-            parent_l2vpn.getTerminations()
-        ))
+                ),
+                parent_l2vpn.getTerminations(),
+            )
+        )
         # remote end is the other one
-        remote = next(filter(
-            lambda i: i != local,
-            parent_l2vpn.getTerminations()
-        ))
+        remote = next(filter(lambda i: i != local, parent_l2vpn.getTerminations()))
         router_id = o.getParent(DeviceType).getRouterID()
         return {
             self._vrf_key: {
@@ -342,19 +393,23 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(AbstractL2VpnTypeTerminationVisitor, met
                                 }
                             }
                         }
-                    }
+                    },
                 }
             }
         } | self.spitInterfaceEncapFor(o)
 
 
-class VPWSL2VpnTypeTerminationVisitor(AbstractVPWSEVPNVPWSVpnTypeCommon, AbstractP2PL2VpnTypeTerminationVisitor):
+class VPWSL2VpnTypeTerminationVisitor(
+    AbstractVPWSEVPNVPWSVpnTypeCommon, AbstractP2PL2VpnTypeTerminationVisitor
+):
     @staticmethod
     def getNetboxTypeName() -> str:
         return "vpws"
 
 
-class EVPNVPWSVpnTypeTerminationVisitor(AbstractVPWSEVPNVPWSVpnTypeCommon, AbstractP2PL2VpnTypeTerminationVisitor):
+class EVPNVPWSVpnTypeTerminationVisitor(
+    AbstractVPWSEVPNVPWSVpnTypeCommon, AbstractP2PL2VpnTypeTerminationVisitor
+):
     @staticmethod
     def getNetboxTypeName() -> str:
         return "evpn-vpws"
@@ -367,7 +422,7 @@ class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVi
 
     @staticmethod
     def getNetboxTypeName() -> str:
-        return "mpls-evpn" # no netbox3 retro-compatibility, sorry!
+        return "mpls-evpn"  # no netbox3 retro-compatibility, sorry!
 
     @staticmethod
     def getAcceptedTerminationTypes() -> T:
@@ -376,25 +431,31 @@ class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVi
     def needsL2VPNIdentifierAsMandatory(self) -> bool:
         return True
 
-    def processTerminationCommon(self, o: InterfaceType|VLANType) -> dict|None:
+    def processTerminationCommon(self, o: InterfaceType | VLANType) -> dict | None:
         parent_l2vpn = o.getParent(L2VPNType)
         interface_names = None
-        warn(f"{parent_l2vpn.getName()} is of type {self.getNetboxTypeName()} which is deprecated.", o)
+        warn(
+            f"{parent_l2vpn.getName()} is of type {self.getNetboxTypeName()} which is deprecated.",
+            o,
+        )
         if isinstance(o, InterfaceType):
             interface_names = [o.getName()]
         elif isinstance(o, VLANType):
-            interface_names = list(map(
-                lambda i: i.getName(),
-                (
-                    filter(
-                        lambda i: i.getAssociatedDevice() == o.getParent(DeviceType),
-                        [
-                            *o.getInterfacesAsUntagged(),
-                            *o.getInterfacesAsTagged(),
-                        ]
-                    )
+            interface_names = list(
+                map(
+                    lambda i: i.getName(),
+                    (
+                        filter(
+                            lambda i: i.getAssociatedDevice()
+                            == o.getParent(DeviceType),
+                            [
+                                *o.getInterfacesAsUntagged(),
+                                *o.getInterfacesAsTagged(),
+                            ],
+                        )
+                    ),
                 )
-            ))
+            )
 
         return {
             self._vrf_key: {

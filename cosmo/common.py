@@ -9,6 +9,7 @@ class AbstractRecoverableError(Exception, ABC):
         super().__init__(text, *args)
         self.associated_object = on
 
+
 class DeviceSerializationError(AbstractRecoverableError):
     pass
 
@@ -24,15 +25,20 @@ class StaticRouteSerializationError(AbstractRecoverableError):
 class L2VPNSerializationError(AbstractRecoverableError):
     pass
 
+
 # recursive type for the shape of cosmo output. use it when specifying something that
 # the visitors will export.
-CosmoOutputType = dict[str, str|dict[str, "CosmoOutputType"]|list["CosmoOutputType"]]
+CosmoOutputType = dict[
+    str, str | dict[str, "CosmoOutputType"] | list["CosmoOutputType"]
+]
 
 JsonOutputType = CosmoOutputType
+
 
 # next() can raise StopIteration, so that's why I use this function
 def head(l):
     return None if not l else l[0]
+
 
 def deepsort(e):
     if isinstance(e, list):
@@ -45,4 +51,4 @@ def deepsort(e):
 def without_keys(d, keys) -> dict:
     if type(keys) != list:
         keys = [keys]
-    return {k: v for k,v in d.items() if k not in keys}
+    return {k: v for k, v in d.items() if k not in keys}
