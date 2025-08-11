@@ -25,6 +25,7 @@ pytest-mock = "^3.14.0"
 mypy = "^1.15.0"
 types-pyyaml = "^6.0.12.20241230"
 types-requests = "^2.32.0.20250301"
+black = "^25.1.0"
 
 [build-system]
 requires = ["poetry-core>=1.2.0"]
