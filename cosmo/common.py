@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Optional
+from typing import Optional, Union
 
 APP_NAME = "cosmo"
 
@@ -29,7 +29,7 @@ class L2VPNSerializationError(AbstractRecoverableError):
 # recursive type for the shape of cosmo output. use it when specifying something that
 # the visitors will export.
 CosmoOutputType = dict[
-    str, str | dict[str, "CosmoOutputType"] | list["CosmoOutputType"]
+    str, str | dict[str, "CosmoOutputType"] | list[Union[str, "CosmoOutputType"]]
 ]
 
 JsonOutputType = CosmoOutputType
