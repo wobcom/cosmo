@@ -348,10 +348,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             return self.processInterfaceLagInfo(o)
         # interface in interface is lag info
         if o.hasParentAboveWithType(InterfaceType):
-            if (
-                "lag" in o.getParent(InterfaceType).keys()
-                and o.getParent(InterfaceType)["lag"] == o
-            ):
+            if o.isUnderKeyNameForParentAboveWithType("lag", InterfaceType):
                 return self.processLagMember(o)
             return  # guard: do not process (can be connected_endpoint, parent, etc...)
         return {
