@@ -1,6 +1,7 @@
 import ipaddress
 from multimethod import multimethod as singledispatchmethod
 
+from cosmo.common import APP_NAME
 from cosmo.log import warn
 from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
 from cosmo.netbox_types import (
@@ -120,6 +121,20 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             }
         }
 
+    def processConnectedEndpointInterface(self, o: InterfaceType):
+        # passed interface is on "the other side", in connected_endpoints
+        device_interface = o.getParent(InterfaceType)
+        associated_device = o.getAssociatedDevice()
+        if not device_interface.hasDescription() and associated_device:
+            return {
+                self._interfaces_key: {
+                    device_interface.getName(): {
+                        "description": f"link to {associated_device.getName()}"
+                        f" -> {o.getName()} ({APP_NAME}-generated)"
+                    }
+                }
+            }
+
     @accept.register
     def _(self, o: InterfaceType):
         # either lag interface
@@ -132,6 +147,11 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                 InterfaceType,
             ):
                 return self.processInterfaceLagInfo(o)
+            if o.isUnderKeyNameForParentAboveWithType(
+                "connected_endpoints",
+                InterfaceType,
+            ):
+                return self.processConnectedEndpointInterface(o)
             return  # interface-in-interface with other key, do not process
         # or "normal" interface
         else:
