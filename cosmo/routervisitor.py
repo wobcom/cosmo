@@ -340,12 +340,13 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         # of the connection from the POV of the current device. If the current interface
         # has no description, we auto-generate one.
         device_interface = o.getParent(InterfaceType)
-        if not device_interface.hasDescription():
+        associated_device = o.getAssociatedDevice()
+        if not device_interface.hasDescription() and associated_device:
             return {
                 self._interfaces_key: {
                     **device_interface.spitInterfacePathWith(
                         {
-                            "description": f"link to {o.getAssociatedDevice().getName()}"
+                            "description": f"link to {associated_device.getName()}"
                             f" -> {o.getName()} ({APP_NAME}-generated)"
                         }
                     )
