@@ -1,0 +1,66 @@
+device_list:
+- device_type:
+    __typename: DeviceTypeType
+    slug: sn3420
+  __typename: DeviceType
+  id: '1718'
+  interfaces:
+  - __typename: InterfaceType
+    custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '30370'
+    ip_addresses: []
+    connected_endpoints:
+      - name: "combo1"
+        __typename: InterfaceType
+        device:
+          __typename: DeviceType
+          name: "mikrotik01"
+    mac_address: null
+    mode: null
+    mtu: null
+    name: swp52
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - __typename: InterfaceType
+    custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: 'do not overwrite me!'
+    enabled: true
+    id: '30378'
+    ip_addresses: []
+    connected_endpoints:
+      - name: "combo2"
+        __typename: InterfaceType
+        device:
+          __typename: DeviceType
+          name: "mikrotik01"
+    mac_address: null
+    mode: null
+    mtu: null
+    name: swp53
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  name: TEST0001
+  platform:
+    __typename: PlatformType
+    manufacturer:
+      __typename: ManufacturerType
+      slug: cumulus-networks
+    slug: cumulus-linux-4-3
+  primary_ip4:
+    __typename: IPAddressType
+    address: 10.120.142.11/24
+  serial: 4242
+  staticroute_set: []
+l2vpn_list: []
