@@ -127,8 +127,8 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
         if isinstance(vrf_object, VRFType):
             vrf_name = vrf_object.getName()
         if vrf_name == "default":
-            policy_v4["export"] = "DEFAULT_V4"
-            policy_v6["export"] = "DEFAULT_V6"
+            policy_v4["export"] = ["DEFAULT_V4"]
+            policy_v6["export"] = ["DEFAULT_V6"]
 
         t_cpe = DeviceType(cpe["device"])
         v4_import, v6_import = set(), set()  # unique
