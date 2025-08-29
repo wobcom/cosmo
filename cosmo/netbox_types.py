@@ -142,6 +142,18 @@ class AbstractNetboxType(abc.ABC, Iterable):
                     instance = instance["__parent"]
             return instance
 
+    def isUnderKeyNameForParentAboveWithType(
+        self, key: str, target_type: type[T]
+    ) -> bool:
+        if self.hasParentAboveWithType(target_type):
+            if (
+                key in self.getParent(target_type).keys()
+                and self.getParent(target_type)[key]
+                == self  # self can be found under given key
+            ):
+                return True
+        return False
+
     def getID(self):
         return self.get("id")
 
