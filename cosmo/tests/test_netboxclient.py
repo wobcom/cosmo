@@ -4,17 +4,9 @@ from packaging.version import Version
 import cosmo.tests.utils as utils
 from cosmo.clients.netbox import NetboxClient
 
-TEST_URL = 'https://netbox.example.com'
-TEST_TOKEN = 'token123'
-TEST_DEVICE_CFG = {
-    'router': [
-        'router1',
-        'router2'
-    ],
-    'switch': [
-        'switch1',
-        'switch2'
-    ]}
+TEST_URL = "https://netbox.example.com"
+TEST_TOKEN = "token123"
+TEST_DEVICE_CFG = {"router": ["router1", "router2"], "switch": ["switch1", "switch2"]}
 
 
 def test_case_get_data(mocker):

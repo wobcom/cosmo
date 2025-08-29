@@ -2,12 +2,17 @@ from typing import Never
 
 from deepmerge import Merger
 
-from cosmo.common import deepsort, DeviceSerializationError, AbstractRecoverableError, head, CosmoOutputType
+from cosmo.common import (
+    deepsort,
+    DeviceSerializationError,
+    AbstractRecoverableError,
+    head,
+    CosmoOutputType,
+)
 from cosmo.log import error
 from cosmo.netbox_types import DeviceType, CosmoLoopbackType
 from cosmo.switchvisitor import SwitchDeviceExporterVisitor
 from cosmo.routervisitor import RouterDeviceExporterVisitor
-
 
 
 class RouterSerializer:
@@ -26,7 +31,7 @@ class RouterSerializer:
         self.allow_private_ips = True
         return self
 
-    def serialize(self) -> CosmoOutputType|Never:
+    def serialize(self) -> CosmoOutputType | Never:
         device_stub: CosmoOutputType = {}
         # like always_merger but with append_unique strategy
         # for lists
@@ -37,12 +42,14 @@ class RouterSerializer:
                 (set, ["union"]),
             ],
             ["override"],
-            ["override"]
+            ["override"],
         )
-        self.device['l2vpn_list'] = self.l2vpn_list
+        self.device["l2vpn_list"] = self.l2vpn_list
         # breakpoint()
         visitor = RouterDeviceExporterVisitor(
-            loopbacks_by_device={k: CosmoLoopbackType(v) for k, v in self.loopbacks.items()},
+            loopbacks_by_device={
+                k: CosmoLoopbackType(v) for k, v in self.loopbacks.items()
+            },
             asn=self.asn,
         )
         if self.allow_private_ips:
@@ -55,7 +62,7 @@ class RouterSerializer:
                 if new:
                     device_stub = merger.merge(device_stub, new)
             except AbstractRecoverableError as e:
-                error(f"serialization error \"{e}\"", value)
+                error(f'serialization error "{e}"', value)
                 latest_errors.append(e)
                 continue  # continue, process as much as possible
         if latest_errors:
@@ -69,7 +76,7 @@ class SwitchSerializer:
     def __init__(self, device):
         self.device = device
 
-    def serialize(self) -> CosmoOutputType|Never:
+    def serialize(self) -> CosmoOutputType | Never:
         device_stub: CosmoOutputType = {}
         # like always_merger but with append_unique strategy
         # for lists
@@ -80,7 +87,7 @@ class SwitchSerializer:
                 (set, ["union"]),
             ],
             ["override"],
-            ["override"]
+            ["override"],
         )
         latest_errors: list[AbstractRecoverableError] = []
         device = DeviceType(self.device)
@@ -90,7 +97,7 @@ class SwitchSerializer:
                 if new:
                     device_stub = merger.merge(device_stub, new)
             except AbstractRecoverableError as e:
-                error(f"serialization error \"{e}\"", value)
+                error(f'serialization error "{e}"', value)
                 latest_errors.append(e)
                 continue
         if latest_errors:

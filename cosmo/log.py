@@ -11,35 +11,48 @@ from cosmo.netbox_types import AbstractNetboxType
 
 class AbstractLogLevel(metaclass=ABCMeta):
     name: str = "abstract_log_level"
+
     def __str__(self):
         return self.name.upper()
 
+
 class InfoLogLevel(AbstractLogLevel):
     name = "info"
+
+
 class WarningLogLevel(AbstractLogLevel):
     name = "warning"
+
+
 class ErrorLogLevel(AbstractLogLevel):
     name = "error"
 
 
-O = object | AbstractNetboxType | None # object-being-logged-on type
-M = tuple[AbstractLogLevel, str, O] # message type
+O = object | AbstractNetboxType | None  # object-being-logged-on type
+M = tuple[AbstractLogLevel, str, O]  # message type
+
 
 class AbstractLoggingStrategy(metaclass=ABCMeta):
     @abstractmethod
-    def flush(self): # this is for async and sync logging
+    def flush(self):  # this is for async and sync logging
         pass
+
     @abstractmethod
     def info(self, message: str, on: O):
         pass
+
     @abstractmethod
     def warn(self, message: str, on: O):
         pass
+
     @abstractmethod
     def error(self, message: str, on: O):
         pass
+
     @abstractmethod
-    def exceptionHook(self, exception: type[BaseException], value: BaseException, traceback):
+    def exceptionHook(
+        self, exception: type[BaseException], value: BaseException, traceback
+    ):
         pass
 
 
@@ -54,9 +67,11 @@ class JsonLoggingStrategy(AbstractLoggingStrategy):
         return {
             "level": log_level.name,
             "message": message,
-            "object": (obj.getMetaInfo().toJSON() if isinstance(obj, AbstractNetboxType) else {
-                "type": type(obj).__name__, "value": str(obj)
-            }),
+            "object": (
+                obj.getMetaInfo().toJSON()
+                if isinstance(obj, AbstractNetboxType)
+                else {"type": type(obj).__name__, "value": str(obj)}
+            ),
         }
 
     def info(self, message: str, on: O):
@@ -82,7 +97,9 @@ class JsonLoggingStrategy(AbstractLoggingStrategy):
             }
         print(json.dumps(res))
 
-    def exceptionHook(self, exception: type[BaseException], value: BaseException, traceback):
+    def exceptionHook(
+        self, exception: type[BaseException], value: BaseException, traceback
+    ):
         if isinstance(exception, AbstractRecoverableError):
             self.warn(str(value), None)
         else:
@@ -105,24 +122,23 @@ class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
                 color = "red"
             case _:
                 color = "white"
-                
+
         # Type Ignore is fixed with termcolor v3.
-        log_level_colored = colored(log_level, color) # type: ignore
+        log_level_colored = colored(log_level, color)  # type: ignore
         default_log = f"[{log_level_colored}] {message}"
         match obj:
             case AbstractNetboxType():
                 meta_info = obj.getMetaInfo()
                 full_url = meta_info.getFullObjectURL(self.nb_instance_url)
                 return (
-                        f"[{log_level_colored}]"
-                        f" [{meta_info.device_display_name.lower()}]"
-                        f" [{meta_info.display_name}] "
-                        f"{message}\n" +
-                        colored(f"🌐 {full_url}", "light_blue")
+                    f"[{log_level_colored}]"
+                    f" [{meta_info.device_display_name.lower()}]"
+                    f" [{meta_info.display_name}] "
+                    f"{message}\n" + colored(f"🌐 {full_url}", "light_blue")
                 )
             case None:
                 return default_log
-            case str()|object():
+            case str() | object():
                 return f"[{log_level_colored}] [{obj}] {message}"
             case _:
                 return default_log
@@ -139,7 +155,9 @@ class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
     def flush(self):
         pass
 
-    def exceptionHook(self, exception: type[BaseException], value: BaseException, traceback):
+    def exceptionHook(
+        self, exception: type[BaseException], value: BaseException, traceback
+    ):
         sys.__excepthook__(exception, value, traceback)
 
 
@@ -166,10 +184,18 @@ class CosmoLogger:
     def error(self, message: str, on: O):
         self.strategy.error(message, on)
 
-    def processHandledException(self, exception: BaseException): # for try/catch blocks to use
+    def processHandledException(
+        self, exception: BaseException
+    ):  # for try/catch blocks to use
         self.exceptionHook(type(exception), exception, None, recovered=True)
 
-    def exceptionHook(self, exception: type[BaseException], value: BaseException, traceback, recovered=False):
+    def exceptionHook(
+        self,
+        exception: type[BaseException],
+        value: BaseException,
+        traceback,
+        recovered=False,
+    ):
         self.strategy.exceptionHook(exception, value, traceback)
         if not recovered:
             # not recoverable because uncaught (we've been called from sys.excepthook,
@@ -180,10 +206,13 @@ class CosmoLogger:
 def info(message: str, on: O = None) -> None:
     logger.info(message, on)
 
+
 def warn(message: str, on: O) -> None:
     logger.warn(message, on)
 
-def error(message: str, on:O) -> None:
+
+def error(message: str, on: O) -> None:
     logger.error(message, on)
+
 
 logger = CosmoLogger()
