@@ -409,6 +409,16 @@ class DeviceDataQuery(ParallelQuery):
                   mode
                   mtu
                   description
+                  connected_endpoints {
+                    ... on InterfaceType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                  }
                   vrf {
                     __typename
                     id
