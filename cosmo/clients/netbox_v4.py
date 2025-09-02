@@ -343,7 +343,10 @@ class TobagoLineMembersDataQuery(ParallelQuery):
         )
 
     def _merge_into(self, data: dict, query_result):
-        for d in data["device_list"]:
+        query_device_name = self.kwargs.get("device")
+        for d in filter(
+            lambda device: device["name"] == query_device_name, data["device_list"]
+        ):
             for i in d["interfaces"]:
                 attached_tobago_line = next(
                     filter(
