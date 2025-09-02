@@ -527,6 +527,9 @@ class InterfaceType(AbstractNetboxType):
     def getConnectedEndpoints(self) -> list[DeviceType]:
         return self.get("connected_endpoints", [])
 
+    def hasAnAttachedTobagoLine(self):
+        return self.get("attached_tobago_line") is not None
+
 
 class VLANType(AbstractNetboxType):
     def __repr__(self):
@@ -654,8 +657,35 @@ class CosmoTobagoLine(AbstractNetboxType):
     def getBasePath(self):
         return "/plugins/tobago/lines/"
 
+    def _getCurrentLineMetadata(self):
+        return self["version"]
+
+    def _getCurrentLine(self):
+        return self._getCurrentLineMetadata()["line"]
+
     def getLineID(self):
-        return self["version"]["line"]["id"]
+        return self._getCurrentLine()["id"]
+
+    def getLineNameLong(self):
+        return self._getCurrentLine()["name_long"]
+
+    def getName(self):
+        return self.getLineNameLong()
+
+    def getLineStatus(self):
+        return self._getCurrentLineMetadata()["status"]
 
     def getRelPath(self) -> str:
         return urljoin(self.getBasePath(), self.getLineID())
+
+    def getOppositeTerminationOf(self, i: InterfaceType):
+        terminations = [self["termination_a"], self["termination_b"]]
+        return next(filter(lambda t: int(t["id"]) != int(i.getID()), terminations))
+
+    def getDeviceNameOppositeOf(self, i: InterfaceType):
+        t = self.getOppositeTerminationOf(i)
+        return t["device"]["name"]
+
+    def getDeviceInterfaceNameOppositeOf(self, i: InterfaceType):
+        t = self.getOppositeTerminationOf(i)
+        return t["name"]

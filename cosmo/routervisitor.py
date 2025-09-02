@@ -36,6 +36,7 @@ from cosmo.netbox_types import (
     DeviceTypeType,
     PlatformType,
     CosmoIPPoolType,
+    CosmoTobagoLine,
 )
 
 
@@ -341,7 +342,11 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         # has no description, we auto-generate one.
         device_interface = o.getParent(InterfaceType)
         associated_device = o.getAssociatedDevice()
-        if not device_interface.hasDescription() and associated_device:
+        if (
+            not device_interface.hasAnAttachedTobagoLine()
+            and not device_interface.hasDescription()
+            and associated_device
+        ):
             return {
                 self._interfaces_key: {
                     **device_interface.spitInterfacePathWith(
@@ -378,6 +383,29 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                 **o.spitInterfacePathWith(self.processInterfaceCommon(o))
             }
         }
+
+    def processTobagoLineData(self, o: CosmoTobagoLine):
+        device_interface = o.getParent(InterfaceType)
+        if not device_interface.hasDescription():
+            return {
+                self._interfaces_key: {
+                    **device_interface.spitInterfacePathWith(
+                        {
+                            "description": f"line {o.getLineNameLong()} ({o.getLineStatus()})"
+                            f" to {o.getDeviceNameOppositeOf(device_interface)}"
+                            f" -> {o.getDeviceInterfaceNameOppositeOf(device_interface)}"
+                            f" ({APP_NAME} generated)"
+                        }
+                    )
+                }
+            }
+
+    @accept.register
+    def _(self, o: CosmoTobagoLine):
+        if o.isUnderKeyNameForParentAboveWithType(
+            "attached_tobago_line", InterfaceType
+        ):
+            return self.processTobagoLineData(o)
 
     @accept.register
     def _(self, o: VRFType):
