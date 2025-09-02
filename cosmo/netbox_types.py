@@ -648,3 +648,14 @@ class CosmoIPPoolType(AbstractNetboxType):
 
     def hasIPRanges(self) -> bool:
         return len(self["ip_ranges"]) > 0
+
+
+class CosmoTobagoLine(AbstractNetboxType):
+    def getBasePath(self):
+        return "/plugins/tobago/lines/"
+
+    def getLineID(self):
+        return self["version"]["line"]["id"]
+
+    def getRelPath(self) -> str:
+        return urljoin(self.getBasePath(), self.getLineID())

@@ -325,13 +325,54 @@ class IPPoolDataQuery(ParallelQuery):
 
 
 class IPPoolDataDummyQuery(ParallelQuery):
-
     def _fetch_data(self, kwargs):
         return []
 
     def _merge_into(self, data: dict, query_data):
         for d in data["device_list"]:
             d["pool_set"] = []
+        return data
+
+
+class TobagoLineMembersDataQuery(ParallelQuery):
+    def _fetch_data(self, kwargs):
+        device = kwargs.get("device")
+        return self.client.query_rest(
+            "api/plugins/tobago/line-members/find-by-object/",
+            {"content_type": "dcim.device", "object_name": device},
+        )
+
+    def _merge_into(self, data: dict, query_result):
+        for d in data["device_list"]:
+            for i in d["interfaces"]:
+                attached_tobago_line = next(
+                    filter(
+                        # tobago is returning IDs as int so I have to do a little type casting
+                        lambda l: int(l["termination_a"]["id"]) == int(i["id"])
+                        or int(l["termination_b"]["id"]) == int(i["id"]),
+                        query_result,
+                    ),
+                    None,
+                )
+                i["attached_tobago_line"] = (
+                    {
+                        **attached_tobago_line,
+                        "__typename": "CosmoTobagoLine",
+                    }
+                    if attached_tobago_line
+                    else None
+                )
+        return data
+
+
+class TobagoLineMemberDataDummyQuery(ParallelQuery):
+    def _fetch_data(self, kwargs):
+        return []
+
+    def _merge_into(self, data: dict, query_result):
+        for d in data["device_list"]:
+            for i in d["interfaces"]:
+                i["attached_tobago_line"] = None
         return data
 
 
@@ -503,12 +544,19 @@ class NetboxV4Strategy:
         queries = list()
 
         for d in device_list:
-            queries.append(
-                DeviceDataQuery(
-                    self.client,
-                    device=d,
-                    multiple_mac_addresses=self.multiple_mac_addresses,
-                )
+            queries.extend(
+                [
+                    DeviceDataQuery(
+                        self.client,
+                        device=d,
+                        multiple_mac_addresses=self.multiple_mac_addresses,
+                    ),
+                    (
+                        TobagoLineMembersDataQuery(self.client, device=d)
+                        if self.feature_flags["tobago"]
+                        else TobagoLineMemberDataDummyQuery(self.client, device=d)
+                    ),
+                ]
             )
 
         queries.extend(

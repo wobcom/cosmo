@@ -52,6 +52,7 @@ class NetboxClient:
         feature_flags = {
             "routing": "netbox_plugin_routing" in json["plugins"],
             "ippools": "netbox_plugin_ip_pools" in json["plugins"],
+            "tobago": "netbox_plugin_tobago" in json["plugins"],
         }
 
         return version, feature_flags
