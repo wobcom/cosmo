@@ -4,7 +4,7 @@ import re
 from urllib.parse import urljoin
 
 from collections.abc import Iterable
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 from ipaddress import IPv4Interface, IPv6Interface
 
 from .common import (
@@ -14,7 +14,9 @@ from .common import (
     InterfaceSerializationError,
     head,
 )
-from typing import Self, Iterator, TypeVar, NoReturn, Never, Any
+from typing import Self, Iterator, TypeVar, NoReturn, Never, Type, Any, Union
+
+from .tobago_types import TobagoAbstractTerminationType
 
 T = TypeVar("T", bound="AbstractNetboxType")
 
@@ -654,6 +656,18 @@ class CosmoIPPoolType(AbstractNetboxType):
 
 
 class CosmoTobagoLine(AbstractNetboxType):
+    def getTerminationObjectForTypeAndData(self, termination_type: str, data: dict):
+        tobago_termination_classes: list[type[TobagoAbstractTerminationType]] = (
+            TobagoAbstractTerminationType.__subclasses__()
+        )
+        for c in tobago_termination_classes:
+            if c.accepts(termination_type):
+                return c(data)
+        raise InterfaceSerializationError(
+            f"Unrecognized Tobago termination type {termination_type}",
+            on=self,
+        )
+
     def getBasePath(self):
         return "/plugins/tobago/lines/"
 
@@ -663,8 +677,8 @@ class CosmoTobagoLine(AbstractNetboxType):
     def _getCurrentLine(self):
         return self._getCurrentLineMetadata()["line"]
 
-    def getLineID(self):
-        return self._getCurrentLine()["id"]
+    def getLineID(self) -> str:
+        return str(self._getCurrentLine()["id"])
 
     def getLineNameLong(self):
         return self._getCurrentLine()["name_long"]
@@ -678,14 +692,16 @@ class CosmoTobagoLine(AbstractNetboxType):
     def getRelPath(self) -> str:
         return urljoin(self.getBasePath(), self.getLineID())
 
-    def getOppositeTerminationOf(self, i: InterfaceType):
-        terminations = [self["termination_a"], self["termination_b"]]
-        return next(filter(lambda t: int(t["id"]) != int(i.getID()), terminations))
-
-    def getDeviceNameOppositeOf(self, i: InterfaceType):
-        t = self.getOppositeTerminationOf(i)
-        return t["device"]["name"]
-
-    def getDeviceInterfaceNameOppositeOf(self, i: InterfaceType):
-        t = self.getOppositeTerminationOf(i)
-        return t["name"]
+    def getOppositeTerminationObjectOf(
+        self, i: InterfaceType
+    ) -> TobagoAbstractTerminationType:
+        terminations = [
+            {"type": self["termination_a_type"], "data": self["termination_a"]},
+            {"type": self["termination_b_type"], "data": self["termination_b"]},
+        ]
+        opposite_termination = next(
+            filter(lambda t: int(t["data"]["id"]) != int(i.getID()), terminations)
+        )
+        return self.getTerminationObjectForTypeAndData(
+            opposite_termination["type"], opposite_termination["data"]
+        )
