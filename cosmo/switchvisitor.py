@@ -148,7 +148,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                     device_interface.getName(): {
                         "description": f"line {o.getLineNameLong()} ({o.getLineStatus()})"
                         f" to {o.getOppositeTerminationObjectOf(device_interface)}"
-                        f" ({APP_NAME} generated)"
+                        f" ({APP_NAME}-generated)"
                     }
                 }
             }
