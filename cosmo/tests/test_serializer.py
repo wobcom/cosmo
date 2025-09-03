@@ -231,15 +231,15 @@ def test_router_interface_auto_description():
     )
     assert "do not overwrite me!" == sd["interfaces"]["et-0/0/1"]["description"]
     assert (
-        "line cl390287 (current) to circuit FS 3298327 1-1-2 (cosmo generated)"
+        "line cl390287 (current) to circuit FS 3298327 1-1-2 (cosmo-generated)"
         == sd["interfaces"]["et-0/0/2"]["description"]
     )
     assert (
-        "line cl390287 (current) to TEST0002 -> xe-0/1/0 (cosmo generated)"
+        "line cl390287 (current) to TEST0002 -> xe-0/1/0 (cosmo-generated)"
         == sd["interfaces"]["et-0/0/3"]["description"]
     )
     assert (
-        "line cl390287 (current) to Panel C -> DC10 duplex front 10b (cosmo generated)"
+        "line cl390287 (current) to Panel C -> DC10 duplex front 10b (cosmo-generated)"
         == sd["interfaces"]["et-0/0/4"]["description"]
     )
 
@@ -741,7 +741,7 @@ def test_switch_auto_description():
 
     assert "description" in sd["cumulus__device_interfaces"]["swp54"]
     assert (
-        "line cl390287 (current) to Panel C -> DC10 duplex front 10b (cosmo generated)"
+        "line cl390287 (current) to Panel C -> DC10 duplex front 10b (cosmo-generated)"
         == sd["cumulus__device_interfaces"]["swp54"]["description"]
     )
 
