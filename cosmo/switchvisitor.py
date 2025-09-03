@@ -10,6 +10,7 @@ from cosmo.netbox_types import (
     InterfaceType,
     VLANType,
     TagType,
+    CosmoTobagoLine,
 )
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
@@ -125,7 +126,11 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         # passed interface is on "the other side", in connected_endpoints
         device_interface = o.getParent(InterfaceType)
         associated_device = o.getAssociatedDevice()
-        if not device_interface.hasDescription() and associated_device:
+        if (
+            not device_interface.hasAnAttachedTobagoLine()
+            and not device_interface.hasDescription()
+            and associated_device
+        ):
             return {
                 self._interfaces_key: {
                     device_interface.getName(): {
@@ -134,6 +139,26 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                     }
                 }
             }
+
+    def processTobagoLineData(self, o: CosmoTobagoLine):
+        device_interface = o.getParent(InterfaceType)
+        if not device_interface.hasDescription():
+            return {
+                self._interfaces_key: {
+                    device_interface.getName(): {
+                        "description": f"line {o.getLineNameLong()} ({o.getLineStatus()})"
+                        f" to {o.getOppositeTerminationObjectOf(device_interface)}"
+                        f" ({APP_NAME} generated)"
+                    }
+                }
+            }
+
+    @accept.register
+    def _(self, o: CosmoTobagoLine):
+        if o.isUnderKeyNameForParentAboveWithType(
+            "attached_tobago_line", InterfaceType
+        ):
+            return self.processTobagoLineData(o)
 
     @accept.register
     def _(self, o: InterfaceType):

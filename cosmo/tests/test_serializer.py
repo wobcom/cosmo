@@ -725,6 +725,7 @@ def test_switch_auto_description():
 
     assert "swp52" in sd["cumulus__device_interfaces"]
     assert "swp53" in sd["cumulus__device_interfaces"]
+    assert "swp54" in sd["cumulus__device_interfaces"]
 
     assert "description" in sd["cumulus__device_interfaces"]["swp52"]
     assert (
@@ -736,6 +737,12 @@ def test_switch_auto_description():
     assert (
         "do not overwrite me!"
         == sd["cumulus__device_interfaces"]["swp53"]["description"]
+    )
+
+    assert "description" in sd["cumulus__device_interfaces"]["swp54"]
+    assert (
+        "line cl390287 (current) to Panel C -> DC10 duplex front 10b (cosmo generated)"
+        == sd["cumulus__device_interfaces"]["swp54"]["description"]
     )
 
 
