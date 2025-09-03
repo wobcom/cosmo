@@ -221,12 +221,27 @@ def test_router_interface_auto_description():
 
     assert "et-0/0/0" in sd["interfaces"]
     assert "et-0/0/1" in sd["interfaces"]
+    assert "et-0/0/2" in sd["interfaces"]
+    assert "et-0/0/3" in sd["interfaces"]
+    assert "et-0/0/4" in sd["interfaces"]
 
     assert (
         "link to mikrotik01 -> combo1 (cosmo-generated)"
         == sd["interfaces"]["et-0/0/0"]["description"]
     )
     assert "do not overwrite me!" == sd["interfaces"]["et-0/0/1"]["description"]
+    assert (
+        "line cl390287 (current) to circuit FS 3298327 1-1-2 (cosmo generated)"
+        == sd["interfaces"]["et-0/0/2"]["description"]
+    )
+    assert (
+        "line cl390287 (current) to TEST0002 -> xe-0/1/0 (cosmo generated)"
+        == sd["interfaces"]["et-0/0/3"]["description"]
+    )
+    assert (
+        "line cl390287 (current) to Panel C -> DC10 duplex front 10b (cosmo generated)"
+        == sd["interfaces"]["et-0/0/4"]["description"]
+    )
 
 
 def test_router_lag():

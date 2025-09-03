@@ -53,6 +53,264 @@ device_list:
     type: A_100GBASE_X_QSFP28
     untagged_vlan: null
     vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: null
+    __typename: InterfaceType
+    enabled: true
+    id: '30749'
+    ip_addresses: [ ]
+    connected_endpoints:
+      - name: "combo3"
+        __typename: InterfaceType
+        device:
+          __typename: DeviceType
+          name: "mikrotik02"
+    attached_tobago_line:
+      __typename: CosmoTobagoLine
+      component_type: CABLE
+      element:
+        description: ''
+        display: cable 000128934
+        id: 39645
+        label: cable 000128934
+        url: https://netbox.example.com/api/dcim/cables/39645/
+      element_id: 93827
+      element_type: dcim.cable
+      id: 5110
+      index: 1
+      termination_a:
+        _occupied: true
+        cable:
+          description: ''
+          display: cable 000128934n
+          id: 39645
+          label: cable 000128934
+          url: https://netbox.example.com/api/dcim/cables/39645/
+        description: ''
+        device:
+          description: ''
+          display: TEST0001
+          id: 1747
+          name: TEST0001
+          url: https://netbox.example.com/api/dcim/devices/1747/
+        display: et-0/0/2
+        id: 30749
+        name: et-0/0/2
+        url: https://netbox.example.com/api/dcim/interfaces/30749/
+      termination_a_id: 92387
+      termination_a_type: dcim.interface
+      termination_b:
+        _occupied: true
+        cable:
+          description: ''
+          display: 031240 GF:5781 / 031241 GF:5782
+          id: 39645
+          label: 031240 GF:5781 / 031241 GF:5782
+          url: https://netbox.example.com/api/dcim/cables/39645/
+        circuit:
+          cid: FS 3298327 1-1-2
+          description: ''
+          display: FS 3298327 1-1-2
+          id: 138
+          provider:
+            description: ''
+            display: Circuit Provider A
+            id: 12
+            name: Circuit Provider A
+            slug: circuit-provider-a
+            url: https://netbox.example.com/api/circuits/providers/12/
+          url: https://netbox.example.com/api/circuits/circuits/138/
+        description: ''
+        display: 'FS 3298327 1-1-2'
+        id: 454
+        term_side: A
+        url: https://netbox.example.com/api/circuits/circuit-terminations/454/
+      termination_b_id: 454
+      termination_b_type: circuits.circuittermination
+      version:
+        created: '2025-09-03T11:34:19.643456+01:00'
+        custom_fields: { }
+        id: 2617
+        last_updated: '2025-09-03T11:34:40.819703+01:00'
+        line:
+          display: cl390287
+          id: 9834
+          name: '390287'
+          name_long: cl390287
+          url: https://netbox.example.com/api/plugins/tobago/lines/9834/
+        status: current
+    lag: null
+    mac_address: 94:BF:41:41:41:F3
+    mode: null
+    mtu: null
+    name: et-0/0/2
+    tagged_vlans: [ ]
+    tags: [ ]
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: null
+    __typename: InterfaceType
+    enabled: true
+    id: '30750'
+    ip_addresses: [ ]
+    connected_endpoints: [ ]
+    attached_tobago_line:
+      __typename: CosmoTobagoLine
+      component_type: CABLE
+      element:
+        description: ''
+        display: cable 000128934
+        id: 39645
+        label: cable 000128934
+        url: https://netbox.example.com/api/dcim/cables/39645/
+      element_id: 93827
+      element_type: dcim.cable
+      id: 5110
+      index: 1
+      termination_a:
+        _occupied: true
+        cable:
+          description: ''
+          display: cable 000128934
+          id: 39645
+          label: cable 000128934
+          url: https://netbox.example.com/api/dcim/cables/39645/
+        description: ''
+        device:
+          description: ''
+          display: TEST0001
+          id: 1747
+          name: TEST0001
+          url: https://netbox.example.com/api/dcim/devices/1747/
+        display: et-0/0/3
+        id: 30750
+        name: et-0/0/3
+        url: https://netbox.example.com/api/dcim/interfaces/30750/
+      termination_a_id: 92387
+      termination_a_type: dcim.interface
+      termination_b:
+        _occupied: true
+        id: 198208
+        url: https://netbox.example.com/api/dcim/interfaces/192878/
+        display: xe-0/1/0
+        device:
+          id: 39827
+          url: https://netbox.example.com/api/dcim/device/39827/
+          display: TEST0002
+          name: TEST0002
+          description: null
+        name: xe-0/1/0
+        description: "customer A"
+      termination_b_id: 454
+      termination_b_type: dcim.interface
+      version:
+        created: '2025-09-03T11:34:19.643456+01:00'
+        custom_fields: { }
+        id: 2617
+        last_updated: '2025-09-03T11:34:40.819703+01:00'
+        line:
+          display: cl390287
+          id: 9834
+          name: '390287'
+          name_long: cl390287
+          url: https://netbox.example.com/api/plugins/tobago/lines/9834/
+        status: current
+    lag: null
+    mac_address: 94:BF:41:41:41:F3
+    mode: null
+    mtu: null
+    name: et-0/0/3
+    tagged_vlans: [ ]
+    tags: [ ]
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: null
+    __typename: InterfaceType
+    enabled: true
+    id: '30751'
+    ip_addresses: [ ]
+    connected_endpoints: [ ]
+    attached_tobago_line:
+      __typename: CosmoTobagoLine
+      component_type: CABLE
+      element:
+        description: ''
+        display: cable 000128934
+        id: 39645
+        label: cable 000128934
+        url: https://netbox.example.com/api/dcim/cables/39645/
+      element_id: 93827
+      element_type: dcim.cable
+      id: 5110
+      index: 1
+      termination_a:
+        _occupied: true
+        cable:
+          description: ''
+          display: cable 000128934
+          id: 39645
+          label: cable 000128934
+          url: https://netbox.example.com/api/dcim/cables/39645/
+        description: ''
+        device:
+          description: ''
+          display: TEST0001
+          id: 1747
+          name: TEST0001
+          url: https://netbox.example.com/api/dcim/devices/1747/
+        display: et-0/0/4
+        id: 30751
+        name: et-0/0/4
+        url: https://netbox.example.com/api/dcim/interfaces/30751/
+      termination_a_id: 92387
+      termination_a_type: dcim.interface
+      termination_b:
+        _occupied: true
+        id: 198208
+        url: https://netbox.example.com/api/dcim/interfaces/192878/
+        display: DC10 duplex front 10b
+        device:
+          id: 39948
+          url: https://netbox.example.com/api/dcim/device/39948/
+          display: Panel C
+          name: Panel C
+          description: null
+        name: DC10 duplex front 10b
+        description: ""
+      termination_b_id: 454
+      termination_b_type: dcim.frontport
+      version:
+        created: '2025-09-03T11:34:19.643456+01:00'
+        custom_fields: { }
+        id: 2617
+        last_updated: '2025-09-03T11:34:40.819703+01:00'
+        line:
+          display: cl390287
+          id: 9834
+          name: '390287'
+          name_long: cl390287
+          url: https://netbox.example.com/api/plugins/tobago/lines/9834/
+        status: current
+    lag: null
+    mac_address: 94:BF:41:41:41:F3
+    mode: null
+    mtu: null
+    name: et-0/0/4
+    tagged_vlans: [ ]
+    tags: [ ]
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
   name: TEST0001
   platform:
     __typename: PlatformType
