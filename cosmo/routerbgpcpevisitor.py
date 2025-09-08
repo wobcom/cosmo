@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import List, NoReturn
+from typing import List, NoReturn, TypeGuard
 
 from multimethod import multimethod as singledispatchmethod
 from ipaddress import IPv4Interface, IPv6Interface
@@ -119,6 +119,29 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
     ) -> None | NoReturn:
         pass
 
+    @staticmethod
+    def getGroupName(
+        linked_interface: InterfaceType, parent_interface: InterfaceType
+    ) -> str:
+        # technically a type guard, as we're narrowing on TagType. described
+        # as such to satisfy the type checker.
+        def tagFilter(t: TagType) -> TypeGuard[TagType]:
+            return t.getTagName() == "deprecated_naming" and t.getTagValue() == "cpe"
+
+        attached_tobago_line = parent_interface.getAttachedTobagoLine()
+        # if legacy naming tag is present, or no tobago line is attached, we keep the old name as a fallback
+        if not attached_tobago_line or any(
+            filter(
+                tagFilter,
+                linked_interface.getTags(),
+            )
+        ):
+            return "CPE_" + linked_interface.getName().replace(".", "-").replace(
+                "/", "-"
+            )
+        else:  # use new naming scheme with tobago line name
+            return "CUST_" + attached_tobago_line.getLineNameLong()
+
     def processBgpCpeTag(self, o: TagType):
         linked_interface = o.getParent(InterfaceType)
         if not linked_interface.hasParentInterface():
@@ -142,9 +165,7 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
             )
             return
 
-        group_name = "CPE_" + linked_interface.getName().replace(".", "-").replace(
-            "/", "-"
-        )
+        group_name = self.getGroupName(linked_interface, parent_interface)
         vrf_name = self._default_vrf_name
         # make the type checker happy, since it cannot reliably infer
         # type from default values of policy_v4 and policy_v6
@@ -178,7 +199,6 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
             elif af and af is IPv6Interface:
                 v6_import.add(prefix)
 
-        # import pdb; pdb.set_trace()
         policy_v4["import_list"], policy_v6["import_list"] = self.processImportLists(
             v4_import, v6_import
         )
