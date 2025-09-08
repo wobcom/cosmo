@@ -14,7 +14,7 @@ from .common import (
     InterfaceSerializationError,
     head,
 )
-from typing import Self, Iterator, TypeVar, NoReturn, Never, Type, Any
+from typing import Self, Iterator, TypeVar, NoReturn, Never, Type, Any, Union
 
 from .tobago_types import TobagoAbstractTerminationType
 
@@ -565,8 +565,11 @@ class InterfaceType(AbstractNetboxType):
     def getConnectedEndpoints(self) -> list[DeviceType]:
         return self.get("connected_endpoints", [])
 
-    def hasAnAttachedTobagoLine(self):
+    def hasAnAttachedTobagoLine(self) -> bool:
         return self.get("attached_tobago_line") is not None
+
+    def getAttachedTobagoLine(self) -> Union["CosmoTobagoLine", None]:
+        return self.get("attached_tobago_line")
 
 
 class VLANType(AbstractNetboxType):
