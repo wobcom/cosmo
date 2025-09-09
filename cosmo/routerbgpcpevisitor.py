@@ -1,4 +1,4 @@
-from functools import singledispatchmethod
+from multimethod import multimethod as singledispatchmethod
 from ipaddress import IPv4Interface, IPv6Interface, ip_interface
 
 from cosmo.common import head, CosmoOutputType

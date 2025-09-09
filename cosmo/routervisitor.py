@@ -1,5 +1,6 @@
 import re
-from functools import singledispatchmethod
+
+from multimethod import multimethod as singledispatchmethod
 
 import deepmerge
 

@@ -333,6 +333,17 @@ files = [
 ]
 
 [[package]]
+name = "multimethod"
+version = "2.0"
+description = "Multiple argument dispatching."
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "multimethod-2.0-py3-none-any.whl", hash = "sha256:45aa231dc9dbb7f980c0f2ad8179e2c2b72a8cd5c7d7534337be66dde29d35be"},
+    {file = "multimethod-2.0.tar.gz", hash = "sha256:c628b6d2e7d61fbe58484dd884d990901e8314faf58af062e72b65e3423cb109"},
+]
+
+[[package]]
 name = "mypy"
 version = "1.17.1"
 description = "Optional static typing for Python"
@@ -722,4 +733,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "4e312b1fec81ae12a52789c245d52386f90a6bff8d7c2a043ed72b2017d8f67c"
+content-hash = "eb529a42caccda46a92296efe1174179900120a0b05c85a884fadbf2d52085d1"

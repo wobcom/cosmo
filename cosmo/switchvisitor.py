@@ -1,5 +1,5 @@
 import ipaddress
-from functools import singledispatchmethod
+from multimethod import multimethod as singledispatchmethod
 
 from cosmo.log import warn
 from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice

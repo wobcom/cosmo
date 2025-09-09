@@ -15,6 +15,7 @@ PyYAML = ">5.1"
 packaging = "^24"
 deepmerge = "^2.0"
 termcolor = "^2.4.0"
+multimethod = "^2.0"
 
 [tool.poetry.dev-dependencies]
 
