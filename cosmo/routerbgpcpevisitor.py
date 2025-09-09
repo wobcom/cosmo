@@ -1,21 +1,32 @@
-from multimethod import multimethod as singledispatchmethod
-from ipaddress import IPv4Interface, IPv6Interface, ip_interface
+from abc import ABCMeta, abstractmethod
+from typing import List, NoReturn
 
-from cosmo.common import head, CosmoOutputType
+from multimethod import multimethod as singledispatchmethod
+from ipaddress import IPv4Interface, IPv6Interface
+
+from cosmo.common import head, CosmoOutputType, InterfaceSerializationError
 from cosmo.cperoutervisitor import CpeRouterExporterVisitor, CpeRouterIPVisitor
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.log import warn
-from cosmo.netbox_types import TagType, InterfaceType, DeviceType, VRFType
+from cosmo.netbox_types import (
+    TagType,
+    InterfaceType,
+    DeviceType,
+    VRFType,
+    AbstractNetboxType,
+)
 
 
-class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
-    @singledispatchmethod
-    def accept(self, o):
-        return super().accept(o)
+class AbstractBgpCpeExporter(metaclass=ABCMeta):
+    _vrf_key = "routing_instances"
+    _default_vrf_name = "default"
 
-    @staticmethod
+    @abstractmethod
+    def getOptionalMaxPrefixAttrs(self) -> CosmoOutputType:
+        pass  # template method pattern
+
     def processNumberedBGP(
-        cpe, base_group_name, linked_interface, policy_v4, policy_v6
+        self, cpe, base_group_name, linked_interface, policy_v4, policy_v6
     ):
         ip_addresses = linked_interface.getIPAddresses()
         ip_addresses_ipo = map(lambda x: x.getIPInterfaceObject(), ip_addresses)
@@ -54,7 +65,8 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
                 "family": {
                     "ipv4_unicast": {
                         "policy": policy_v4,
-                    },
+                    }
+                    | self.getOptionalMaxPrefixAttrs(),
                 },
             }
         if v6_neighbors:
@@ -65,13 +77,15 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
                 "family": {
                     "ipv6_unicast": {
                         "policy": policy_v6,
-                    },
+                    }
+                    | self.getOptionalMaxPrefixAttrs(),
                 },
             }
         return groups
 
-    @staticmethod
-    def processUnnumberedBGP(base_group_name, linked_interface, policy_v4, policy_v6):
+    def processUnnumberedBGP(
+        self, base_group_name, linked_interface, policy_v4, policy_v6
+    ):
         return {
             base_group_name: {
                 "any_as": True,
@@ -81,13 +95,29 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
                     "ipv4_unicast": {
                         "extended_nexthop": True,
                         "policy": policy_v4,
-                    },
+                    }
+                    | self.getOptionalMaxPrefixAttrs(),
                     "ipv6_unicast": {
                         "policy": policy_v6,
-                    },
+                    }
+                    | self.getOptionalMaxPrefixAttrs(),
                 },
             }
         }
+
+    @abstractmethod
+    def processImportLists(
+        self,
+        v4_import: set,
+        v6_import: set,
+    ) -> tuple[list[str], list[str]]:
+        pass
+
+    @abstractmethod
+    def acceptVRFNameOrFailOn(
+        self, vrf_name: str, on: AbstractNetboxType
+    ) -> None | NoReturn:
+        pass
 
     def processBgpCpeTag(self, o: TagType):
         linked_interface = o.getParent(InterfaceType)
@@ -115,7 +145,7 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
         group_name = "CPE_" + linked_interface.getName().replace(".", "-").replace(
             "/", "-"
         )
-        vrf_name = "default"
+        vrf_name = self._default_vrf_name
         # make the type checker happy, since it cannot reliably infer
         # type from default values of policy_v4 and policy_v6
         policy_v4: CosmoOutputType = {"import_list": []}
@@ -126,7 +156,8 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
         vrf_object = linked_interface.getVRF()
         if isinstance(vrf_object, VRFType):
             vrf_name = vrf_object.getName()
-        if vrf_name == "default":
+        self.acceptVRFNameOrFailOn(vrf_name, linked_interface)
+        if vrf_name == self._default_vrf_name:
             policy_v4["export"] = ["DEFAULT_V4"]
             policy_v6["export"] = ["DEFAULT_V6"]
 
@@ -147,8 +178,10 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
             elif af and af is IPv6Interface:
                 v6_import.add(prefix)
 
-        policy_v4["import_list"] = list(v4_import)
-        policy_v6["import_list"] = list(v6_import)
+        # import pdb; pdb.set_trace()
+        policy_v4["import_list"], policy_v6["import_list"] = self.processImportLists(
+            v4_import, v6_import
+        )
 
         if len(ip_addresses) > 0:
             groups = self.processNumberedBGP(
@@ -160,7 +193,56 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
             )
         return {self._vrf_key: {vrf_name: {"protocols": {"bgp": {"groups": groups}}}}}
 
+
+class MaxPrefixBgpCpeExporter(AbstractBgpCpeExporter):
+    def __init__(self, *args, max_prefix_n: int, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.max_prefix_n = max_prefix_n
+
+    def acceptVRFNameOrFailOn(self, vrf_name: str, on: AbstractNetboxType):
+        if vrf_name == self._default_vrf_name:
+            raise InterfaceSerializationError(
+                f"forbidden use of max-prefix in default vrf", on=on
+            )
+
+    def getOptionalMaxPrefixAttrs(self) -> CosmoOutputType:
+        return {"max_prefixes": str(self.max_prefix_n)}
+
+    def processImportLists(
+        self,
+        v4_import: set,
+        v6_import: set,
+    ):
+        # we have max-prefix tag set, do not define import-list as it is variable
+        return [], []
+
+
+class DefinedImportListBgpCpeExporter(AbstractBgpCpeExporter):
+    def acceptVRFNameOrFailOn(self, vrf_name: str, on: AbstractNetboxType):
+        pass  # do not care
+
+    def getOptionalMaxPrefixAttrs(self) -> CosmoOutputType:
+        return {}
+
+    def processImportLists(
+        self,
+        v4_import: set,
+        v6_import: set,
+    ):
+        return list(v4_import), list(v6_import)
+
+
+class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
+    @singledispatchmethod
+    def accept(self, o):
+        return super().accept(o)
+
     @accept.register
-    def _(self, o: TagType):
-        if o.getTagName() == "bgp" and o.getTagValue() == "cpe":
-            return self.processBgpCpeTag(o)
+    def _(self, o: List[TagType]):
+        if "bgp:cpe" in o and "max-prefixes" in o:
+            prefix_tag = head(TagType.filterTags(o, "max-prefixes"))
+            return MaxPrefixBgpCpeExporter(
+                max_prefix_n=int(prefix_tag.getTagValue())
+            ).processBgpCpeTag(head(o))
+        elif "bgp:cpe" in o:
+            return DefinedImportListBgpCpeExporter().processBgpCpeTag(head(o))

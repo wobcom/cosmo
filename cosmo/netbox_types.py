@@ -15,8 +15,7 @@ from .common import (
     InterfaceSerializationError,
     head,
 )
-from typing import Self, Iterator, TypeVar, NoReturn, Never
-
+from typing import Self, Iterator, TypeVar, NoReturn, Never, Any
 
 T = TypeVar("T", bound="AbstractNetboxType")
 
@@ -43,12 +42,13 @@ class AbstractNetboxType(abc.ABC, Iterable):
 
     # I have to write the union in quotes because of this Python bug:
     # https://bugs.python.org/issue45857
-    def __iter__(self) -> Iterator["AbstractNetboxType|str|int|bool|None"]:
+    def __iter__(self) -> Iterator["AbstractNetboxType|list[Any]|str|int|bool|None"]:
         yield self
         for k, v in without_keys(self._store, ["__parent", "__typename"]).items():
             if isinstance(v, dict):
                 yield from iter(v)
             elif isinstance(v, list):
+                yield v
                 for e in v:
                     yield from e
             elif isinstance(v, AbstractNetboxType):
@@ -323,6 +323,15 @@ class IPAddressType(AbstractNetboxType):
 class TagType(AbstractNetboxType):
     _delimiter = ":"
 
+    def __eq__(self, other):
+        if not isinstance(other, str):
+            return super().__eq__(other)
+        else:
+            return self.getTagName() == other or [
+                self.getTagName(),
+                self.getTagValue(),
+            ] == other.split(self._delimiter)
+
     def getBasePath(self):
         return "/extras/tags/"
 
@@ -330,10 +339,27 @@ class TagType(AbstractNetboxType):
         return self.get("name").split(self._delimiter)
 
     def getTagName(self):
-        return self.getTagComponents()[0]
+        name, _ = (self.getTagComponents() + [None])[:2]
+        return name
 
     def getTagValue(self):
-        return self.getTagComponents()[1]
+        _, value = (self.getTagComponents() + [None])[:2]
+        return value
+
+    def __repr__(self):
+        return f"{super().__repr__()}({self.getTagName()},{self.getTagValue()})"
+
+    @classmethod
+    def filterTags(
+        cls, l: list[Self], name: str, value: str | None = None
+    ) -> list[Self]:
+        return list(
+            filter(
+                lambda t: (t.getTagName() == name and value is None)
+                or (t.getTagName() and t.getTagValue() == value),
+                l,
+            )
+        )
 
 
 class RouteTargetType(AbstractNetboxType):

@@ -29,7 +29,7 @@ class L2VPNSerializationError(AbstractRecoverableError):
 # recursive type for the shape of cosmo output. use it when specifying something that
 # the visitors will export.
 CosmoOutputType = dict[
-    str, str | dict[str, "CosmoOutputType"] | list[Union[str, "CosmoOutputType"]]
+    str, str | dict[str, "CosmoOutputType"] | list[str] | list["CosmoOutputType"]
 ]
 
 JsonOutputType = CosmoOutputType

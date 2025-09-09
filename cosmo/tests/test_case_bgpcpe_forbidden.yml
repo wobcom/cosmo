@@ -1,0 +1,162 @@
+device_list:
+- device_type:
+    __typename: DeviceTypeType
+    slug: S9600-72XC
+  id: '17799'
+  interfaces:
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    __typename: InterfaceType
+    description: ''
+    enabled: true
+    id: '191940'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: ifp-0/1/2
+    tagged_vlans: []
+    tags:
+    - name: speed:1g
+      slug: speed1g
+      __typename: TagType
+    type: A_25GBASE_X_SFP28
+    untagged_vlan: null
+    vrf: null
+    parent: null
+    connected_endpoints:
+    - device:
+        name: ''
+        primary_ip4:
+          __typename: IPAddressType
+          address: 10.128.6.12/29
+        interfaces:
+        - ip_addresses: []
+          id: ''
+          name: ''
+          __typename: InterfaceType
+        - ip_addresses:
+          - address: 10.1.0.1/28
+            __typename: IPAddressType
+          - address: 10.1.0.2/28
+            __typename: IPAddressType
+          - address: 2a0e:b941:2:42::/64
+            __typename: IPAddressType
+          id: ''
+          name: ''
+          __typename: InterfaceType
+        - ip_addresses:
+          - address: 10.128.6.12/29
+            __typename: IPAddressType
+          - address: 2a0e:b941:2::21/122
+            __typename: IPAddressType
+          id: ''
+          name: ''
+          __typename: InterfaceType
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: 6
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    __typename: InterfaceType
+    description: ''
+    enabled: true
+    id: '192120'
+    ip_addresses:
+    - address: 10.128.6.13/29
+      __typename: IPAddressType
+    - address: 2a0e:b941:2::20/122
+      __typename: IPAddressType
+    lag: null
+    mac_address: null
+    mode: ACCESS
+    mtu: 1500
+    name: ifp-0/1/2.6
+    tagged_vlans: []
+    tags:
+    - name: bgp:cpe
+      slug: bgpcpe
+      __typename: TagType
+    - name: max-prefixes:100
+      slug: maxprefixes100
+      __typename: TagType
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+    parent:
+      __typename: InterfaceType
+      id: '191940'
+      name: "ifp-0/1/2"
+      mtu: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    __typename: InterfaceType
+    description: ''
+    enabled: true
+    id: '192046'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: lo-0/0/0
+    tagged_vlans: []
+    tags: []
+    type: LOOPBACK
+    untagged_vlan: null
+    vrf: null
+    parent: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    __typename: InterfaceType
+    description: ''
+    enabled: true
+    id: '192047'
+    ip_addresses:
+    - address: 45.139.136.10/32
+      __typename: IPAddressType
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: lo-0/0/0.0
+    tagged_vlans: []
+    tags: []
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+    parent: null
+  name: TEST0001
+  platform:
+    __typename: PlatformType
+    manufacturer:
+      __typename: ManufacturerType
+      slug: rtbrick
+    slug: rtbrick-consolidated-bng-q2c-24-1-1-1
+  primary_ip4:
+    __typename: IPAddressType
+    address: 198.51.100.15/24
+  serial: ''
+  staticroute_set: []
+l2vpn_list: []
+loopbacks:
+  TEST0001:
+    ipv4: 45.139.136.10/32
