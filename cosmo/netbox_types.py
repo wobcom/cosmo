@@ -3,7 +3,6 @@ import ipaddress
 import re
 from urllib.parse import urljoin
 
-import cosmo.log
 from collections.abc import Iterable
 from abc import abstractmethod
 from ipaddress import IPv4Interface, IPv6Interface
@@ -15,8 +14,7 @@ from .common import (
     InterfaceSerializationError,
     head,
 )
-from typing import Self, Iterator, TypeVar, NoReturn, Never
-
+from typing import Self, Iterator, TypeVar, NoReturn, Never, Any
 
 T = TypeVar("T", bound="AbstractNetboxType")
 
@@ -239,15 +237,13 @@ class DeviceType(AbstractNetboxType):
     def getSerial(self) -> str:
         return self.get("serial", "")
 
-    def getISISIdentifier(self) -> str | None:
-        sys_id = self.getCustomFields().get("isis_system_id")
-        if sys_id and not re.match(r"\d{4}.\d{4}.\d{4}", sys_id):
-            cosmo.log.warn(
-                f"IS-IS System ID {sys_id} is invalid",
-                self,
+    def getISISIdentifier(self) -> str | None | Never:
+        sys_id: Any | None = self.getCustomFields().get("isis_system_id")
+        if sys_id and not re.match(r"\d{4}.\d{4}.\d{4}", str(sys_id)):
+            raise DeviceSerializationError(
+                f"IS-IS System ID {sys_id} is invalid", on=self
             )
-            return None
-        return sys_id
+        return str(sys_id)
 
     def getRouterID(self) -> str | Never:
         # Deriving the router ID is a bit tricky, there is no 'correct' way.
@@ -372,11 +368,11 @@ class InterfaceType(AbstractNetboxType):
         cf = self.getCustomFields()
         if "untagged_vlan" in self.keys() and self["untagged_vlan"]:
             if cf.get("outer_tag"):
-                cosmo.log.warn(
+                raise InterfaceSerializationError(
                     f"has untagged {self['untagged_vlan']} and outer_tag "
                     f"{cf.get('outer_tag')}! outer_tag should not be used with "
                     f"untagged_vlan. Please fix data source.",
-                    self,
+                    on=self,
                 )
             return self["untagged_vlan"]
         elif cf.get("outer_tag"):
