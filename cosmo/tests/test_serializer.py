@@ -505,6 +505,67 @@ def test_router_case_local_bgpcpe():
         "import_list"
     ] == ["2a0e:b941:2:42::/64"]
 
+    assert "CPE_ifp-0-1-2-6_V4" in groups_L3VPN
+    assert "CPE_ifp-0-1-2-6_V6" in groups_L3VPN
+    assert (
+        groups_L3VPN["CPE_ifp-0-1-2-6_V4"]["family"]["ipv4_unicast"]["policy"][
+            "import_list"
+        ]
+        == []
+    )
+    assert (
+        groups_L3VPN["CPE_ifp-0-1-2-6_V4"]["family"]["ipv4_unicast"]["max_prefixes"]
+        == "100"
+    )
+    assert (
+        groups_L3VPN["CPE_ifp-0-1-2-6_V6"]["family"]["ipv6_unicast"]["policy"][
+            "import_list"
+        ]
+        == []
+    )
+    assert (
+        groups_L3VPN["CPE_ifp-0-1-2-6_V6"]["family"]["ipv6_unicast"]["max_prefixes"]
+        == "100"
+    )
+
+    assert "CPE_ifp-0-1-2-7" in groups_L3VPN
+    assert groups_L3VPN["CPE_ifp-0-1-2-7"]["neighbors"][0]["interface"] == "ifp-0/1/2.7"
+    assert (
+        not "export"
+        in groups_L3VPN["CPE_ifp-0-1-2-7"]["family"]["ipv4_unicast"]["policy"]
+    )
+    assert (
+        not "export"
+        in groups_L3VPN["CPE_ifp-0-1-2-7"]["family"]["ipv6_unicast"]["policy"]
+    )
+    assert (
+        groups_L3VPN["CPE_ifp-0-1-2-7"]["family"]["ipv4_unicast"]["policy"][
+            "import_list"
+        ]
+        == []
+    )
+    assert (
+        groups_L3VPN["CPE_ifp-0-1-2-7"]["family"]["ipv6_unicast"]["policy"][
+            "import_list"
+        ]
+        == []
+    )
+    assert (
+        groups_L3VPN["CPE_ifp-0-1-2-7"]["family"]["ipv4_unicast"]["max_prefixes"]
+        == "100"
+    )
+    assert (
+        groups_L3VPN["CPE_ifp-0-1-2-7"]["family"]["ipv6_unicast"]["max_prefixes"]
+        == "100"
+    )
+
+
+def test_router_case_local_bgpcpe_forbidden_tag():
+    with pytest.raises(
+        DeviceSerializationError, match=r"forbidden use of max-prefix in default vrf"
+    ):
+        [_] = get_router_sd_from_path("./test_case_bgpcpe_forbidden.yml")
+
 
 def test_router_case_policer():
     [d] = get_router_sd_from_path("./test_case_policer.yaml")

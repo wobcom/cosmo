@@ -1,6 +1,6 @@
 import ipaddress
 from abc import abstractmethod, ABCMeta
-from functools import singledispatchmethod
+from multimethod import multimethod as singledispatchmethod
 from typing import NoReturn
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor

@@ -1,5 +1,7 @@
 import re
-from functools import singledispatchmethod
+from typing import List
+
+from multimethod import multimethod as singledispatchmethod
 
 import deepmerge
 
@@ -806,8 +808,13 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                 return self.processBgpUnnumberedTag(o)
             case "bgp":
                 if o.getTagValue() == "cpe":
-                    return self.bgpcpe_exporter.accept(o)
+                    pass  # ignore, treated with whole tag list
                 else:
                     warn(f"{APP_NAME} doesn't know this bgp tag.", o)
             case _:
                 warn(f"{APP_NAME} doesn't know this tag.", o)
+
+    @accept.register
+    def _(self, o: List[TagType]):
+        if "bgp:cpe" in o:
+            return self.bgpcpe_exporter.accept(o)
