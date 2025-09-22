@@ -600,12 +600,11 @@ def test_router_isis():
     assert "0000.1234.0010" == sd["isis"]["system_id"]
 
 
-def test_router_isis_errors(capsys):
-    [sd] = get_router_sd_from_path("./test_case_isis_errors.yaml")
-
-    # check that system id validation works
-    capture = capsys.readouterr()  # warn if isis-system-id is invalid
-    assert re.search("IS-IS System ID .* is invalid", capture.out)
+def test_router_isis_errors():
+    with pytest.raises(
+        DeviceSerializationError, match=r"IS-IS System ID .* is invalid"
+    ):
+        [_] = get_router_sd_from_path("./test_case_isis_errors.yaml")
 
 
 def test_router_mtu_junos():
