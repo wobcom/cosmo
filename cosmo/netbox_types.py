@@ -4,7 +4,7 @@ import re
 from urllib.parse import urljoin
 
 from collections.abc import Iterable
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 from ipaddress import IPv4Interface, IPv6Interface
 
 from .common import (
@@ -14,7 +14,10 @@ from .common import (
     InterfaceSerializationError,
     head,
 )
-from typing import Self, Iterator, TypeVar, NoReturn, Never, Any
+from typing import Self, Iterator, TypeVar, NoReturn, Never, Type, Any, Union
+
+from .tobago_types import TobagoAbstractTerminationType
+
 
 T = TypeVar("T", bound="AbstractNetboxType")
 
@@ -141,6 +144,20 @@ class AbstractNetboxType(abc.ABC, Iterable):
                 else:
                     instance = instance["__parent"]
             return instance
+
+    def isUnderKeyNameForParentAboveWithType(
+        self, key: str, target_type: type[T]
+    ) -> bool:
+        if self.hasParentAboveWithType(target_type):
+            if key in self.getParent(target_type).keys() and (
+                self.getParent(target_type)[key] == self
+                or (
+                    isinstance(self.getParent(target_type)[key], Iterable)
+                    and self in self.getParent(target_type)[key]
+                )
+            ):  # self can be found under given key
+                return True
+        return False
 
     def getID(self):
         return self.get("id")
@@ -548,6 +565,12 @@ class InterfaceType(AbstractNetboxType):
     def getConnectedEndpoints(self) -> list[DeviceType]:
         return self.get("connected_endpoints", [])
 
+    def hasAnAttachedTobagoLine(self) -> bool:
+        return self.get("attached_tobago_line") is not None
+
+    def getAttachedTobagoLine(self) -> Union["CosmoTobagoLine", None]:
+        return self.get("attached_tobago_line")
+
 
 class VLANType(AbstractNetboxType):
     def __repr__(self):
@@ -659,3 +682,55 @@ class CosmoIPPoolType(AbstractNetboxType):
 
     def hasIPRanges(self) -> bool:
         return len(self["ip_ranges"]) > 0
+
+
+class CosmoTobagoLine(AbstractNetboxType):
+    def getTerminationObjectForTypeAndData(self, termination_type: str, data: dict):
+        tobago_termination_classes: list[type[TobagoAbstractTerminationType]] = (
+            TobagoAbstractTerminationType.__subclasses__()
+        )
+        for c in tobago_termination_classes:
+            if c.accepts(termination_type):
+                return c(data)
+        raise InterfaceSerializationError(
+            f"Unrecognized Tobago termination type {termination_type}",
+            on=self,
+        )
+
+    def getBasePath(self):
+        return "/plugins/tobago/lines/"
+
+    def _getCurrentLineMetadata(self):
+        return self["version"]
+
+    def _getCurrentLine(self):
+        return self._getCurrentLineMetadata()["line"]
+
+    def getLineID(self) -> str:
+        return str(self._getCurrentLine()["id"])
+
+    def getLineNameLong(self):
+        return self._getCurrentLine()["name_long"]
+
+    def getName(self):
+        return self.getLineNameLong()
+
+    def getLineStatus(self):
+        return self._getCurrentLineMetadata()["status"]
+
+    def getRelPath(self) -> str:
+        return urljoin(self.getBasePath(), self.getLineID())
+
+    def getOppositeTerminationObjectOf(
+        self, i: InterfaceType
+    ) -> TobagoAbstractTerminationType:
+        terminations = [
+            {"type": self["termination_a_type"], "data": self["termination_a"]},
+            {"type": self["termination_b_type"], "data": self["termination_b"]},
+        ]
+        opposite_termination = next(
+            filter(lambda t: int(t["data"]["id"]) != int(i.getID()), terminations)
+        )
+        return self.getTerminationObjectForTypeAndData(
+            opposite_termination["type"], opposite_termination["data"]
+        )

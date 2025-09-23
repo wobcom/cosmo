@@ -193,6 +193,34 @@ def test_router_logical_interface(capsys):
     )
 
 
+def test_router_interface_auto_description():
+    [sd] = get_router_sd_from_path("./test_case_auto_descriptions.yaml")
+
+    assert "et-0/0/0" in sd["interfaces"]
+    assert "et-0/0/1" in sd["interfaces"]
+    assert "et-0/0/2" in sd["interfaces"]
+    assert "et-0/0/3" in sd["interfaces"]
+    assert "et-0/0/4" in sd["interfaces"]
+
+    assert (
+        "link to mikrotik01 -> combo1 (cosmo-generated)"
+        == sd["interfaces"]["et-0/0/0"]["description"]
+    )
+    assert "do not overwrite me!" == sd["interfaces"]["et-0/0/1"]["description"]
+    assert (
+        "line cl390287 (current) to circuit FS 3298327 1-1-2 (cosmo-generated)"
+        == sd["interfaces"]["et-0/0/2"]["description"]
+    )
+    assert (
+        "line cl390287 (current) to TEST0002 -> xe-0/1/0 (cosmo-generated)"
+        == sd["interfaces"]["et-0/0/3"]["description"]
+    )
+    assert (
+        "line cl390287 (current) to Panel C -> DC10 duplex front 10b (cosmo-generated)"
+        == sd["interfaces"]["et-0/0/4"]["description"]
+    )
+
+
 def test_router_lag():
     [sd] = get_router_sd_from_path("./test_case_lag.yaml")
 
@@ -447,26 +475,26 @@ def test_router_case_local_bgpcpe():
 
     groups_default = d["routing_instances"]["default"]["protocols"]["bgp"]["groups"]
     assert len(groups_default) == 1
-    assert "CPE_ifp-0-1-2-3" in groups_default
     assert (
-        groups_default["CPE_ifp-0-1-2-3"]["neighbors"][0]["interface"] == "ifp-0/1/2.3"
-    )
-    assert groups_default["CPE_ifp-0-1-2-3"]["family"]["ipv4_unicast"]["policy"][
+        "CUST_cl390287" in groups_default
+    )  #  parent interface has tobago line attached
+    assert groups_default["CUST_cl390287"]["neighbors"][0]["interface"] == "ifp-0/1/2.3"
+    assert groups_default["CUST_cl390287"]["family"]["ipv4_unicast"]["policy"][
         "export"
     ] == ["DEFAULT_V4"]
-    assert groups_default["CPE_ifp-0-1-2-3"]["family"]["ipv6_unicast"]["policy"][
+    assert groups_default["CUST_cl390287"]["family"]["ipv6_unicast"]["policy"][
         "export"
     ] == ["DEFAULT_V6"]
-    assert groups_default["CPE_ifp-0-1-2-3"]["family"]["ipv4_unicast"]["policy"][
+    assert groups_default["CUST_cl390287"]["family"]["ipv4_unicast"]["policy"][
         "import_list"
     ] == ["10.1.0.0/28"]
-    assert groups_default["CPE_ifp-0-1-2-3"]["family"]["ipv6_unicast"]["policy"][
+    assert groups_default["CUST_cl390287"]["family"]["ipv6_unicast"]["policy"][
         "import_list"
     ] == ["2a0e:b941:2:42::/64", "2a0e:b941:2::/122"]
 
     groups_L3VPN = d["routing_instances"]["L3VPN"]["protocols"]["bgp"]["groups"]
 
-    assert "CPE_ifp-0-1-2-4" in groups_L3VPN
+    assert "CPE_ifp-0-1-2-4" in groups_L3VPN  #  sub interface using legacy naming tag
     assert groups_L3VPN["CPE_ifp-0-1-2-4"]["neighbors"][0]["interface"] == "ifp-0/1/2.4"
     assert (
         not "export"
@@ -483,25 +511,23 @@ def test_router_case_local_bgpcpe():
         "import_list"
     ] == ["2a0e:b941:2:42::/64", "2a0e:b941:2::/122"]
 
-    assert "CPE_ifp-0-1-2-5_V4" in groups_L3VPN
-    assert "CPE_ifp-0-1-2-5_V6" in groups_L3VPN
-    assert groups_L3VPN["CPE_ifp-0-1-2-5_V4"]["neighbors"][0]["peer"] == "10.128.6.12"
+    assert "CUST_cl390287_V4" in groups_L3VPN
+    assert "CUST_cl390287_V6" in groups_L3VPN
+    assert groups_L3VPN["CUST_cl390287_V4"]["neighbors"][0]["peer"] == "10.128.6.12"
+    assert groups_L3VPN["CUST_cl390287_V6"]["neighbors"][0]["peer"] == "2a0e:b941:2::21"
     assert (
-        groups_L3VPN["CPE_ifp-0-1-2-5_V6"]["neighbors"][0]["peer"] == "2a0e:b941:2::21"
+        not "export"
+        in groups_L3VPN["CUST_cl390287_V4"]["family"]["ipv4_unicast"]["policy"]
     )
     assert (
         not "export"
-        in groups_L3VPN["CPE_ifp-0-1-2-5_V4"]["family"]["ipv4_unicast"]["policy"]
+        in groups_L3VPN["CUST_cl390287_V6"]["family"]["ipv6_unicast"]["policy"]
     )
-    assert (
-        not "export"
-        in groups_L3VPN["CPE_ifp-0-1-2-5_V6"]["family"]["ipv6_unicast"]["policy"]
-    )
-    assert groups_L3VPN["CPE_ifp-0-1-2-5_V4"]["family"]["ipv4_unicast"]["policy"][
+    assert groups_L3VPN["CUST_cl390287_V4"]["family"]["ipv4_unicast"]["policy"][
         "import_list"
     ] == ["10.1.0.0/28"]
     # should not be allowed to announce our transfer nets, so '2a0e:b941:2::/122' should not be there
-    assert groups_L3VPN["CPE_ifp-0-1-2-5_V6"]["family"]["ipv6_unicast"]["policy"][
+    assert groups_L3VPN["CUST_cl390287_V6"]["family"]["ipv6_unicast"]["policy"][
         "import_list"
     ] == ["2a0e:b941:2:42::/64"]
 
@@ -638,6 +664,32 @@ def test_switch_lldp():
     assert "swp52" in sd["cumulus__device_interfaces"]
     assert "lldp" in sd["cumulus__device_interfaces"]["swp52"]
     assert True == sd["cumulus__device_interfaces"]["swp52"]["lldp"]
+
+
+def test_switch_auto_description():
+    [sd] = get_switch_sd_from_path("./test_case_switch_auto_description.yaml")
+
+    assert "swp52" in sd["cumulus__device_interfaces"]
+    assert "swp53" in sd["cumulus__device_interfaces"]
+    assert "swp54" in sd["cumulus__device_interfaces"]
+
+    assert "description" in sd["cumulus__device_interfaces"]["swp52"]
+    assert (
+        "link to mikrotik01 -> combo1 (cosmo-generated)"
+        == sd["cumulus__device_interfaces"]["swp52"]["description"]
+    )
+
+    assert "description" in sd["cumulus__device_interfaces"]["swp53"]
+    assert (
+        "do not overwrite me!"
+        == sd["cumulus__device_interfaces"]["swp53"]["description"]
+    )
+
+    assert "description" in sd["cumulus__device_interfaces"]["swp54"]
+    assert (
+        "line cl390287 (current) to Panel C -> DC10 duplex front 10b (cosmo-generated)"
+        == sd["cumulus__device_interfaces"]["swp54"]["description"]
+    )
 
 
 def test_switch_vlans():

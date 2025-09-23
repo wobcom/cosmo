@@ -1,6 +1,7 @@
 import ipaddress
 from multimethod import multimethod as singledispatchmethod
 
+from cosmo.common import APP_NAME
 from cosmo.log import warn
 from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
 from cosmo.netbox_types import (
@@ -9,6 +10,7 @@ from cosmo.netbox_types import (
     InterfaceType,
     VLANType,
     TagType,
+    CosmoTobagoLine,
 )
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
@@ -120,16 +122,62 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             }
         }
 
+    def processConnectedEndpointInterface(self, o: InterfaceType):
+        # passed interface is on "the other side", in connected_endpoints
+        device_interface = o.getParent(InterfaceType)
+        associated_device = o.getAssociatedDevice()
+        if (
+            not device_interface.hasAnAttachedTobagoLine()
+            and not device_interface.hasDescription()
+            and associated_device
+        ):
+            return {
+                self._interfaces_key: {
+                    device_interface.getName(): {
+                        "description": f"link to {associated_device.getName()}"
+                        f" -> {o.getName()} ({APP_NAME}-generated)"
+                    }
+                }
+            }
+
+    def processTobagoLineData(self, o: CosmoTobagoLine):
+        device_interface = o.getParent(InterfaceType)
+        if not device_interface.hasDescription():
+            return {
+                self._interfaces_key: {
+                    device_interface.getName(): {
+                        "description": f"line {o.getLineNameLong()} ({o.getLineStatus()})"
+                        f" to {o.getOppositeTerminationObjectOf(device_interface)}"
+                        f" ({APP_NAME}-generated)"
+                    }
+                }
+            }
+
+    @accept.register
+    def _(self, o: CosmoTobagoLine):
+        if o.isUnderKeyNameForParentAboveWithType(
+            "attached_tobago_line", InterfaceType
+        ):
+            return self.processTobagoLineData(o)
+
     @accept.register
     def _(self, o: InterfaceType):
         # either lag interface
         if o.isLagInterface():
             return self.processLagMember(o)
         # 'lag': {'__typename': 'InterfaceType', 'id': '${ID}', 'name': '${NAME}'}
-        elif o.hasParentAboveWithType(
-            InterfaceType
-        ):  # interface in interface -> lagInfo
-            return self.processInterfaceLagInfo(o)
+        elif o.hasParentAboveWithType(InterfaceType):
+            if o.isUnderKeyNameForParentAboveWithType(
+                "lag",
+                InterfaceType,
+            ):
+                return self.processInterfaceLagInfo(o)
+            if o.isUnderKeyNameForParentAboveWithType(
+                "connected_endpoints",
+                InterfaceType,
+            ):
+                return self.processConnectedEndpointInterface(o)
+            return  # interface-in-interface with other key, do not process
         # or "normal" interface
         else:
             return self.processInterface(o)
