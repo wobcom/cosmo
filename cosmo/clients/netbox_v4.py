@@ -1,7 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 from builtins import map
-from multiprocessing import Pool
+from multiprocessing import Manager
 from string import Template
 
 from cosmo.clients.netbox_client import NetboxAPIClient
@@ -16,10 +16,10 @@ class ParallelQuery(ABC):
         self.kwargs = kwargs
 
     def fetch_data(self, pool):
-        return pool.apply_async(self._fetch_data, args=(self.kwargs,))
+        return pool.apply_async(self._fetch_data, args=(self.kwargs, pool))
 
     @abstractmethod
-    def _fetch_data(self, **kwargs):
+    def _fetch_data(self, kwargs, pool):
         pass
 
     def merge_into(self, data_promise, data: dict):
@@ -32,7 +32,7 @@ class ParallelQuery(ABC):
 
 
 class ConnectedDevicesDataQuery(ParallelQuery):
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         query_template = Template(
             """
             query {
@@ -105,7 +105,7 @@ class ConnectedDevicesDataQuery(ParallelQuery):
 
 
 class LoopbackDataQuery(ParallelQuery):
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         # Note: This does not use the device list, because we can have other participating devices
         # which are not in the same repository and thus are not appearing in device list.
 
@@ -191,7 +191,7 @@ class LoopbackDataQuery(ParallelQuery):
 
 
 class L2VPNDataQuery(ParallelQuery):
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         query_template = Template(
             """
          query {
@@ -272,7 +272,7 @@ class L2VPNDataQuery(ParallelQuery):
 
 class StaticRouteQuery(ParallelQuery):
 
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         device_list = kwargs.get("device_list")
         return self.client.query_rest(
             "api/plugins/routing/staticroutes/", {"device": device_list}
@@ -291,7 +291,7 @@ class StaticRouteQuery(ParallelQuery):
 
 
 class StaticRouteDummyQuery(ParallelQuery):
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         return []
 
     def _merge_into(self, data: dict, query_data):
@@ -303,7 +303,7 @@ class StaticRouteDummyQuery(ParallelQuery):
 
 class IPPoolDataQuery(ParallelQuery):
 
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         device_list = kwargs.get("device_list")
         return self.client.query_rest(
             "api/plugins/ip-pools/ippools/", {"devices": device_list}
@@ -325,7 +325,7 @@ class IPPoolDataQuery(ParallelQuery):
 
 
 class IPPoolDataDummyQuery(ParallelQuery):
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         return []
 
     def _merge_into(self, data: dict, query_data):
@@ -335,12 +335,30 @@ class IPPoolDataDummyQuery(ParallelQuery):
 
 
 class TobagoLineMembersDataQuery(ParallelQuery):
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         device = kwargs.get("device")
-        return self.client.query_rest(
+        line_members = self.client.query_rest(
             "api/plugins/tobago/line-members/find-by-object/",
             {"content_type": "dcim.device", "object_name": device},
         )
+        service_instances = pool.map(self._get_service_data, line_members)
+        for line_member, service_instance in zip(line_members, service_instances):
+            line_member["version"]["line"]["service"] = service_instance
+        return line_members
+
+    def _get_service_data(self, line_member: dict) -> dict:
+        line_id = line_member["version"]["line"]["id"]
+        # query_rest does not work here, because the response
+        # we get does not have expected fields
+        line_instance = self.client.query_rest(
+            f"api/plugins/tobago/lines/{line_id}/", {}
+        )
+        service_id = line_instance["service"]["id"]
+        # same than above
+        service_instance = self.client.query_rest(
+            f"api/plugins/tobago/services/{service_id}/", {}
+        )
+        return service_instance
 
     def _merge_into(self, data: dict, query_result):
         query_device_name = self.kwargs.get("device")
@@ -369,7 +387,7 @@ class TobagoLineMembersDataQuery(ParallelQuery):
 
 
 class TobagoLineMemberDataDummyQuery(ParallelQuery):
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         return []
 
     def _merge_into(self, data: dict, query_result):
@@ -382,7 +400,7 @@ class TobagoLineMemberDataDummyQuery(ParallelQuery):
 # Note:
 # Netbox v4.2 broke mac addresses in the GraphQL queries. Therefore, we just fetch them via the REST API and add them.
 class DeviceMACQuery(ParallelQuery):
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         device_list = kwargs.get("device_list")
         return self.client.query_rest(
             "api/dcim/interfaces",
@@ -413,7 +431,7 @@ class DeviceDataQuery(ParallelQuery):
         super().__init__(*args, **kwargs)
         self.multiple_mac_addresses = multiple_mac_addresses
 
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         device = kwargs.get("device")
         query_template = Template(
             """
@@ -581,14 +599,20 @@ class NetboxV4Strategy:
             ]
         )
 
-        with Pool() as pool:
+        # https://superfastpython.com/multiprocessing-pool-share-with-workers/
+        # pool object is used through manager's proxy multiprocess object,
+        # this way, subprocesses can spawn more processes as if it was done
+        # from the main thread. by default this is not possible, see
+        # https://stackoverflow.com/questions/72411392/can-you-do-nested-parallelization-using-multiprocessing-in-python
+        # this avoids having to re-architecture completely using worker/task/queue model.
+        with Manager() as manager:
+            with manager.Pool() as pool:
+                data_promises = list(map(lambda x: x.fetch_data(pool), queries))
 
-            data_promises = list(map(lambda x: x.fetch_data(pool), queries))
+                data = dict()
 
-            data = dict()
-
-            for i, q in enumerate(queries):
-                dp = data_promises[i]
-                data = q.merge_into(dp, data)
+                for i, q in enumerate(queries):
+                    dp = data_promises[i]
+                    data = q.merge_into(dp, data)
 
         return data

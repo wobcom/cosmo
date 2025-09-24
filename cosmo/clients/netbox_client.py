@@ -50,7 +50,10 @@ class NetboxAPIClient:
 
             data = r.json()
 
-            url = data["next"]
-            return_array.extend(data["results"])
+            url = data.get("next")
+            if type(data.get("results")) == list:
+                return_array.extend(data.get("results"))
+            else:
+                return data
 
         return return_array
