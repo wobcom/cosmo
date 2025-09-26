@@ -125,6 +125,17 @@ device_list:
           name: '390287'
           name_long: cl390287
           url: https://netbox.example.com/api/plugins/tobago/lines/9834/
+          service:
+            id: 4893794
+            url: https://netbox.example.com/api/plugins/tobago/services/4893794/
+            display: "#9823 (cl390287)"
+            business_service: null
+            tenant:
+              id: 43876
+              url: https://netbox.example.com/api/plugins/tobago/tenants/43876/
+              display: Contoso Ltd.
+              name: Contoso Ltd.
+              slug: contoso-ltd
         status: current
     mac_address: null
     mode: null

@@ -24,7 +24,7 @@ class TobagoDeviceNameTrait(metaclass=ABCMeta):
         self._store = data
 
     def __str__(self):
-        return f"{self._store['device']['name']} -> {self._store['name']}"
+        return f"{self._store['device']['name']},  {self._store['name']}"
 
 
 class TobagoCircuitTerminationType(TobagoAbstractTerminationType):
