@@ -432,6 +432,7 @@ class DeviceDataQuery(ParallelQuery):
                   ip_addresses {
                     __typename
                     address
+                    role
                   }
                   untagged_vlan {
                     __typename
