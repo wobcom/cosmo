@@ -1,6 +1,7 @@
 import abc
 import ipaddress
 import re
+from enum import StrEnum
 from urllib.parse import urljoin
 
 from collections.abc import Iterable
@@ -656,6 +657,26 @@ class CosmoIPPoolType(AbstractNetboxType):
 
 
 class CosmoTobagoLine(AbstractNetboxType):
+    class TobagoLineType(StrEnum):
+        CUSTOMER = "Customer"
+        PEERING = "Peering"
+        CORE = "Core"
+        SUBSCRIBER = "Subscriber"
+
+    def getLineType(self) -> TobagoLineType:
+        device_interface_tags = self.getParent(InterfaceType).getTags()
+        line_type = self.TobagoLineType.CUSTOMER
+        if "core" in device_interface_tags:
+            line_type = self.TobagoLineType.CORE
+        elif "access" in device_interface_tags:
+            line_type = self.TobagoLineType.SUBSCRIBER
+        elif (
+            "edge:peering-pni" in device_interface_tags
+            or "edge:peering-ixp" in device_interface_tags
+        ):
+            line_type = self.TobagoLineType.PEERING
+        return line_type
+
     def getTerminationObjectForTypeAndData(self, termination_type: str, data: dict):
         tobago_termination_classes: list[type[TobagoAbstractTerminationType]] = (
             TobagoAbstractTerminationType.__subclasses__()
@@ -677,6 +698,12 @@ class CosmoTobagoLine(AbstractNetboxType):
     def _getCurrentLine(self):
         return self._getCurrentLineMetadata()["line"]
 
+    def _getCurrentService(self):
+        return self._getCurrentLine()["service"]
+
+    def _getCurrentTenant(self):
+        return self._getCurrentService()["tenant"]
+
     def getLineID(self) -> str:
         return str(self._getCurrentLine()["id"])
 
@@ -685,6 +712,9 @@ class CosmoTobagoLine(AbstractNetboxType):
 
     def getName(self):
         return self.getLineNameLong()
+
+    def getTenantName(self):
+        return self._getCurrentTenant()["name"]
 
     def getLineStatus(self):
         return self._getCurrentLineMetadata()["status"]
@@ -705,3 +735,20 @@ class CosmoTobagoLine(AbstractNetboxType):
         return self.getTerminationObjectForTypeAndData(
             opposite_termination["type"], opposite_termination["data"]
         )
+
+    def describe(self) -> str:
+        device_interface: InterfaceType = self.getParent(InterfaceType)
+        line_type = self.getLineType()
+
+        match line_type:
+            case self.TobagoLineType.SUBSCRIBER | self.TobagoLineType.CORE:
+                return (
+                    f"{line_type}: [{self.getOppositeTerminationObjectOf(device_interface)}]"
+                    f" {{{self.getLineNameLong()}}}"
+                )
+            case _:
+                return (
+                    f"{line_type}: {self.getTenantName()}"
+                    f" [{self.getOppositeTerminationObjectOf(device_interface)}]"
+                    f" {{{self.getLineNameLong()}}}"
+                )

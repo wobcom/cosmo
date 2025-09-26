@@ -145,11 +145,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
         if not device_interface.hasDescription():
             return {
                 self._interfaces_key: {
-                    device_interface.getName(): {
-                        "description": f"line {o.getLineNameLong()} ({o.getLineStatus()})"
-                        f" to {o.getOppositeTerminationObjectOf(device_interface)}"
-                        f" ({APP_NAME}-generated)"
-                    }
+                    device_interface.getName(): {"description": o.describe()}
                 }
             }
 

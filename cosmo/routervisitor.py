@@ -390,11 +390,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             return {
                 self._interfaces_key: {
                     **device_interface.spitInterfacePathWith(
-                        {
-                            "description": f"line {o.getLineNameLong()} ({o.getLineStatus()})"
-                            f" to {o.getOppositeTerminationObjectOf(device_interface)}"
-                            f" ({APP_NAME}-generated)"
-                        }
+                        {"description": o.describe()}
                     )
                 }
             }
