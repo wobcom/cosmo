@@ -1,12 +1,14 @@
 from urllib.parse import urlencode, urljoin
+from multiprocessing.managers import DictProxy
 
 import requests
 
 
 class NetboxAPIClient:
-    def __init__(self, url, token):
+    def __init__(self, url, token, interprocess_shared_cache: DictProxy):
         self.url = url
         self.token = token
+        self.cache = interprocess_shared_cache
 
     def query(self, query):
         r = requests.post(
@@ -29,6 +31,14 @@ class NetboxAPIClient:
 
         return json
 
+    def _cached_get(self, url, headers):
+        if url not in self.cache:
+            self.cache[url] = requests.get(
+                url,
+                headers=headers,
+            )
+        return self.cache.get(url)
+
     def query_rest(self, path, queries):
         q = urlencode(queries, doseq=True)
         url = urljoin(self.url, path) + f"?{q}"
@@ -36,7 +46,7 @@ class NetboxAPIClient:
         return_array = list()
 
         while url is not None:
-            r = requests.get(
+            r = self._cached_get(
                 url,
                 headers={
                     "Authorization": f"Token {self.token}",

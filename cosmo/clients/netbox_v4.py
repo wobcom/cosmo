@@ -555,7 +555,8 @@ class DeviceDataQuery(ParallelQuery):
 class NetboxV4Strategy:
 
     def __init__(self, url, token, multiple_mac_addresses, feature_flags):
-        self.client = NetboxAPIClient(url, token)
+        self.url = url
+        self.token = token
         self.multiple_mac_addresses = multiple_mac_addresses
         self.feature_flags = feature_flags
 
@@ -564,41 +565,6 @@ class NetboxV4Strategy:
 
         queries = list()
 
-        for d in device_list:
-            queries.extend(
-                [
-                    DeviceDataQuery(
-                        self.client,
-                        device=d,
-                        multiple_mac_addresses=self.multiple_mac_addresses,
-                    ),
-                    (
-                        TobagoLineMembersDataQuery(self.client, device=d)
-                        if self.feature_flags["tobago"]
-                        else TobagoLineMemberDataDummyQuery(self.client, device=d)
-                    ),
-                ]
-            )
-
-        queries.extend(
-            [
-                L2VPNDataQuery(self.client, device_list=device_list),
-                (
-                    StaticRouteQuery(self.client, device_list=device_list)
-                    if self.feature_flags["routing"]
-                    else StaticRouteDummyQuery(self.client, device_list=device_list)
-                ),
-                DeviceMACQuery(self.client, device_list=device_list),
-                ConnectedDevicesDataQuery(self.client, device_list=device_list),
-                LoopbackDataQuery(self.client, device_list=device_list),
-                (
-                    IPPoolDataQuery(self.client, device_list=device_list)
-                    if self.feature_flags["ippools"]
-                    else IPPoolDataDummyQuery(self.client, device_list=device_list)
-                ),
-            ]
-        )
-
         # https://superfastpython.com/multiprocessing-pool-share-with-workers/
         # pool object is used through manager's proxy multiprocess object,
         # this way, subprocesses can spawn more processes as if it was done
@@ -606,6 +572,43 @@ class NetboxV4Strategy:
         # https://stackoverflow.com/questions/72411392/can-you-do-nested-parallelization-using-multiprocessing-in-python
         # this avoids having to re-architecture completely using worker/task/queue model.
         with Manager() as manager:
+            client = NetboxAPIClient(self.url, self.token, manager.dict())
+
+            for d in device_list:
+                queries.extend(
+                    [
+                        DeviceDataQuery(
+                            client,
+                            device=d,
+                            multiple_mac_addresses=self.multiple_mac_addresses,
+                        ),
+                        (
+                            TobagoLineMembersDataQuery(client, device=d)
+                            if self.feature_flags["tobago"]
+                            else TobagoLineMemberDataDummyQuery(client, device=d)
+                        ),
+                    ]
+                )
+
+            queries.extend(
+                [
+                    L2VPNDataQuery(client, device_list=device_list),
+                    (
+                        StaticRouteQuery(client, device_list=device_list)
+                        if self.feature_flags["routing"]
+                        else StaticRouteDummyQuery(client, device_list=device_list)
+                    ),
+                    DeviceMACQuery(client, device_list=device_list),
+                    ConnectedDevicesDataQuery(client, device_list=device_list),
+                    LoopbackDataQuery(client, device_list=device_list),
+                    (
+                        IPPoolDataQuery(client, device_list=device_list)
+                        if self.feature_flags["ippools"]
+                        else IPPoolDataDummyQuery(client, device_list=device_list)
+                    ),
+                ]
+            )
+
             with manager.Pool() as pool:
                 data_promises = list(map(lambda x: x.fetch_data(pool), queries))
 
