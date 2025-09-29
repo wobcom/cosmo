@@ -34,6 +34,12 @@ from cosmo.netbox_types import (
     DeviceTypeType,
     PlatformType,
     CosmoIPPoolType,
+    CosmoTobagoLine,
+    FrontPortType,
+    RearPortType,
+    ConsolePortType,
+    ConsoleServerPortType,
+    ConnectionTerminationType,
 )
 
 
@@ -337,6 +343,58 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             }
         }
 
+    def processConnectedEndpointTermination(self, o: ConnectionTerminationType):
+        # We are in the interface under connected endpoint, that is, on the "other side"
+        # of the connection from the POV of the current device. If the current interface
+        # has no description, we auto-generate one.
+        device_interface = o.getParent(InterfaceType)
+        associated_device = o.getAssociatedDevice()
+        if (
+            not device_interface.hasAnAttachedTobagoLine()
+            and not device_interface.hasDescription()
+            and not device_interface.hasLinkPeers()
+            and associated_device
+        ):
+            return {
+                self._interfaces_key: {
+                    **device_interface.spitInterfacePathWith(
+                        {
+                            "description": f"connected to {associated_device.getName()}"
+                            f" -> {o.getName()} ({APP_NAME}-generated)"
+                        }
+                    )
+                }
+            }
+
+    def processLinkPeerTermination(self, o: ConnectionTerminationType):
+        device_interface = o.getParent(InterfaceType)
+        associated_device = o.getAssociatedDevice()
+        if (
+            not device_interface.hasAnAttachedTobagoLine()
+            and not device_interface.hasDescription()
+            and associated_device
+        ):
+            return {
+                self._interfaces_key: {
+                    **device_interface.spitInterfacePathWith(
+                        {
+                            "description": f"link peer {associated_device.getName()} "
+                            f"-> {o.getName()} ({APP_NAME}-generated)"
+                        }
+                    )
+                }
+            }
+
+    @accept.register
+    def _(
+        self,
+        o: FrontPortType | RearPortType | ConsolePortType | ConsoleServerPortType,
+    ):
+        if o.isUnderKeyNameForParentAboveWithType("connected_endpoints", InterfaceType):
+            return self.processConnectedEndpointTermination(o)
+        elif o.isUnderKeyNameForParentAboveWithType("link_peers", InterfaceType):
+            return self.processLinkPeerTermination(o)
+
     @accept.register
     def _(self, o: InterfaceType):
         if o.hasParentAboveWithType(VLANType):
@@ -350,17 +408,38 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             return self.processInterfaceLagInfo(o)
         # interface in interface is lag info
         if o.hasParentAboveWithType(InterfaceType):
-            if (
-                "lag" in o.getParent(InterfaceType).keys()
-                and o.getParent(InterfaceType)["lag"] == o
-            ):
+            if o.isUnderKeyNameForParentAboveWithType("lag", InterfaceType):
                 return self.processLagMember(o)
+            elif o.isUnderKeyNameForParentAboveWithType(
+                "connected_endpoints", InterfaceType
+            ):
+                return self.processConnectedEndpointTermination(o)
+            elif o.isUnderKeyNameForParentAboveWithType("link_peers", InterfaceType):
+                return self.processLinkPeerTermination(o)
             return  # guard: do not process (can be connected_endpoint, parent, etc...)
         return {
             self._interfaces_key: {
                 **o.spitInterfacePathWith(self.processInterfaceCommon(o))
             }
         }
+
+    def processTobagoLineData(self, o: CosmoTobagoLine):
+        device_interface = o.getParent(InterfaceType)
+        if not device_interface.hasDescription():
+            return {
+                self._interfaces_key: {
+                    **device_interface.spitInterfacePathWith(
+                        {"description": o.describe()}
+                    )
+                }
+            }
+
+    @accept.register
+    def _(self, o: CosmoTobagoLine):
+        if o.isUnderKeyNameForParentAboveWithType(
+            "attached_tobago_line", InterfaceType
+        ):
+            return self.processTobagoLineData(o)
 
     @accept.register
     def _(self, o: VRFType):

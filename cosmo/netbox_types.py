@@ -1,10 +1,11 @@
 import abc
 import ipaddress
 import re
+from enum import StrEnum
 from urllib.parse import urljoin
 
 from collections.abc import Iterable
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 from ipaddress import IPv4Interface, IPv6Interface
 
 from .common import (
@@ -14,9 +15,15 @@ from .common import (
     InterfaceSerializationError,
     head,
 )
-from typing import Self, Iterator, TypeVar, NoReturn, Never, Any
+from typing import Self, Iterator, TypeVar, NoReturn, Never, Type, Any, Union
+
+from .tobago_types import TobagoAbstractTerminationType
 
 T = TypeVar("T", bound="AbstractNetboxType")
+ConnectionTerminationType = TypeVar(
+    "ConnectionTerminationType",
+    bound="InterfaceType|FrontPortType|RearPortType|ConsolePortType|ConsoleServerPortType",
+)
 
 
 class AbstractNetboxType(abc.ABC, Iterable):
@@ -141,6 +148,20 @@ class AbstractNetboxType(abc.ABC, Iterable):
                 else:
                     instance = instance["__parent"]
             return instance
+
+    def isUnderKeyNameForParentAboveWithType(
+        self, key: str, target_type: type[T]
+    ) -> bool:
+        if self.hasParentAboveWithType(target_type):
+            if key in self.getParent(target_type).keys() and (
+                self.getParent(target_type)[key] == self
+                or (
+                    isinstance(self.getParent(target_type)[key], Iterable)
+                    and self in self.getParent(target_type)[key]
+                )
+            ):  # self can be found under given key
+                return True
+        return False
 
     def getID(self):
         return self.get("id")
@@ -381,7 +402,41 @@ class VRFType(AbstractNetboxType):
         return self["rd"]
 
 
-class InterfaceType(AbstractNetboxType):
+class IWithAssociatedDevice(metaclass=ABCMeta):
+    @abstractmethod
+    def get(self, *args, **kwargs):
+        pass
+
+    def getAssociatedDevice(self) -> DeviceType | None:
+        return self.get("device")
+
+
+class FrontPortType(AbstractNetboxType, IWithAssociatedDevice):
+    def getBasePath(self):
+        return "/dcim/front-ports/"
+
+
+class RearPortType(AbstractNetboxType, IWithAssociatedDevice):
+    def getBasePath(self):
+        return "/dcim/rear-ports/"
+
+
+class CircuitTerminationType(AbstractNetboxType):
+    def getBasePath(self):
+        return "/circuits/circuit-terminations/"
+
+
+class ConsolePortType(AbstractNetboxType, IWithAssociatedDevice):
+    def getBasePath(self):
+        return "/dcim/console-ports/"
+
+
+class ConsoleServerPortType(AbstractNetboxType, IWithAssociatedDevice):
+    def getBasePath(self):
+        return "/dcim/console-server-ports/"
+
+
+class InterfaceType(AbstractNetboxType, IWithAssociatedDevice):
     def __repr__(self):
         return super().__repr__() + f"({self.getName()})"
 
@@ -533,9 +588,6 @@ class InterfaceType(AbstractNetboxType):
             )
         return False
 
-    def getAssociatedDevice(self) -> DeviceType | None:
-        return self.get("device")
-
     def getIPAddresses(self) -> list[IPAddressType]:
         return self.get("ip_addresses", [])
 
@@ -545,8 +597,20 @@ class InterfaceType(AbstractNetboxType):
     def isLoopbackChild(self):
         return "." in self.getName() and self.getName().startswith("lo")
 
-    def getConnectedEndpoints(self) -> list[DeviceType]:
+    def getConnectedEndpoints(self) -> list[ConnectionTerminationType]:
         return self.get("connected_endpoints", [])
+
+    def hasConnectedEndpoints(self) -> bool:
+        return bool(len(self.getConnectedEndpoints()))
+
+    def getLinkPeers(self) -> list[ConnectionTerminationType]:
+        return self.get("link_peers", [])
+
+    def hasLinkPeers(self):
+        return bool(len(self.getLinkPeers()))
+
+    def hasAnAttachedTobagoLine(self):
+        return self.get("attached_tobago_line") is not None
 
 
 class VLANType(AbstractNetboxType):
@@ -659,3 +723,101 @@ class CosmoIPPoolType(AbstractNetboxType):
 
     def hasIPRanges(self) -> bool:
         return len(self["ip_ranges"]) > 0
+
+
+class CosmoTobagoLine(AbstractNetboxType):
+    class TobagoLineType(StrEnum):
+        CUSTOMER = "Customer"
+        PEERING = "Peering"
+        CORE = "Core"
+        SUBSCRIBER = "Subscriber"
+
+    def getLineType(self) -> TobagoLineType:
+        device_interface_tags = self.getParent(InterfaceType).getTags()
+        line_type = self.TobagoLineType.CUSTOMER
+        if "core" in device_interface_tags:
+            line_type = self.TobagoLineType.CORE
+        elif "access" in device_interface_tags:
+            line_type = self.TobagoLineType.SUBSCRIBER
+        elif (
+            "edge:peering-pni" in device_interface_tags
+            or "edge:peering-ixp" in device_interface_tags
+        ):
+            line_type = self.TobagoLineType.PEERING
+        return line_type
+
+    def getTerminationObjectForTypeAndData(self, termination_type: str, data: dict):
+        tobago_termination_classes: list[type[TobagoAbstractTerminationType]] = (
+            TobagoAbstractTerminationType.__subclasses__()
+        )
+        for c in tobago_termination_classes:
+            if c.accepts(termination_type):
+                return c(data)
+        raise InterfaceSerializationError(
+            f"Unrecognized Tobago termination type {termination_type}",
+            on=self,
+        )
+
+    def getBasePath(self):
+        return "/plugins/tobago/lines/"
+
+    def _getCurrentLineMetadata(self):
+        return self["version"]
+
+    def _getCurrentLine(self):
+        return self._getCurrentLineMetadata()["line"]
+
+    def _getCurrentService(self):
+        return self._getCurrentLine()["service"]
+
+    def _getCurrentTenant(self):
+        return self._getCurrentService()["tenant"]
+
+    def getLineID(self) -> str:
+        return str(self._getCurrentLine()["id"])
+
+    def getLineNameLong(self):
+        return self._getCurrentLine()["name_long"]
+
+    def getName(self):
+        return self.getLineNameLong()
+
+    def getTenantName(self):
+        return self._getCurrentTenant()["name"]
+
+    def getLineStatus(self):
+        return self._getCurrentLineMetadata()["status"]
+
+    def getRelPath(self) -> str:
+        return urljoin(self.getBasePath(), self.getLineID())
+
+    def getOppositeTerminationObjectOf(
+        self, i: InterfaceType
+    ) -> TobagoAbstractTerminationType:
+        terminations = [
+            {"type": self["termination_a_type"], "data": self["termination_a"]},
+            {"type": self["termination_b_type"], "data": self["termination_b"]},
+        ]
+        opposite_termination = next(
+            filter(lambda t: int(t["data"]["id"]) != int(i.getID()), terminations)
+        )
+        return self.getTerminationObjectForTypeAndData(
+            opposite_termination["type"], opposite_termination["data"]
+        )
+
+    def describe(self) -> str:
+        device_interface: InterfaceType = self.getParent(InterfaceType)
+        line_type = self.getLineType()
+
+        match line_type:
+            case self.TobagoLineType.SUBSCRIBER | self.TobagoLineType.CORE:
+                return (
+                    f"{line_type}: [{self.getOppositeTerminationObjectOf(device_interface)}]"
+                    f" {{{self.getLineNameLong()}}}"
+                )
+            case _:
+                return (
+                    f"{line_type}: {self.getTenantName()}"
+                    f" [{self.getOppositeTerminationObjectOf(device_interface)}]"
+                    f" {{{self.getLineNameLong()}}}"
+                )

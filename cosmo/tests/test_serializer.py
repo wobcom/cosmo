@@ -193,6 +193,39 @@ def test_router_logical_interface(capsys):
     )
 
 
+def test_router_interface_auto_description():
+    [sd] = get_router_sd_from_path("./test_case_auto_descriptions.yaml")
+
+    assert "et-0/0/0" in sd["interfaces"]
+    assert "et-0/0/1" in sd["interfaces"]
+    assert "et-0/0/2" in sd["interfaces"]
+    assert "et-0/0/3" in sd["interfaces"]
+    assert "et-0/0/4" in sd["interfaces"]
+    assert "et-0/0/5" in sd["interfaces"]
+
+    assert (
+        "connected to mikrotik01 -> combo1 (cosmo-generated)"
+        == sd["interfaces"]["et-0/0/0"]["description"]
+    )
+    assert "do not overwrite me!" == sd["interfaces"]["et-0/0/1"]["description"]
+    assert (
+        "Peering: Contoso Ltd. [circuit FS 3298327 1-1-2] {cl390287}"
+        == sd["interfaces"]["et-0/0/2"]["description"]
+    )
+    assert (
+        "Customer: Contoso Ltd. [TEST0002,  xe-0/1/0] {cl390287}"
+        == sd["interfaces"]["et-0/0/3"]["description"]
+    )
+    assert (
+        "Customer: Contoso Ltd. [Panel C,  DC10 duplex front 10b] {cl390287}"
+        == sd["interfaces"]["et-0/0/4"]["description"]
+    )
+    assert (
+        "link peer mikrotik09 -> combo1 (cosmo-generated)"
+        == sd["interfaces"]["et-0/0/5"]["description"]
+    )
+
+
 def test_router_lag():
     [sd] = get_router_sd_from_path("./test_case_lag.yaml")
 
@@ -638,6 +671,39 @@ def test_switch_lldp():
     assert "swp52" in sd["cumulus__device_interfaces"]
     assert "lldp" in sd["cumulus__device_interfaces"]["swp52"]
     assert True == sd["cumulus__device_interfaces"]["swp52"]["lldp"]
+
+
+def test_switch_auto_description():
+    [sd] = get_switch_sd_from_path("./test_case_switch_auto_description.yaml")
+
+    assert "swp52" in sd["cumulus__device_interfaces"]
+    assert "swp53" in sd["cumulus__device_interfaces"]
+    assert "swp54" in sd["cumulus__device_interfaces"]
+    assert "swp55" in sd["cumulus__device_interfaces"]
+
+    assert "description" in sd["cumulus__device_interfaces"]["swp52"]
+    assert (
+        "connected to mikrotik01 -> combo1 (cosmo-generated)"
+        == sd["cumulus__device_interfaces"]["swp52"]["description"]
+    )
+
+    assert "description" in sd["cumulus__device_interfaces"]["swp53"]
+    assert (
+        "do not overwrite me!"
+        == sd["cumulus__device_interfaces"]["swp53"]["description"]
+    )
+
+    assert "description" in sd["cumulus__device_interfaces"]["swp54"]
+    assert (
+        "Customer: Contoso Ltd. [Panel C,  DC10 duplex front 10b] {cl390287}"
+        == sd["cumulus__device_interfaces"]["swp54"]["description"]
+    )
+
+    assert "description" in sd["cumulus__device_interfaces"]["swp55"]
+    assert (
+        "link peer mikrotik09 -> combo1 (cosmo-generated)"
+        == sd["cumulus__device_interfaces"]["swp55"]["description"]
+    )
 
 
 def test_switch_vlans():
