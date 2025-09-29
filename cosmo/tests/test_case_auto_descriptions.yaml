@@ -347,6 +347,37 @@ device_list:
     type: A_100GBASE_X_QSFP28
     untagged_vlan: null
     vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: null
+    __typename: InterfaceType
+    enabled: true
+    id: '30759'
+    ip_addresses: [ ]
+    connected_endpoints:
+      - name: "port_45"
+        __typename: InterfaceType
+        device:
+          __typename: DeviceType
+          name: "Panel48673"
+    link_peers:
+      - name: "combo1"
+        __typename: InterfaceType
+        device:
+          __typename: DeviceType
+          name: "mikrotik09"
+    attached_tobago_line: null
+    lag: null
+    mac_address: 94:BF:41:41:41:F3
+    mode: null
+    mtu: null
+    name: et-0/0/5
+    tagged_vlans: [ ]
+    tags: [ ]
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
   name: TEST0001
   platform:
     __typename: PlatformType

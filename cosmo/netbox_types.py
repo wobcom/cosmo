@@ -20,6 +20,10 @@ from typing import Self, Iterator, TypeVar, NoReturn, Never, Type, Any, Union
 from .tobago_types import TobagoAbstractTerminationType
 
 T = TypeVar("T", bound="AbstractNetboxType")
+ConnectionTerminationType = TypeVar(
+    "ConnectionTerminationType",
+    bound="InterfaceType|FrontPortType|RearPortType|ConsolePortType|ConsoleServerPortType",
+)
 
 
 class AbstractNetboxType(abc.ABC, Iterable):
@@ -363,7 +367,41 @@ class VRFType(AbstractNetboxType):
         return self["rd"]
 
 
-class InterfaceType(AbstractNetboxType):
+class IWithAssociatedDevice(metaclass=ABCMeta):
+    @abstractmethod
+    def get(self, *args, **kwargs):
+        pass
+
+    def getAssociatedDevice(self) -> DeviceType | None:
+        return self.get("device")
+
+
+class FrontPortType(AbstractNetboxType, IWithAssociatedDevice):
+    def getBasePath(self):
+        return "/dcim/front-ports/"
+
+
+class RearPortType(AbstractNetboxType, IWithAssociatedDevice):
+    def getBasePath(self):
+        return "/dcim/rear-ports/"
+
+
+class CircuitTerminationType(AbstractNetboxType):
+    def getBasePath(self):
+        return "/circuits/circuit-terminations/"
+
+
+class ConsolePortType(AbstractNetboxType, IWithAssociatedDevice):
+    def getBasePath(self):
+        return "/dcim/console-ports/"
+
+
+class ConsoleServerPortType(AbstractNetboxType, IWithAssociatedDevice):
+    def getBasePath(self):
+        return "/dcim/console-server-ports/"
+
+
+class InterfaceType(AbstractNetboxType, IWithAssociatedDevice):
     def __repr__(self):
         return super().__repr__() + f"({self.getName()})"
 
@@ -515,9 +553,6 @@ class InterfaceType(AbstractNetboxType):
             )
         return False
 
-    def getAssociatedDevice(self) -> DeviceType | None:
-        return self.get("device")
-
     def getIPAddresses(self) -> list[IPAddressType]:
         return self.get("ip_addresses", [])
 
@@ -527,8 +562,17 @@ class InterfaceType(AbstractNetboxType):
     def isLoopbackChild(self):
         return "." in self.getName() and self.getName().startswith("lo")
 
-    def getConnectedEndpoints(self) -> list[DeviceType]:
+    def getConnectedEndpoints(self) -> list[ConnectionTerminationType]:
         return self.get("connected_endpoints", [])
+
+    def hasConnectedEndpoints(self) -> bool:
+        return bool(len(self.getConnectedEndpoints()))
+
+    def getLinkPeers(self) -> list[ConnectionTerminationType]:
+        return self.get("link_peers", [])
+
+    def hasLinkPeers(self):
+        return bool(len(self.getLinkPeers()))
 
     def hasAnAttachedTobagoLine(self):
         return self.get("attached_tobago_line") is not None

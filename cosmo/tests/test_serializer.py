@@ -224,9 +224,10 @@ def test_router_interface_auto_description():
     assert "et-0/0/2" in sd["interfaces"]
     assert "et-0/0/3" in sd["interfaces"]
     assert "et-0/0/4" in sd["interfaces"]
+    assert "et-0/0/5" in sd["interfaces"]
 
     assert (
-        "link to mikrotik01 -> combo1 (cosmo-generated)"
+        "connected to mikrotik01 -> combo1 (cosmo-generated)"
         == sd["interfaces"]["et-0/0/0"]["description"]
     )
     assert "do not overwrite me!" == sd["interfaces"]["et-0/0/1"]["description"]
@@ -241,6 +242,10 @@ def test_router_interface_auto_description():
     assert (
         "Customer: Contoso Ltd. [Panel C,  DC10 duplex front 10b] {cl390287}"
         == sd["interfaces"]["et-0/0/4"]["description"]
+    )
+    assert (
+        "link peer mikrotik09 -> combo1 (cosmo-generated)"
+        == sd["interfaces"]["et-0/0/5"]["description"]
     )
 
 
@@ -726,10 +731,11 @@ def test_switch_auto_description():
     assert "swp52" in sd["cumulus__device_interfaces"]
     assert "swp53" in sd["cumulus__device_interfaces"]
     assert "swp54" in sd["cumulus__device_interfaces"]
+    assert "swp55" in sd["cumulus__device_interfaces"]
 
     assert "description" in sd["cumulus__device_interfaces"]["swp52"]
     assert (
-        "link to mikrotik01 -> combo1 (cosmo-generated)"
+        "connected to mikrotik01 -> combo1 (cosmo-generated)"
         == sd["cumulus__device_interfaces"]["swp52"]["description"]
     )
 
@@ -743,6 +749,12 @@ def test_switch_auto_description():
     assert (
         "Customer: Contoso Ltd. [Panel C,  DC10 duplex front 10b] {cl390287}"
         == sd["cumulus__device_interfaces"]["swp54"]["description"]
+    )
+
+    assert "description" in sd["cumulus__device_interfaces"]["swp55"]
+    assert (
+        "link peer mikrotik09 -> combo1 (cosmo-generated)"
+        == sd["cumulus__device_interfaces"]["swp55"]["description"]
     )
 
 
