@@ -480,6 +480,80 @@ class DeviceDataQuery(ParallelQuery):
                         name
                       }
                     }
+                    ... on FrontPortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                    ... on RearPortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                    ... on ConsolePortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                    ... on ConsoleServerPortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                  }
+                  link_peers {
+                    ... on FrontPortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                    ... on RearPortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                    ... on ConsolePortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                    ... on ConsoleServerPortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                    ... on InterfaceType {
+                       __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
                   }
                   vrf {
                     __typename

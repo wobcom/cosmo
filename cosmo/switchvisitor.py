@@ -11,6 +11,11 @@ from cosmo.netbox_types import (
     VLANType,
     TagType,
     CosmoTobagoLine,
+    ConnectionTerminationType,
+    FrontPortType,
+    RearPortType,
+    ConsolePortType,
+    ConsoleServerPortType,
 )
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
@@ -122,8 +127,26 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             }
         }
 
-    def processConnectedEndpointInterface(self, o: InterfaceType):
+    def processConnectedEndpointTermination(self, o: ConnectionTerminationType):
         # passed interface is on "the other side", in connected_endpoints
+        device_interface = o.getParent(InterfaceType)
+        associated_device = o.getAssociatedDevice()
+        if (
+            not device_interface.hasAnAttachedTobagoLine()
+            and not device_interface.hasLinkPeers()
+            and not device_interface.hasDescription()
+            and associated_device
+        ):
+            return {
+                self._interfaces_key: {
+                    device_interface.getName(): {
+                        "description": f"connected to {associated_device.getName()}"
+                        f" -> {o.getName()} ({APP_NAME}-generated)"
+                    }
+                }
+            }
+
+    def processLinkPeerTermination(self, o: ConnectionTerminationType):
         device_interface = o.getParent(InterfaceType)
         associated_device = o.getAssociatedDevice()
         if (
@@ -134,7 +157,7 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             return {
                 self._interfaces_key: {
                     device_interface.getName(): {
-                        "description": f"link to {associated_device.getName()}"
+                        "description": f"link peer {associated_device.getName()}"
                         f" -> {o.getName()} ({APP_NAME}-generated)"
                     }
                 }
@@ -157,6 +180,16 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             return self.processTobagoLineData(o)
 
     @accept.register
+    def _(
+        self,
+        o: FrontPortType | RearPortType | ConsolePortType | ConsoleServerPortType,
+    ):
+        if o.isUnderKeyNameForParentAboveWithType("connected_endpoints", InterfaceType):
+            return self.processConnectedEndpointTermination(o)
+        elif o.isUnderKeyNameForParentAboveWithType("link_peers", InterfaceType):
+            return self.processLinkPeerTermination(o)
+
+    @accept.register
     def _(self, o: InterfaceType):
         # either lag interface
         if o.isLagInterface():
@@ -172,7 +205,12 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                 "connected_endpoints",
                 InterfaceType,
             ):
-                return self.processConnectedEndpointInterface(o)
+                return self.processConnectedEndpointTermination(o)
+            elif o.isUnderKeyNameForParentAboveWithType(
+                "link_peers",
+                InterfaceType,
+            ):
+                return self.processLinkPeerTermination(o)
             return  # interface-in-interface with other key, do not process
         # or "normal" interface
         else:
