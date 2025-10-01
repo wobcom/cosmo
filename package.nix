@@ -18,5 +18,6 @@ python3Packages.buildPythonApplication rec {
     packaging 
     deepmerge 
     termcolor 
+    multimethod
   ];
 }
