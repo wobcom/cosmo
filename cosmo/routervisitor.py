@@ -422,6 +422,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                         "static": {
                             o.getPrefix(): {
                                 "next_hop": next_hop,
+                                "resolve_direct": True,
                             }
                             | ({"metric": o.getMetric()} if o.getMetric() else {})
                         }

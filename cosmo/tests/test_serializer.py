@@ -248,6 +248,10 @@ def test_router_vrf_rib():
     assert (
         rib["L3VPN-TEST.inet6.0"]["static"]["fd98::1/128"]["next_hop"] == "et-0/0/2.0"
     )
+    assert (
+        rib["L3VPN-TEST.inet.0"]["static"]["10.114.23.36/32"]["resolve_direct"] == True
+    )
+    assert rib["L3VPN-TEST.inet6.0"]["static"]["fd98::1/128"]["resolve_direct"] == True
     assert rib["L3VPN-TEST.inet6.0"]["static"]["fd98::1/128"]["metric"] == 100
 
 
