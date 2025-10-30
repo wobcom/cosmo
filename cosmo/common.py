@@ -40,6 +40,7 @@ JsonOutputType = CosmoOutputType
 
 
 # next() can raise StopIteration, so that's why I use this function
+# FIXME: should be head[T](l: list[T]) -> Optional[T]
 def head(l):
     return None if not l else l[0]
 

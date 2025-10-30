@@ -575,6 +575,7 @@ class InterfaceType(AbstractNetboxType, IWithAssociatedDevice, AutoDescribableMi
     def isLoopbackChild(self):
         return "." in self.getName() and self.getName().startswith("lo")
 
+    # TODO: make it smarter and manage LAGs, sub-interfaces etc?
     def getConnectedEndpoints(self) -> list[ConnectionTerminationType]:
         return self.get("connected_endpoints", [])
 

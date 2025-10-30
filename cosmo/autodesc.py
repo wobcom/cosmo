@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Optional, Self, Never
 
 from cosmo.common import AutoDescriptionError, CosmoOutputType, head
-from cosmo.netbox_types import InterfaceType, AbstractNetboxType
+from cosmo.netbox_types import InterfaceType, AbstractNetboxType, CosmoTobagoLine
 
 
 class AbstractComposableAutoDescription(metaclass=ABCMeta):
@@ -57,8 +57,25 @@ class AbstractComposableAutoDescription(metaclass=ABCMeta):
     def getPriority(self) -> int:
         return self.priority
 
+    def getTobagoLine(self) -> Optional[CosmoTobagoLine]:
+        return (
+            self.interface.getAttachedTobagoLine()
+            if self.interface.hasAnAttachedTobagoLine()
+            else self.interface.getPhysicalInterfaceByFilter().getAttachedTobagoLine()
+        )
+
+    @staticmethod
+    def suppressTenant() -> bool:
+        return False
+
     def toDict(self) -> CosmoOutputType | Never:
-        attached_tobago_line = self.interface.getAttachedTobagoLine()
+        attached_tobago_line = self.getTobagoLine()
+        physical_interface = (
+            self.interface.getPhysicalInterfaceByFilter()
+            if self.interface.isSubInterface()
+            else self.interface
+        )
+        connected_endpoint = head(physical_interface.getConnectedEndpoints())
         return (
             {}
             | (
@@ -67,11 +84,24 @@ class AbstractComposableAutoDescription(metaclass=ABCMeta):
                 else {}
             )
             | (  # directly attached line has priority
-                {"line": attached_tobago_line.getName()} if attached_tobago_line else {}
+                {"line": attached_tobago_line.getName()}
+                if attached_tobago_line and self.suppressTenant()
+                else {}
             )
             | (
-                {"description": self.interface.getDescription()}
-                if self.interface.hasDescription()
+                {
+                    "line": attached_tobago_line.getName(),
+                    "tenant": attached_tobago_line.getTenantName(),
+                }
+                if attached_tobago_line and not self.suppressTenant()
+                else {}
+            )
+            | (
+                {
+                    "peer_device": connected_endpoint.getAssociatedDevice().getName(),
+                    "peer_interface": connected_endpoint.getName(),
+                }
+                if connected_endpoint
                 else {}
             )
         )
@@ -116,20 +146,45 @@ class CoreSubInterfaceDescription(AbstractComposableAutoDescription):
             return self.MATCHED
         return self.NOT_MATCHED
 
+    @staticmethod
+    def suppressTenant() -> bool:
+        return True
+
     def toDict(self) -> dict | Never:
         physical_interface = self.interface.getPhysicalInterfaceByFilter()
         connected_endpoint = head(physical_interface.getConnectedEndpoints())
-        attached_tobago_line = physical_interface.getAttachedTobagoLine()
-        return (
-            super().toDict()
-            | {
-                "type": "core",
-                "peer_device": connected_endpoint.getAssociatedDevice().getName(),
-                "peer_interface": connected_endpoint.getName(),
-            }
-            | (
-                {"line": attached_tobago_line.getName()}
-                if attached_tobago_line is not None
-                else {}
-            )
-        )
+        return super().toDict() | {
+            "type": "core",
+        }
+
+
+class CustomerSubInterfaceDescription(AbstractComposableAutoDescription):
+    def accepts(self, o: InterfaceType) -> int:
+        if o.isSubInterface() and "edge:customer" in o.getTags():
+            return self.MATCHED
+        return self.NOT_MATCHED
+
+    def toDict(self) -> CosmoOutputType | Never:
+        return super().toDict() | {"type": "customer"}
+
+
+class AccessSubInterfaceDescription(AbstractComposableAutoDescription):
+    def accepts(self, o: InterfaceType) -> int:
+        if o.isSubInterface() and "access" in o.getTags():
+            return self.MATCHED
+        return self.NOT_MATCHED
+
+    def toDict(self) -> CosmoOutputType | Never:
+        return super().toDict() | {"type": "access"}
+
+
+class PeeringSubInterfaceDescription(AbstractComposableAutoDescription):
+    def accepts(self, o: InterfaceType) -> int:
+        if o.isSubInterface() and (
+            "edge:peering-pni" in o.getTags() or "edge:peering-ixp" in o.getTags()
+        ):
+            return self.MATCHED
+        return self.NOT_MATCHED
+
+    def toDict(self) -> CosmoOutputType | Never:
+        return super().toDict() | {"type": "peering"}
