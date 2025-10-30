@@ -5,6 +5,7 @@ from multimethod import multimethod as singledispatchmethod
 
 import deepmerge
 
+from cosmo.autodesc import AbstractComposableAutoDescription
 from cosmo.log import warn
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import (
@@ -260,12 +261,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         if not o.getUntaggedVLAN() and not o.getUnitNumber() == 0:
             # costlier checks it is then
             device = o.getParent(DeviceType)
-            parent_interface = next(
-                filter(
-                    lambda i: i.getName() == o.getSubInterfaceParentInterfaceName(),
-                    device.getInterfaces(),
-                )
-            )
+            parent_interface = o.getPhysicalInterfaceByFilter()
             all_parent_sub_interfaces = list(
                 filter(
                     lambda i: i.getName().startswith(parent_interface.getName())

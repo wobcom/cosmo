@@ -15,9 +15,11 @@ from .common import (
     InterfaceSerializationError,
     head,
 )
-from typing import Self, Iterator, TypeVar, NoReturn, Never, Type, Any, Union
+from typing import Self, Iterator, TypeVar, NoReturn, Never, Type, Any, Union, Optional
 
 from .tobago_types import TobagoAbstractTerminationType
+
+from .netbox_autodescribable_mixin import AutoDescribableMixin
 
 T = TypeVar("T", bound="AbstractNetboxType")
 ConnectionTerminationType = TypeVar(
@@ -59,7 +61,8 @@ class AbstractNetboxType(abc.ABC, Iterable):
                     yield from e
             elif isinstance(v, AbstractNetboxType):
                 yield from iter(v)
-            # Note: We can omit the emit of scalars, because we do not use them.
+            else:
+                yield v  # also yield non AbstractNetboxTypes (scalar and other classes)
 
     def __hash__(self):
         non_recursive_clone = without_keys(self._store, "__parent")
@@ -401,7 +404,7 @@ class ConsoleServerPortType(AbstractNetboxType, IWithAssociatedDevice):
         return "/dcim/console-server-ports/"
 
 
-class InterfaceType(AbstractNetboxType, IWithAssociatedDevice):
+class InterfaceType(AbstractNetboxType, IWithAssociatedDevice, AutoDescribableMixin):
     def __repr__(self):
         return super().__repr__() + f"({self.getName()})"
 
@@ -459,6 +462,16 @@ class InterfaceType(AbstractNetboxType, IWithAssociatedDevice):
         if self.isSubInterface():
             ret = self.getName().split(".")[0]
         return ret
+
+    def getPhysicalInterfaceByFilter(self) -> "InterfaceType":
+        if not self.isSubInterface():
+            return self
+        return next(
+            filter(
+                lambda i: i.getName() == self.getSubInterfaceParentInterfaceName(),
+                self.getParent(DeviceType).getInterfaces(),
+            )
+        )
 
     def getVRF(self) -> VRFType | None:
         return self.get("vrf")
@@ -576,6 +589,9 @@ class InterfaceType(AbstractNetboxType, IWithAssociatedDevice):
 
     def hasAnAttachedTobagoLine(self):
         return self.get("attached_tobago_line") is not None
+
+    def getAttachedTobagoLine(self) -> Optional["CosmoTobagoLine"]:
+        return self.get("attached_tobago_line")
 
 
 class VLANType(AbstractNetboxType):
@@ -751,10 +767,10 @@ class CosmoTobagoLine(AbstractNetboxType):
     def getLineID(self) -> str:
         return str(self._getCurrentLine()["id"])
 
-    def getLineNameLong(self):
-        return self._getCurrentLine()["name_long"]
+    def getLineNameLong(self) -> str:
+        return str(self._getCurrentLine()["name_long"])
 
-    def getName(self):
+    def getName(self) -> str:
         return self.getLineNameLong()
 
     def getTenantName(self):

@@ -3,6 +3,7 @@ from typing import Never, Callable
 
 from deepmerge import Merger
 
+from cosmo.autodescvisitor import MutatingAutoDescVisitor
 from cosmo.common import (
     deepsort,
     DeviceSerializationError,
@@ -36,6 +37,10 @@ class AbstractSerializer(metaclass=ABCMeta):
             ["override"],
         )
         return merger
+
+    @staticmethod
+    def autoDescPreprocess(_: CosmoOutputType, value: AbstractNetboxType):
+        MutatingAutoDescVisitor().accept(value)
 
     def walk(
         self,
@@ -98,6 +103,7 @@ class RouterSerializer(AbstractSerializer):
     def serialize(self) -> CosmoOutputType | Never:
         device_stub: CosmoOutputType = {}
         latest_errors: list[AbstractRecoverableError] = []
+        latest_errors.extend(self.walk(device_stub, self.autoDescPreprocess))
         latest_errors.extend(self.walk(device_stub, self.routerExport))
         self.processErrors(latest_errors)
         return deepsort(device_stub)
@@ -112,6 +118,7 @@ class SwitchSerializer(AbstractSerializer):
     def serialize(self) -> CosmoOutputType | Never:
         device_stub: CosmoOutputType = {}
         latest_errors: list[AbstractRecoverableError] = []
+        latest_errors.extend(self.walk(device_stub, self.autoDescPreprocess))
         latest_errors.extend(self.walk(device_stub, self.switchExport))
         self.processErrors(latest_errors)
         return deepsort(device_stub)

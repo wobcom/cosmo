@@ -26,6 +26,10 @@ class L2VPNSerializationError(AbstractRecoverableError):
     pass
 
 
+class AutoDescriptionError(AbstractRecoverableError):
+    pass
+
+
 # recursive type for the shape of cosmo output. use it when specifying something that
 # the visitors will export.
 CosmoOutputType = dict[
