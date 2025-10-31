@@ -174,9 +174,10 @@ class CustomerSubInterfaceDescription(AbstractComposableAutoDescription):
         return super().toDict() | {"type": "customer"}
 
 
-class AccessSubInterfaceDescription(AbstractComposableAutoDescription):
+# access interface cannot be used as "container" type, whole physical interface is used
+class AccessPhysicalInterfaceDescription(AbstractComposableAutoDescription):
     def accepts(self, o: InterfaceType) -> int:
-        if o.isSubInterface() and "access" in o.getTags():
+        if not o.isSubInterface() and "access" in o.getTags():
             return self.MATCHED
         return self.NOT_MATCHED
 

@@ -407,23 +407,13 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             }
         }
 
-    def processTobagoLineData(self, o: CosmoTobagoLine):
-        device_interface = o.getParent(InterfaceType)
-        if not device_interface.hasDescription():
-            return {
-                self._interfaces_key: {
-                    **device_interface.spitInterfacePathWith(
-                        {"description": o.describe()}
-                    )
-                }
-            }
-
     @accept.register
-    def _(self, o: CosmoTobagoLine):
-        if o.isUnderKeyNameForParentAboveWithType(
-            "attached_tobago_line", InterfaceType
-        ):
-            return self.processTobagoLineData(o)
+    def _(self, o: AbstractComposableAutoDescription):
+        return {
+            self._interfaces_key: {
+                **o.interface.spitInterfacePathWith({"description": str(o)})
+            }
+        }
 
     @accept.register
     def _(self, o: VRFType):

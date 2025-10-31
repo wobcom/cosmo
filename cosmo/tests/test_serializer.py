@@ -221,30 +221,26 @@ def test_router_interface_auto_description():
 
     assert "et-0/0/0" in sd["interfaces"]
     assert "et-0/0/1" in sd["interfaces"]
-    assert "et-0/0/2" in sd["interfaces"]
-    assert "et-0/0/3" in sd["interfaces"]
-    assert "et-0/0/4" in sd["interfaces"]
+    assert 2 in sd["interfaces"]["et-0/0/1"]["units"]
+    assert 3 in sd["interfaces"]["et-0/0/1"]["units"]
     assert "et-0/0/5" in sd["interfaces"]
 
     assert (
         "connected to mikrotik01 -> combo1 (cosmo-generated)"
         == sd["interfaces"]["et-0/0/0"]["description"]
     )
-    assert "do not overwrite me!" == sd["interfaces"]["et-0/0/1"]["description"]
+    # auto type description now overrides existing descriptions
+    # assert "do not overwrite me!" == sd["interfaces"]["et-0/0/1"]["description"]
     assert (
-        "Peering: Contoso Ltd. [circuit FS 3298327 1-1-2] {cl390287}"
-        == sd["interfaces"]["et-0/0/2"]["description"]
+        '{"line": "cl390287", "tenant": "Contoso Ltd.", "connected_endpoints": [{"name": "combo2", "device": "mikrotik01"}], "type": "peering"}'
+        == sd["interfaces"]["et-0/0/1"]["units"][2]["description"]
     )
     assert (
-        "Customer: Contoso Ltd. [TEST0002,  xe-0/1/0] {cl390287}"
-        == sd["interfaces"]["et-0/0/3"]["description"]
+        '{"line": "cl390287", "tenant": "Contoso Ltd.", "connected_endpoints": [{"name": "combo2", "device": "mikrotik01"}], "type": "customer"}'
+        == sd["interfaces"]["et-0/0/1"]["units"][3]["description"]
     )
     assert (
-        "Customer: Contoso Ltd. [Panel C,  DC10 duplex front 10b] {cl390287}"
-        == sd["interfaces"]["et-0/0/4"]["description"]
-    )
-    assert (
-        "link peer mikrotik09 -> combo1 (cosmo-generated)"
+        '{"link_peers": [{"name": "port_45", "device": "Panel48673"}], "type": "access"}'
         == sd["interfaces"]["et-0/0/5"]["description"]
     )
 
