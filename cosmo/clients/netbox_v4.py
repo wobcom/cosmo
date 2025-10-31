@@ -472,6 +472,10 @@ class DeviceDataQuery(ParallelQuery):
                   mtu
                   description
                   connected_endpoints {
+                    ... on CircuitTerminationType {
+                      __typename
+                      display
+                    }
                     ... on InterfaceType {
                       __typename
                       name
@@ -514,6 +518,10 @@ class DeviceDataQuery(ParallelQuery):
                     }
                   }
                   link_peers {
+                    ... on CircuitTerminationType {
+                      __typename
+                      display
+                    }
                     ... on FrontPortType {
                       __typename
                       name

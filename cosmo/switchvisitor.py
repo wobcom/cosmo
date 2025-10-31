@@ -130,35 +130,29 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
     def processConnectedEndpointTermination(self, o: ConnectionTerminationType):
         # passed interface is on "the other side", in connected_endpoints
         device_interface = o.getParent(InterfaceType)
-        associated_device = o.getAssociatedDevice()
         if (
             not device_interface.hasAnAttachedTobagoLine()
             and not device_interface.hasLinkPeers()
             and not device_interface.hasDescription()
-            and associated_device
         ):
             return {
                 self._interfaces_key: {
                     device_interface.getName(): {
-                        "description": f"connected to {associated_device.getName()}"
-                        f" -> {o.getName()} ({APP_NAME}-generated)"
+                        "description": f"connected to {o} ({APP_NAME}-generated)"
                     }
                 }
             }
 
     def processLinkPeerTermination(self, o: ConnectionTerminationType):
         device_interface = o.getParent(InterfaceType)
-        associated_device = o.getAssociatedDevice()
         if (
             not device_interface.hasAnAttachedTobagoLine()
             and not device_interface.hasDescription()
-            and associated_device
         ):
             return {
                 self._interfaces_key: {
                     device_interface.getName(): {
-                        "description": f"link peer {associated_device.getName()}"
-                        f" -> {o.getName()} ({APP_NAME}-generated)"
+                        "description": f"link peer {o} ({APP_NAME}-generated)"
                     }
                 }
             }

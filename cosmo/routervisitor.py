@@ -342,39 +342,29 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         # of the connection from the POV of the current device. If the current interface
         # has no description, we auto-generate one.
         device_interface = o.getParent(InterfaceType)
-        associated_device = o.getAssociatedDevice()
         if (
             not device_interface.hasAnAttachedTobagoLine()
             and not device_interface.hasDescription()
             and not device_interface.hasLinkPeers()
-            and associated_device
         ):
             return {
                 self._interfaces_key: {
                     **device_interface.spitInterfacePathWith(
-                        {
-                            "description": f"connected to {associated_device.getName()}"
-                            f" -> {o.getName()} ({APP_NAME}-generated)"
-                        }
+                        {"description": f"connected to {o} ({APP_NAME}-generated)"}
                     )
                 }
             }
 
     def processLinkPeerTermination(self, o: ConnectionTerminationType):
         device_interface = o.getParent(InterfaceType)
-        associated_device = o.getAssociatedDevice()
         if (
             not device_interface.hasAnAttachedTobagoLine()
             and not device_interface.hasDescription()
-            and associated_device
         ):
             return {
                 self._interfaces_key: {
                     **device_interface.spitInterfacePathWith(
-                        {
-                            "description": f"link peer {associated_device.getName()} "
-                            f"-> {o.getName()} ({APP_NAME}-generated)"
-                        }
+                        {"description": f"link peer {o} ({APP_NAME}-generated)"}
                     )
                 }
             }

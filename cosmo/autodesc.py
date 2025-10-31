@@ -3,7 +3,10 @@ from abc import ABCMeta, abstractmethod
 from typing import Optional, Self, Never
 
 from cosmo.common import AutoDescriptionError, CosmoOutputType, head
-from cosmo.netbox_types import InterfaceType, AbstractNetboxType, CosmoTobagoLine
+from cosmo.netbox_types import (
+    InterfaceType,
+    IAutoDescCompatibleConnectionTermination,
+)
 
 
 class AbstractComposableAutoDescription(metaclass=ABCMeta):
@@ -57,25 +60,24 @@ class AbstractComposableAutoDescription(metaclass=ABCMeta):
     def getPriority(self) -> int:
         return self.priority
 
-    def getTobagoLine(self) -> Optional[CosmoTobagoLine]:
-        return (
-            self.interface.getAttachedTobagoLine()
-            if self.interface.hasAnAttachedTobagoLine()
-            else self.interface.getPhysicalInterfaceByFilter().getAttachedTobagoLine()
-        )
-
     @staticmethod
     def suppressTenant() -> bool:
         return False
 
     def toDict(self) -> CosmoOutputType | Never:
-        attached_tobago_line = self.getTobagoLine()
-        physical_interface = (
-            self.interface.getPhysicalInterfaceByFilter()
-            if self.interface.isSubInterface()
-            else self.interface
+        attached_tobago_line = self.interface.getAttachedTobagoLineWithTraversal()
+        connected_endpoints: list[IAutoDescCompatibleConnectionTermination] = (
+            self.interface.getConnectedEndpointsWithTraversal()
         )
-        connected_endpoint = head(physical_interface.getConnectedEndpoints())
+        connected_endpoints_auto: list[CosmoOutputType] = list(
+            map(lambda e: e.toDict(), connected_endpoints)
+        )
+        link_peers: list[IAutoDescCompatibleConnectionTermination] = (
+            self.interface.getLinkPeersWithTraversal()
+        )
+        link_peers_auto: list[CosmoOutputType] = list(
+            map(lambda e: e.toDict(), link_peers)
+        )
         return (
             {}
             | (
@@ -98,10 +100,16 @@ class AbstractComposableAutoDescription(metaclass=ABCMeta):
             )
             | (
                 {
-                    "peer_device": connected_endpoint.getAssociatedDevice().getName(),
-                    "peer_interface": connected_endpoint.getName(),
+                    "connected_endpoints": connected_endpoints_auto,
                 }
-                if connected_endpoint
+                if connected_endpoints
+                else {}
+            )
+            | (
+                {
+                    "link_peers": link_peers_auto,
+                }
+                if link_peers and not connected_endpoints
                 else {}
             )
         )
@@ -151,8 +159,6 @@ class CoreSubInterfaceDescription(AbstractComposableAutoDescription):
         return True
 
     def toDict(self) -> dict | Never:
-        physical_interface = self.interface.getPhysicalInterfaceByFilter()
-        connected_endpoint = head(physical_interface.getConnectedEndpoints())
         return super().toDict() | {
             "type": "core",
         }
