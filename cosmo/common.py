@@ -1,5 +1,5 @@
-from abc import ABC
-from typing import Optional, Union
+from abc import ABC, abstractmethod
+from typing import Optional, Union, Protocol, TypeVar, Sequence
 
 APP_NAME = "cosmo"
 
@@ -37,6 +37,19 @@ CosmoOutputType = dict[
 ]
 
 JsonOutputType = CosmoOutputType
+
+T_contra = TypeVar("T_contra", contravariant=True)
+
+
+class Comparable(Protocol[T_contra]):
+    @abstractmethod
+    def __lt__(self: T_contra, other: T_contra) -> bool:
+        pass
+
+
+# from https://gist.github.com/M-Bryant/049d9e45bf0b749bc715de9eb70b22fc
+def strictly_decreasing(l: Sequence[Comparable]) -> bool:
+    return all(x > y for x, y in zip(l, l[1:]))
 
 
 # next() can raise StopIteration, so that's why I use this function

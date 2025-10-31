@@ -1,10 +1,12 @@
+from itertools import groupby
+
 from multimethod import multimethod as singledispatchmethod
 
 from cosmo.autodesc import (
     AbstractComposableAutoDescription,
     PhysicalInterfaceContainerDescription,
 )
-from cosmo.common import head
+from cosmo.common import head, strictly_decreasing, AutoDescriptionError
 from cosmo.netbox_types import InterfaceType
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
@@ -23,7 +25,14 @@ class MutatingAutoDescVisitor(AbstractNoopNetboxTypesVisitor):
         for c in auto_description_classes:
             auto_descriptions.append(c(o))
         auto_descriptions.sort(reverse=True)
-        # TODO check if strictly decreasing, if not -> conflict should raise error
+        positive, matches = next(
+            groupby(auto_descriptions, lambda ad: ad.getPriority() > 0)
+        )
+        if not strictly_decreasing(list(matches)) and positive:
+            raise AutoDescriptionError(
+                "More than one automatic description matched, please check tags for conflicts",
+                on=o,
+            )
         auto_description = head(auto_descriptions)
         if (
             not auto_description.getPriority()
