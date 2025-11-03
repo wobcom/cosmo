@@ -734,10 +734,9 @@ def test_switch_auto_description():
     assert "swp55" in sd["cumulus__device_interfaces"]
 
     assert "description" in sd["cumulus__device_interfaces"]["swp52"]
-    assert (
-        "connected to mikrotik01 -> combo1 (cosmo-generated)"
-        == sd["cumulus__device_interfaces"]["swp52"]["description"]
-    )
+    assert {
+        "connected_endpoints": [{"name": "combo1", "device": "mikrotik01"}]
+    } == json.loads(sd["cumulus__device_interfaces"]["swp52"]["description"])
 
     assert "description" in sd["cumulus__device_interfaces"]["swp53"]
     assert (
@@ -746,16 +745,17 @@ def test_switch_auto_description():
     )
 
     assert "description" in sd["cumulus__device_interfaces"]["swp54"]
-    assert (
-        "Customer: Contoso Ltd. [Panel C,  DC10 duplex front 10b] {cl390287}"
-        == sd["cumulus__device_interfaces"]["swp54"]["description"]
-    )
+    assert {
+        "line": "cl390287",
+        "tenant": "Contoso Ltd.",
+        "connected_endpoints": [{"name": "combo3", "device": "mikrotik02"}],
+        "type": "customer",
+    } == json.loads(sd["cumulus__device_interfaces"]["swp54"]["description"])
 
     assert "description" in sd["cumulus__device_interfaces"]["swp55"]
-    assert (
-        "link peer mikrotik09 -> combo1 (cosmo-generated)"
-        == sd["cumulus__device_interfaces"]["swp55"]["description"]
-    )
+    assert {
+        "connected_endpoints": [{"name": "combo1", "device": "mikrotik09"}]
+    } == json.loads(sd["cumulus__device_interfaces"]["swp55"]["description"])
 
 
 def test_switch_vlans():

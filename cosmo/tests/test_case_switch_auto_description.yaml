@@ -142,7 +142,10 @@ device_list:
     mtu: null
     name: swp54
     tagged_vlans: []
-    tags: []
+    tags:
+      - __typename: TagType
+        name: "edge:customer"
+        slug: "edge_customer"
     type: A_100GBASE_X_QSFP28
     untagged_vlan: null
     vrf: null
@@ -156,17 +159,17 @@ device_list:
     ip_addresses: []
     attached_tobago_line: null
     link_peers:
-      - name: "combo1"
-        __typename: InterfaceType
-        device:
-          __typename: DeviceType
-          name: "mikrotik09"
-    connected_endpoints:
       - name: "port6"
         __typename: InterfaceType
         device:
           __typename: DeviceType
           name: "Panel98473"
+    connected_endpoints:
+      - name: "combo1"
+        __typename: InterfaceType
+        device:
+          __typename: DeviceType
+          name: "mikrotik09"
     mac_address: null
     mode: null
     mtu: null

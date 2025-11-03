@@ -1,6 +1,7 @@
 import ipaddress
 from multimethod import multimethod as singledispatchmethod
 
+from cosmo.autodesc import AbstractComposableAutoDescription
 from cosmo.common import APP_NAME
 from cosmo.log import warn
 from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
@@ -10,12 +11,6 @@ from cosmo.netbox_types import (
     InterfaceType,
     VLANType,
     TagType,
-    CosmoTobagoLine,
-    ConnectionTerminationType,
-    FrontPortType,
-    RearPortType,
-    ConsolePortType,
-    ConsoleServerPortType,
 )
 from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
@@ -127,64 +122,10 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             }
         }
 
-    def processConnectedEndpointTermination(self, o: ConnectionTerminationType):
-        # passed interface is on "the other side", in connected_endpoints
-        device_interface = o.getParent(InterfaceType)
-        if (
-            not device_interface.hasAnAttachedTobagoLine()
-            and not device_interface.hasLinkPeers()
-            and not device_interface.hasDescription()
-        ):
-            return {
-                self._interfaces_key: {
-                    device_interface.getName(): {
-                        "description": f"connected to {o} ({APP_NAME}-generated)"
-                    }
-                }
-            }
-
-    def processLinkPeerTermination(self, o: ConnectionTerminationType):
-        device_interface = o.getParent(InterfaceType)
-        if (
-            not device_interface.hasAnAttachedTobagoLine()
-            and not device_interface.hasDescription()
-        ):
-            return {
-                self._interfaces_key: {
-                    device_interface.getName(): {
-                        "description": f"link peer {o} ({APP_NAME}-generated)"
-                    }
-                }
-            }
-
-    def processTobagoLineData(self, o: CosmoTobagoLine):
-        device_interface = o.getParent(InterfaceType)
-        if not device_interface.hasDescription():
-            return {
-                self._interfaces_key: {
-                    device_interface.getName(): {"description": o.describe()}
-                }
-            }
-
-    @accept.register
-    def _(self, o: CosmoTobagoLine):
-        if o.isUnderKeyNameForParentAboveWithType(
-            "attached_tobago_line", InterfaceType
-        ):
-            return self.processTobagoLineData(o)
-
-    @accept.register
-    def _(
-        self,
-        o: FrontPortType | RearPortType | ConsolePortType | ConsoleServerPortType,
-    ):
-        if o.isUnderKeyNameForParentAboveWithType("connected_endpoints", InterfaceType):
-            return self.processConnectedEndpointTermination(o)
-        elif o.isUnderKeyNameForParentAboveWithType("link_peers", InterfaceType):
-            return self.processLinkPeerTermination(o)
-
     @accept.register
     def _(self, o: InterfaceType):
+        if not o.isCurrentDeviceInterface():  # guard
+            return
         # either lag interface
         if o.isLagInterface():
             return self.processLagMember(o)
@@ -195,20 +136,14 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
                 InterfaceType,
             ):
                 return self.processInterfaceLagInfo(o)
-            if o.isUnderKeyNameForParentAboveWithType(
-                "connected_endpoints",
-                InterfaceType,
-            ):
-                return self.processConnectedEndpointTermination(o)
-            elif o.isUnderKeyNameForParentAboveWithType(
-                "link_peers",
-                InterfaceType,
-            ):
-                return self.processLinkPeerTermination(o)
             return  # interface-in-interface with other key, do not process
         # or "normal" interface
         else:
             return self.processInterface(o)
+
+    @accept.register
+    def _(self, o: AbstractComposableAutoDescription):
+        return {self._interfaces_key: {o.interface.getName(): {"description": str(o)}}}
 
     def processSpeedTag(self, o: TagType):
         parent_interface = o.getParent(InterfaceType)

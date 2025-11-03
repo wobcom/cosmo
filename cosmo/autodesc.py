@@ -153,9 +153,9 @@ class PhysicalInterfaceContainerDescription(AbstractComposableAutoDescription):
                 raise AutoDescriptionError("unsupported combination", on=self.interface)
 
 
-class CoreSubInterfaceDescription(AbstractComposableAutoDescription):
+class CoreInterfaceDescription(AbstractComposableAutoDescription):
     def accepts(self, o: InterfaceType) -> int:
-        if self.isAutoDescribable(o) and o.isSubInterface() and "core" in o.getTags():
+        if self.isAutoDescribable(o) and "core" in o.getTags():
             return self.MATCHED
         return self.NOT_MATCHED
 
@@ -169,20 +169,16 @@ class CoreSubInterfaceDescription(AbstractComposableAutoDescription):
         }
 
 
-class NoDescriptionSubInterfaceDescription(AbstractComposableAutoDescription):
+class NoDescriptionInterfaceDescription(AbstractComposableAutoDescription):
     def accepts(self, o: InterfaceType) -> int:
         if self.isAutoDescribable(o) and not o.hasDescription():
             return self.FALLBACK_MATCHED
         return self.NOT_MATCHED
 
 
-class CustomerSubInterfaceDescription(AbstractComposableAutoDescription):
+class CustomerInterfaceDescription(AbstractComposableAutoDescription):
     def accepts(self, o: InterfaceType) -> int:
-        if (
-            self.isAutoDescribable(o)
-            and o.isSubInterface()
-            and "edge:customer" in o.getTags()
-        ):
+        if self.isAutoDescribable(o) and "edge:customer" in o.getTags():
             return self.MATCHED
         return self.NOT_MATCHED
 
@@ -205,12 +201,10 @@ class AccessPhysicalInterfaceDescription(AbstractComposableAutoDescription):
         return super().toDict() | {"type": "access"}
 
 
-class PeeringSubInterfaceDescription(AbstractComposableAutoDescription):
+class PeeringInterfaceDescription(AbstractComposableAutoDescription):
     def accepts(self, o: InterfaceType) -> int:
-        if (
-            self.isAutoDescribable(o)
-            and o.isSubInterface()
-            and ("edge:peering-pni" in o.getTags() or "edge:peering-ixp" in o.getTags())
+        if self.isAutoDescribable(o) and (
+            "edge:peering-pni" in o.getTags() or "edge:peering-ixp" in o.getTags()
         ):
             return self.MATCHED
         return self.NOT_MATCHED
