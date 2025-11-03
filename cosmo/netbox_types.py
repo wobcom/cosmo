@@ -67,7 +67,9 @@ class AbstractNetboxType(abc.ABC, Iterable):
 
     # I have to write the union in quotes because of this Python bug:
     # https://bugs.python.org/issue45857
-    def __iter__(self) -> Iterator["AbstractNetboxType|list[Any]|str|int|bool|None"]:
+    def __iter__(
+        self,
+    ) -> Iterator["AbstractNetboxType|list[Any]|str|int|bool|object|None"]:
         yield self
         for k, v in without_keys(self._store, ["__parent", "__typename"]).items():
             if isinstance(v, dict):
@@ -78,8 +80,8 @@ class AbstractNetboxType(abc.ABC, Iterable):
                     yield from e
             elif isinstance(v, AbstractNetboxType):
                 yield from iter(v)
-            else:
-                yield v  # also yield non AbstractNetboxTypes (scalar and other classes)
+            elif isinstance(v, object):
+                yield v  # also yield non AbstractNetboxTypes (other classes)
 
     def __hash__(self):
         non_recursive_clone = without_keys(self._store, "__parent")
