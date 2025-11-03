@@ -6,6 +6,7 @@ from cosmo.common import AutoDescriptionError, CosmoOutputType, head
 from cosmo.netbox_types import (
     InterfaceType,
     IAutoDescCompatibleConnectionTermination,
+    DeviceType,
 )
 
 
@@ -63,6 +64,10 @@ class AbstractComposableAutoDescription(metaclass=ABCMeta):
     @staticmethod
     def suppressTenant() -> bool:
         return False
+
+    @staticmethod
+    def isAutoDescribable(o: InterfaceType):
+        return o.hasParentAboveWithType(DeviceType) and o.isCurrentDeviceInterface()
 
     def toDict(self) -> CosmoOutputType | Never:
         attached_tobago_line = self.interface.getAttachedTobagoLineWithTraversal()
@@ -130,7 +135,7 @@ class PhysicalInterfaceContainerDescription(AbstractComposableAutoDescription):
             case []:  # none, describe self
                 return super().toDict()
             case [single]:  # transparent
-                return single.toDict()
+                return super().toDict() | single.toDict()
             case [first, second, *others]:
                 return super().toDict() | {
                     "type": "multiservices",
@@ -150,7 +155,7 @@ class PhysicalInterfaceContainerDescription(AbstractComposableAutoDescription):
 
 class CoreSubInterfaceDescription(AbstractComposableAutoDescription):
     def accepts(self, o: InterfaceType) -> int:
-        if o.isSubInterface() and "core" in o.getTags():
+        if self.isAutoDescribable(o) and o.isSubInterface() and "core" in o.getTags():
             return self.MATCHED
         return self.NOT_MATCHED
 
@@ -164,9 +169,20 @@ class CoreSubInterfaceDescription(AbstractComposableAutoDescription):
         }
 
 
+class NoDescriptionSubInterfaceDescription(AbstractComposableAutoDescription):
+    def accepts(self, o: InterfaceType) -> int:
+        if self.isAutoDescribable(o) and not o.hasDescription():
+            return self.FALLBACK_MATCHED
+        return self.NOT_MATCHED
+
+
 class CustomerSubInterfaceDescription(AbstractComposableAutoDescription):
     def accepts(self, o: InterfaceType) -> int:
-        if o.isSubInterface() and "edge:customer" in o.getTags():
+        if (
+            self.isAutoDescribable(o)
+            and o.isSubInterface()
+            and "edge:customer" in o.getTags()
+        ):
             return self.MATCHED
         return self.NOT_MATCHED
 
@@ -177,7 +193,11 @@ class CustomerSubInterfaceDescription(AbstractComposableAutoDescription):
 # access interface cannot be used as "container" type, whole physical interface is used
 class AccessPhysicalInterfaceDescription(AbstractComposableAutoDescription):
     def accepts(self, o: InterfaceType) -> int:
-        if not o.isSubInterface() and "access" in o.getTags():
+        if (
+            self.isAutoDescribable(o)
+            and not o.isSubInterface()
+            and "access" in o.getTags()
+        ):
             return self.MATCHED
         return self.NOT_MATCHED
 
@@ -187,8 +207,10 @@ class AccessPhysicalInterfaceDescription(AbstractComposableAutoDescription):
 
 class PeeringSubInterfaceDescription(AbstractComposableAutoDescription):
     def accepts(self, o: InterfaceType) -> int:
-        if o.isSubInterface() and (
-            "edge:peering-pni" in o.getTags() or "edge:peering-ixp" in o.getTags()
+        if (
+            self.isAutoDescribable(o)
+            and o.isSubInterface()
+            and ("edge:peering-pni" in o.getTags() or "edge:peering-ixp" in o.getTags())
         ):
             return self.MATCHED
         return self.NOT_MATCHED

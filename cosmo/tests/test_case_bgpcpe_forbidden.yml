@@ -31,8 +31,11 @@ device_list:
     vrf: null
     parent: null
     connected_endpoints:
-    - device:
-        name: ''
+    - name: "xe-0/1/2"
+      __typename: InterfaceType
+      device:
+        __typename: DeviceType
+        name: 'CPE3000'
         primary_ip4:
           __typename: IPAddressType
           address: 10.128.6.12/29

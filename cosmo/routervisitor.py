@@ -142,10 +142,12 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
 
     @accept.register
     def _(self, o: IPAddressType):
-        manufacturer = ManufacturerFactoryFromDevice(o.getParent(DeviceType)).get()
-        optional_attrs = {}
         if not o.hasParentAboveWithType(InterfaceType):
             return
+        if not o.getParent(InterfaceType).isCurrentDeviceInterface():
+            return
+        manufacturer = ManufacturerFactoryFromDevice(o.getParent(DeviceType)).get()
+        optional_attrs = {}
         parent_interface = o.getParent(InterfaceType)
         if not parent_interface.isSubInterface():
             raise InterfaceSerializationError(
@@ -262,20 +264,21 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             # costlier checks it is then
             device = o.getParent(DeviceType)
             parent_interface = o.getPhysicalInterfaceByFilter()
-            all_parent_sub_interfaces = list(
-                filter(
-                    lambda i: i.getName().startswith(parent_interface.getName())
-                    and i.isSubInterface(),
-                    device.getInterfaces(),
+            if parent_interface:
+                all_parent_sub_interfaces = list(
+                    filter(
+                        lambda i: i.getName().startswith(parent_interface.getName())
+                        and i.isSubInterface(),
+                        device.getInterfaces(),
+                    )
                 )
-            )
-            parent_interface_type = parent_interface.getAssociatedType()
-            # cases where no VLAN is authorized: we have only one sub interface, or it's a loopback or virtual
-            if len(all_parent_sub_interfaces) > 1 and parent_interface_type not in [
-                "loopback",
-                "virtual",
-            ]:
-                warn(f"sub interfaces should have an access VLAN configured!", o)
+                parent_interface_type = parent_interface.getAssociatedType()
+                # cases where no VLAN is authorized: we have only one sub interface, or it's a loopback or virtual
+                if len(all_parent_sub_interfaces) > 1 and parent_interface_type not in [
+                    "loopback",
+                    "virtual",
+                ]:
+                    warn(f"sub interfaces should have an access VLAN configured!", o)
         # specific outer_tag case -> we cannot process the "virtual" untagged vlan
         # via type hinting / visitor, since it does not exist in the composite
         # tree, and is only represent by outer_tag CF.
@@ -381,15 +384,15 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
 
     @accept.register
     def _(self, o: InterfaceType):
+        if (
+            not o.isCurrentDeviceInterface()
+        ):  # guard: only process current device interfaces
+            return
         if o.hasParentAboveWithType(VLANType):
             # guard: do not process VLAN interface info
             return
         if o.hasParentAboveWithType(L2VPNTerminationType):
             return self.l2vpn_exporter.accept(o)
-        if o.isSubInterface():
-            return self.processSubInterface(o)
-        if o.isLagInterface():
-            return self.processInterfaceLagInfo(o)
         # interface in interface is lag info
         if o.hasParentAboveWithType(InterfaceType):
             if o.isUnderKeyNameForParentAboveWithType("lag", InterfaceType):
@@ -401,6 +404,10 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             elif o.isUnderKeyNameForParentAboveWithType("link_peers", InterfaceType):
                 return self.processLinkPeerTermination(o)
             return  # guard: do not process (can be connected_endpoint, parent, etc...)
+        if o.isSubInterface():
+            return self.processSubInterface(o)
+        if o.isLagInterface():
+            return self.processInterfaceLagInfo(o)
         return {
             self._interfaces_key: {
                 **o.spitInterfacePathWith(self.processInterfaceCommon(o))

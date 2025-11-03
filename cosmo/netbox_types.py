@@ -39,7 +39,9 @@ from .netbox_autodescribable_mixin import AutoDescribableMixin
 T = TypeVar("T", bound="AbstractNetboxType")
 ConnectionTerminationType = TypeVar(
     "ConnectionTerminationType",
-    bound="InterfaceType|CircuitTerminationType|FrontPortType|RearPortType|ConsolePortType|ConsoleServerPortType",
+    bound="InterfaceType|CircuitTerminationType|ProviderNetworkType"
+    "|VirtualCircuitTerminationType|FrontPortType|RearPortType"
+    "|ConsolePortType|ConsoleServerPortType",
 )
 
 
@@ -149,6 +151,9 @@ class AbstractNetboxType(abc.ABC, Iterable):
     def hasParentAboveWithType(self, target_type: type[T]) -> bool:
         instance = self["__parent"]
         return type(instance) == target_type
+
+    def isCompositeRoot(self) -> bool:
+        return "__parent" not in self.keys()
 
     def getParent(self, target_type: type[T]) -> T | NoReturn:
         ke = KeyError(
@@ -431,6 +436,17 @@ class RearPortType(
         return "/dcim/rear-ports/"
 
 
+class ProviderNetworkType(AbstractNetboxType, IAutoDescCompatibleConnectionTermination):
+    def toDict(self) -> CosmoOutputType:
+        return {"provider": str(self.get("display"))}
+
+    def __str__(self):
+        return f"provider {self.toDict().get('provider')}"
+
+    def getBasePath(self):
+        return "/circuits/providers/"
+
+
 class CircuitTerminationType(
     AbstractNetboxType, IAutoDescCompatibleConnectionTermination
 ):
@@ -442,6 +458,19 @@ class CircuitTerminationType(
 
     def getBasePath(self):
         return "/circuits/circuit-terminations/"
+
+
+class VirtualCircuitTerminationType(
+    AbstractNetboxType, IAutoDescCompatibleConnectionTermination
+):
+    def toDict(self) -> CosmoOutputType:
+        return {"virtual_circuit": str(self.get("display"))}
+
+    def __str__(self):
+        return f"virtual_circuit {self.toDict().get('circuit')}"
+
+    def getBasePath(self):
+        return "/circuits/virtual-circuits/"
 
 
 class ConsolePortType(
@@ -471,6 +500,9 @@ class InterfaceType(
 
     def getMACAddress(self) -> str | None:
         return self.get("mac_address")
+
+    def isCurrentDeviceInterface(self) -> bool:
+        return self.getParent(DeviceType).isCompositeRoot()
 
     def getUntaggedVLAN(self):
         cf = self.getCustomFields()
@@ -544,13 +576,15 @@ class InterfaceType(
             ret = self.getName().split(".")[0]
         return ret
 
-    def getPhysicalInterfaceByFilter(self) -> "InterfaceType":
+    def getPhysicalInterfaceByFilter(self) -> Optional["InterfaceType"]:
         if not self.isSubInterface():
             return self
-        return next(
-            filter(
-                lambda i: i.getName() == self.getSubInterfaceParentInterfaceName(),
-                self.getParent(DeviceType).getInterfaces(),
+        return head(
+            list(
+                filter(
+                    lambda i: i.getName() == self.getSubInterfaceParentInterfaceName(),
+                    self.getParent(DeviceType).getInterfaces(),
+                )
             )
         )
 
@@ -671,6 +705,8 @@ class InterfaceType(
         if direct_connection:
             return direct_connection
         phy = self.getPhysicalInterfaceByFilter()  # if already phy, phy = self
+        if not phy:
+            return []
         phy_connected: list[ConnectionTerminationType] = connection_termination_getter(
             phy
         )
@@ -716,6 +752,8 @@ class InterfaceType(
         if direct_line:
             return direct_line
         phy = self.getPhysicalInterfaceByFilter()
+        if not phy:
+            return None
         phy_line = phy.getAttachedTobagoLine()
         if phy_line:
             return phy_line

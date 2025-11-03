@@ -47,6 +47,8 @@ class ConnectedDevicesDataQuery(ParallelQuery):
                       __typename
                       name
                       device {
+                        name
+                        __typename
                         primary_ip4 {
                           __typename
                           address
@@ -472,7 +474,15 @@ class DeviceDataQuery(ParallelQuery):
                   mtu
                   description
                   connected_endpoints {
+                    ... on ProviderNetworkType {
+                      __typename
+                      display
+                    }
                     ... on CircuitTerminationType {
+                      __typename
+                      display
+                    }
+                    ... on VirtualCircuitTerminationType {
                       __typename
                       display
                     }

@@ -31,15 +31,18 @@ device_list:
     vrf: null
     parent: null
     connected_endpoints:
-    - device:
-        name: ''
+    - name: "xe-0/1/2.3"
+      __typename: InterfaceType
+      device:
+        __typename: DeviceType
+        name: 'CPE3000'
         primary_ip4:
           __typename: IPAddressType
           address: 10.128.6.12/29
         interfaces:
         - ip_addresses: []
           id: ''
-          name: ''
+          name: 'xe-0/1/2.0'
           __typename: InterfaceType
         - ip_addresses:
           - address: 10.1.0.1/28
@@ -49,7 +52,7 @@ device_list:
           - address: 2a0e:b941:2:42::/64
             __typename: IPAddressType
           id: ''
-          name: ''
+          name: 'xe-0/1/2.3'
           __typename: InterfaceType
         - ip_addresses:
           - address: 10.128.6.12/29
@@ -57,7 +60,7 @@ device_list:
           - address: 2a0e:b941:2::21/122
             __typename: IPAddressType
           id: ''
-          name: ''
+          name: 'mgmt0'
           __typename: InterfaceType
   - custom_fields:
       bpdufilter: false

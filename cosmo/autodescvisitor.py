@@ -39,12 +39,15 @@ class MutatingAutoDescVisitor(AbstractNoopNetboxTypesVisitor):
             > AbstractComposableAutoDescription.NOT_MATCHED
         ):
             return
+        if auto_description.toDict() == {}:
+            return
         if o.isSubInterface() and auto_description:
             physical = o.getPhysicalInterfaceByFilter()
-            physical.setAutoDescription(
-                PhysicalInterfaceContainerDescription(
-                    interface=physical,
-                    description=physical.getAutoDescription(),
-                ).add(auto_description)
-            )
+            if physical:
+                physical.setAutoDescription(
+                    PhysicalInterfaceContainerDescription(
+                        interface=physical,
+                        description=physical.getAutoDescription(),
+                    ).add(auto_description)
+                )
         o.setAutoDescription(auto_description)

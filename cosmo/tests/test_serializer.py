@@ -1,3 +1,4 @@
+import json
 import re
 import yaml
 import pytest
@@ -225,24 +226,27 @@ def test_router_interface_auto_description():
     assert 3 in sd["interfaces"]["et-0/0/1"]["units"]
     assert "et-0/0/5" in sd["interfaces"]
 
-    assert (
-        "connected to mikrotik01 -> combo1 (cosmo-generated)"
-        == sd["interfaces"]["et-0/0/0"]["description"]
-    )
+    assert {
+        "connected_endpoints": [{"name": "combo1", "device": "mikrotik01"}]
+    } == json.loads(sd["interfaces"]["et-0/0/0"]["description"])
     # auto type description now overrides existing descriptions
     # assert "do not overwrite me!" == sd["interfaces"]["et-0/0/1"]["description"]
-    assert (
-        '{"line": "cl390287", "tenant": "Contoso Ltd.", "connected_endpoints": [{"name": "combo2", "device": "mikrotik01"}], "type": "peering"}'
-        == sd["interfaces"]["et-0/0/1"]["units"][2]["description"]
-    )
-    assert (
-        '{"line": "cl390287", "tenant": "Contoso Ltd.", "connected_endpoints": [{"name": "combo2", "device": "mikrotik01"}], "type": "customer"}'
-        == sd["interfaces"]["et-0/0/1"]["units"][3]["description"]
-    )
-    assert (
-        '{"link_peers": [{"name": "port_45", "device": "Panel48673"}], "type": "access"}'
-        == sd["interfaces"]["et-0/0/5"]["description"]
-    )
+    assert {
+        "line": "cl390287",
+        "tenant": "Contoso Ltd.",
+        "connected_endpoints": [{"name": "combo2", "device": "mikrotik01"}],
+        "type": "peering",
+    } == json.loads(sd["interfaces"]["et-0/0/1"]["units"][2]["description"])
+    assert {
+        "line": "cl390287",
+        "tenant": "Contoso Ltd.",
+        "connected_endpoints": [{"name": "combo2", "device": "mikrotik01"}],
+        "type": "customer",
+    } == json.loads(sd["interfaces"]["et-0/0/1"]["units"][3]["description"])
+    assert {
+        "link_peers": [{"name": "port_45", "device": "Panel48673"}],
+        "type": "access",
+    } == json.loads(sd["interfaces"]["et-0/0/5"]["description"])
 
 
 def test_router_lag():
