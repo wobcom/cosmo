@@ -32,7 +32,6 @@ from typing import (
     Protocol,
 )
 
-from .tobago_types import TobagoAbstractTerminationType
 
 from .netbox_autodescribable_mixin import AutoDescribableMixin
 
@@ -885,38 +884,6 @@ class CosmoIPPoolType(AbstractNetboxType):
 
 
 class CosmoTobagoLine(AbstractNetboxType):
-    class TobagoLineType(StrEnum):
-        CUSTOMER = "Customer"
-        PEERING = "Peering"
-        CORE = "Core"
-        SUBSCRIBER = "Subscriber"
-
-    def getLineType(self) -> TobagoLineType:
-        device_interface_tags = self.getParent(InterfaceType).getTags()
-        line_type = self.TobagoLineType.CUSTOMER
-        if "core" in device_interface_tags:
-            line_type = self.TobagoLineType.CORE
-        elif "access" in device_interface_tags:
-            line_type = self.TobagoLineType.SUBSCRIBER
-        elif (
-            "edge:peering-pni" in device_interface_tags
-            or "edge:peering-ixp" in device_interface_tags
-        ):
-            line_type = self.TobagoLineType.PEERING
-        return line_type
-
-    def getTerminationObjectForTypeAndData(self, termination_type: str, data: dict):
-        tobago_termination_classes: list[type[TobagoAbstractTerminationType]] = (
-            TobagoAbstractTerminationType.__subclasses__()
-        )
-        for c in tobago_termination_classes:
-            if c.accepts(termination_type):
-                return c(data)
-        raise InterfaceSerializationError(
-            f"Unrecognized Tobago termination type {termination_type}",
-            on=self,
-        )
-
     def getBasePath(self):
         return "/plugins/tobago/lines/"
 
@@ -949,34 +916,3 @@ class CosmoTobagoLine(AbstractNetboxType):
 
     def getRelPath(self) -> str:
         return urljoin(self.getBasePath(), self.getLineID())
-
-    def getOppositeTerminationObjectOf(
-        self, i: InterfaceType
-    ) -> TobagoAbstractTerminationType:
-        terminations = [
-            {"type": self["termination_a_type"], "data": self["termination_a"]},
-            {"type": self["termination_b_type"], "data": self["termination_b"]},
-        ]
-        opposite_termination = next(
-            filter(lambda t: int(t["data"]["id"]) != int(i.getID()), terminations)
-        )
-        return self.getTerminationObjectForTypeAndData(
-            opposite_termination["type"], opposite_termination["data"]
-        )
-
-    def describe(self) -> str:
-        device_interface: InterfaceType = self.getParent(InterfaceType)
-        line_type = self.getLineType()
-
-        match line_type:
-            case self.TobagoLineType.SUBSCRIBER | self.TobagoLineType.CORE:
-                return (
-                    f"{line_type}: [{self.getOppositeTerminationObjectOf(device_interface)}]"
-                    f" {{{self.getLineNameLong()}}}"
-                )
-            case _:
-                return (
-                    f"{line_type}: {self.getTenantName()}"
-                    f" [{self.getOppositeTerminationObjectOf(device_interface)}]"
-                    f" {{{self.getLineNameLong()}}}"
-                )

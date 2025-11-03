@@ -37,12 +37,6 @@ from cosmo.netbox_types import (
     DeviceTypeType,
     PlatformType,
     CosmoIPPoolType,
-    CosmoTobagoLine,
-    FrontPortType,
-    RearPortType,
-    ConsolePortType,
-    ConsoleServerPortType,
-    ConnectionTerminationType,
 )
 
 
@@ -340,48 +334,6 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             }
         }
 
-    def processConnectedEndpointTermination(self, o: ConnectionTerminationType):
-        # We are in the interface under connected endpoint, that is, on the "other side"
-        # of the connection from the POV of the current device. If the current interface
-        # has no description, we auto-generate one.
-        device_interface = o.getParent(InterfaceType)
-        if (
-            not device_interface.hasAnAttachedTobagoLine()
-            and not device_interface.hasDescription()
-            and not device_interface.hasLinkPeers()
-        ):
-            return {
-                self._interfaces_key: {
-                    **device_interface.spitInterfacePathWith(
-                        {"description": f"connected to {o} ({APP_NAME}-generated)"}
-                    )
-                }
-            }
-
-    def processLinkPeerTermination(self, o: ConnectionTerminationType):
-        device_interface = o.getParent(InterfaceType)
-        if (
-            not device_interface.hasAnAttachedTobagoLine()
-            and not device_interface.hasDescription()
-        ):
-            return {
-                self._interfaces_key: {
-                    **device_interface.spitInterfacePathWith(
-                        {"description": f"link peer {o} ({APP_NAME}-generated)"}
-                    )
-                }
-            }
-
-    @accept.register
-    def _(
-        self,
-        o: FrontPortType | RearPortType | ConsolePortType | ConsoleServerPortType,
-    ):
-        if o.isUnderKeyNameForParentAboveWithType("connected_endpoints", InterfaceType):
-            return self.processConnectedEndpointTermination(o)
-        elif o.isUnderKeyNameForParentAboveWithType("link_peers", InterfaceType):
-            return self.processLinkPeerTermination(o)
-
     @accept.register
     def _(self, o: InterfaceType):
         if (
@@ -397,12 +349,6 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         if o.hasParentAboveWithType(InterfaceType):
             if o.isUnderKeyNameForParentAboveWithType("lag", InterfaceType):
                 return self.processLagMember(o)
-            elif o.isUnderKeyNameForParentAboveWithType(
-                "connected_endpoints", InterfaceType
-            ):
-                return self.processConnectedEndpointTermination(o)
-            elif o.isUnderKeyNameForParentAboveWithType("link_peers", InterfaceType):
-                return self.processLinkPeerTermination(o)
             return  # guard: do not process (can be connected_endpoint, parent, etc...)
         if o.isSubInterface():
             return self.processSubInterface(o)
