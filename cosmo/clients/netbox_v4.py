@@ -343,24 +343,7 @@ class TobagoLineMembersDataQuery(ParallelQuery):
             "api/plugins/tobago/line-members/find-by-object/",
             {"content_type": "dcim.device", "object_name": device},
         )
-        service_instances = map(self._get_service_data, line_members)
-        for line_member, service_instance in zip(line_members, service_instances):
-            line_member["version"]["line"]["service"] = service_instance
         return line_members
-
-    def _get_service_data(self, line_member: dict) -> dict:
-        line_id = line_member["version"]["line"]["id"]
-        # query_rest does not work here, because the response
-        # we get does not have expected fields
-        line_instance = self.client.query_rest(
-            f"api/plugins/tobago/lines/{line_id}/", {}
-        )
-        service_id = line_instance["service"]["id"]
-        # same than above
-        service_instance = self.client.query_rest(
-            f"api/plugins/tobago/services/{service_id}/", {}
-        )
-        return service_instance
 
     def _merge_into(self, data: dict, query_result):
         query_device_name = self.kwargs.get("device")

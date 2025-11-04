@@ -893,11 +893,8 @@ class CosmoTobagoLine(AbstractNetboxType):
     def _getCurrentLine(self):
         return self._getCurrentLineMetadata()["line"]
 
-    def _getCurrentService(self):
-        return self._getCurrentLine()["service"]
-
     def _getCurrentTenant(self):
-        return self._getCurrentService()["tenant"]
+        return self._getCurrentLineMetadata()["tenant"]
 
     def getLineID(self) -> str:
         return str(self._getCurrentLine()["id"])
