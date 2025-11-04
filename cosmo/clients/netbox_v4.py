@@ -343,7 +343,7 @@ class TobagoLineMembersDataQuery(ParallelQuery):
             "api/plugins/tobago/line-members/find-by-object/",
             {"content_type": "dcim.device", "object_name": device},
         )
-        service_instances = pool.map(self._get_service_data, line_members)
+        service_instances = map(self._get_service_data, line_members)
         for line_member, service_instance in zip(line_members, service_instances):
             line_member["version"]["line"]["service"] = service_instance
         return line_members
