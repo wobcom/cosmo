@@ -387,8 +387,8 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(
                             "interfaces": {
                                 o.getName(): {
                                     "vpws_service_id": {
-                                        "local": int(local.getID()),
-                                        "remote": int(remote.getID()),
+                                        "local": int(local.getParent(L2VPNTerminationType).getID()),
+                                        "remote": int(remote.getParent(L2VPNTerminationType).getID()),
                                     }
                                 }
                             }
