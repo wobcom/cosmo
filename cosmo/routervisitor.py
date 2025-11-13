@@ -12,6 +12,7 @@ from cosmo.common import (
     head,
     StaticRouteSerializationError,
     APP_NAME,
+    DeviceSerializationError,
 )
 from cosmo.vrfhelper import TVRFHelpers
 from cosmo.manufacturers import ManufacturerFactoryFromDevice
@@ -369,9 +370,13 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         if not parent_interface.isSubInterface():
             return  # guard: do not process root interface
 
-        router_id = self.loopbacks_by_device.get(
-            parent_device.getName()
-        ).deriveRouterId()
+        loopback = self.loopbacks_by_device.get(parent_device.getName())
+        if loopback is None:
+            raise DeviceSerializationError(
+                "Can't derive Router ID, no suitable loopback interface found."
+            )
+
+        router_id = loopback.deriveRouterId()
         if o.getRouteDistinguisher():
             rd = router_id + ":" + o.getRouteDistinguisher()
         else:

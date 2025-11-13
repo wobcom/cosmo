@@ -613,6 +613,11 @@ class CosmoLoopbackType(AbstractNetboxType):
 
     def deriveRouterId(self) -> str:
         ipv4 = self.getIpv4()
+        if ipv4 is None:
+            raise DeviceSerializationError(
+                "Can't derive Router ID, no suitable loopback IP address found."
+            )
+
         ipv4_address_without_cidr = str(ipaddress.ip_interface(ipv4).ip)
         return ipv4_address_without_cidr
 

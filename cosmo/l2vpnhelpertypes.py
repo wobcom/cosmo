@@ -4,7 +4,12 @@ from multimethod import multimethod as singledispatchmethod
 from typing import NoReturn
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import head, CosmoOutputType, L2VPNSerializationError
+from cosmo.common import (
+    head,
+    CosmoOutputType,
+    L2VPNSerializationError,
+    DeviceSerializationError,
+)
 from cosmo.vrfhelper import TVRFHelpers
 from cosmo.log import warn
 from cosmo.netbox_types import (
@@ -361,12 +366,13 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(
 
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
         parent_l2vpn = o.getParent(L2VPNType)
+        parent_device = o.getParent(DeviceType)
         # find local end
         local = next(
             filter(
                 lambda i: (
                     isinstance(i, InterfaceType)
-                    and i.getAssociatedDevice() == o.getParent(DeviceType)
+                    and i.getAssociatedDevice() == parent_device
                 ),
                 parent_l2vpn.getTerminations(),
             )
@@ -374,10 +380,13 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(
         # remote end is the other one
         remote = next(filter(lambda i: i != local, parent_l2vpn.getTerminations()))
 
-        parent_device = o.getParent(DeviceType)
-        router_id = self.loopbacks_by_device.get(
-            parent_device.getName()
-        ).deriveRouterId()
+        loopback = self.loopbacks_by_device.get(parent_device.getName())
+        if loopback is None:
+            raise DeviceSerializationError(
+                "Can't derive Router ID, no suitable loopback interface found."
+            )
+
+        router_id = loopback.deriveRouterId()
         return {
             self._vrf_key: {
                 parent_l2vpn.getName().replace("WAN: ", ""): {
