@@ -133,6 +133,7 @@ l2vpn_list:
       device:
         __typename: DeviceType
         interfaces: []
+        id: '2548'
         name: TEST0001
       id: '184384'
       name: et-0/0/0.0
@@ -145,6 +146,7 @@ l2vpn_list:
       device:
         __typename: DeviceType
         interfaces: []
+        id: '2549'
         name: TEST0002
       id: '184383'
       name: et-0/0/0.0
@@ -154,7 +156,7 @@ l2vpn_list:
     __typename: L2VPNTerminationType
   type: VPWS
 loopbacks:
-  TEST0002:
-    ipv4: 45.139.136.10/32
   TEST0001:
+    ipv4: 45.139.136.10/32
+  TEST0002:
     ipv4: 45.139.136.11/32

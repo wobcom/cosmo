@@ -22,15 +22,18 @@ def _yaml_load(path):
 
 def get_router_s_from_path(path):
     test_data = _yaml_load(path)
-    return [
-        RouterSerializer(
+    return_list = []
+    for device in test_data["device_list"]:
+
+        rs = RouterSerializer(
             device=device,
             l2vpn_list=test_data["l2vpn_list"],
             loopbacks=test_data.get("loopbacks", {}),
             asn=65542,
         ).allowPrivateIPs()
-        for device in test_data["device_list"]
-    ]
+        return_list.append(rs)
+
+    return return_list
 
 
 def get_switch_s_from_path(path):
@@ -39,11 +42,31 @@ def get_switch_s_from_path(path):
 
 
 def get_router_sd_from_path(path):
-    return list(map(lambda s: s.serialize(), get_router_s_from_path(path)))
+    routers = get_router_s_from_path(path)
+    return_routers = list()
+
+    # Note: If we fucked up something in test data, it might emit a StopIteration.
+    # This bubbles up and stops the iteration over routers, so it returns an empty list to the calling test.
+    # This means, that we do not execute tests.
+    # We circumvent this with an unrolled loop to make sure, Exception do not harm us.
+
+    for r in routers:
+        rs = r.serialize()
+        return_routers.append(rs)
+
+    return return_routers
 
 
 def get_switch_sd_from_path(path):
-    return list(map(lambda s: s.serialize(), get_switch_s_from_path(path)))
+    switches = get_switch_s_from_path(path)
+
+    # Note: See get_router_sd_from_path
+    return_switches = list()
+    for sw in switches:
+        sws = sw.serialize()
+        return_switches.append(sws)
+
+    return return_switches
 
 
 def test_router_platforms():
@@ -337,6 +360,19 @@ def test_router_case_mpls_evpn(capsys):
 def test_router_case_vpws():
     sd = get_router_sd_from_path("./test_case_vpws.yaml")
 
+    expected_config = [
+        {
+            "rd": "45.139.136.10:2708",
+            "local_vpws_id": 865,
+            "remote_vpws_id": 866,
+        },
+        {
+            "rd": "45.139.136.11:2708",
+            "local_vpws_id": 866,
+            "remote_vpws_id": 865,
+        },
+    ]
+
     for index, d in enumerate(sd):
         assert "et-0/0/0" in d["interfaces"]
         assert 0 in d["interfaces"]["et-0/0/0"]["units"]
@@ -358,15 +394,27 @@ def test_router_case_vpws():
         assert ri["description"] == "VPWS: VPWS"
 
         assert ri["instance_type"] == "evpn-vpws"
-        assert ri["protocols"]["evpn"]["interfaces"]["et-0/0/0.0"]["vpws_service_id"][
-            "local"
-        ] == 184384 + (index * -1)
-        assert ri["protocols"]["evpn"]["interfaces"]["et-0/0/0.0"]["vpws_service_id"][
-            "remote"
-        ] == 184383 + (index * 1)
 
-        assert ri["route_distinguisher"] == "65542:2708"
-        assert ri["vrf_target"] == "target:1:2708"
+        expected_local_vpws_id = expected_config[index]["local_vpws_id"]
+        expected_remote_vpws_id = expected_config[index]["remote_vpws_id"]
+
+        assert (
+            ri["protocols"]["evpn"]["interfaces"]["et-0/0/0.0"]["vpws_service_id"][
+                "local"
+            ]
+            == expected_local_vpws_id
+        )
+        assert (
+            ri["protocols"]["evpn"]["interfaces"]["et-0/0/0.0"]["vpws_service_id"][
+                "remote"
+            ]
+            == expected_remote_vpws_id
+        )
+
+        expected_rd = expected_config[index]["rd"]
+
+        assert ri["route_distinguisher"] == expected_rd
+        assert ri["vrf_target"] == "target:65542L:2708"
 
 
 def test_router_case_local_l2x():

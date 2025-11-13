@@ -373,7 +373,11 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(
         )
         # remote end is the other one
         remote = next(filter(lambda i: i != local, parent_l2vpn.getTerminations()))
-        router_id = o.getParent(DeviceType).getRouterID()
+
+        parent_device = o.getParent(DeviceType)
+        router_id = self.loopbacks_by_device.get(
+            parent_device.getName()
+        ).deriveRouterId()
         return {
             self._vrf_key: {
                 parent_l2vpn.getName().replace("WAN: ", ""): {
@@ -387,8 +391,16 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(
                             "interfaces": {
                                 o.getName(): {
                                     "vpws_service_id": {
-                                        "local": int(local.getParent(L2VPNTerminationType).getID()),
-                                        "remote": int(remote.getParent(L2VPNTerminationType).getID()),
+                                        "local": int(
+                                            local.getParent(
+                                                L2VPNTerminationType
+                                            ).getID()
+                                        ),
+                                        "remote": int(
+                                            remote.getParent(
+                                                L2VPNTerminationType
+                                            ).getID()
+                                        ),
                                     }
                                 }
                             }

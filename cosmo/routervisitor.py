@@ -364,10 +364,14 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
 
     @accept.register
     def _(self, o: VRFType):
+        parent_device = o.getParent(DeviceType)
         parent_interface = o.getParent(InterfaceType)
         if not parent_interface.isSubInterface():
             return  # guard: do not process root interface
-        router_id = o.getParent(DeviceType).getRouterID()
+
+        router_id = self.loopbacks_by_device.get(
+            parent_device.getName()
+        ).deriveRouterId()
         if o.getRouteDistinguisher():
             rd = router_id + ":" + o.getRouteDistinguisher()
         else:

@@ -246,41 +246,6 @@ class DeviceType(AbstractNetboxType):
             )
         return str(sys_id)
 
-    def getRouterID(self) -> str | Never:
-        # Deriving the router ID is a bit tricky, there is no 'correct' way.
-        # For us it's the primary loopback IPv4 address
-
-        # get first loopback interface in default vrf
-        loopback = next(
-            filter(
-                lambda x: (x.isLoopbackChild() and x.getVRF() is None),
-                self.getInterfaces(),
-            ),
-            None,
-        )
-
-        if loopback is None:
-            raise DeviceSerializationError(
-                "Can't derive Router ID, no suitable loopback interface found."
-            )
-
-        # get first IPv4 of that interface
-        address = next(
-            filter(
-                lambda i: isinstance(i, IPv4Interface),
-                map(lambda i: i.getIPInterfaceObject(), loopback.getIPAddresses()),
-            ),
-            None,
-        )
-
-        if address is None:
-            raise DeviceSerializationError(
-                "Can't derive Router ID, no suitable loopback IP address found."
-            )
-
-        # return that IP without subnet mask and hope for the best
-        return str(address.ip)
-
 
 class DeviceTypeType(AbstractNetboxType):
     def getBasePath(self):
@@ -645,6 +610,11 @@ class CosmoLoopbackType(AbstractNetboxType):
 
     def getIpv6(self) -> str | None:
         return self["ipv6"]
+
+    def deriveRouterId(self) -> str:
+        ipv4 = self.getIpv4()
+        ipv4_address_without_cidr = str(ipaddress.ip_interface(ipv4).ip)
+        return ipv4_address_without_cidr
 
 
 class CosmoIPPoolType(AbstractNetboxType):
