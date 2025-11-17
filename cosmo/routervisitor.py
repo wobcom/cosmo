@@ -14,6 +14,7 @@ from cosmo.common import (
     APP_NAME,
     DeviceSerializationError,
 )
+from cosmo.loopbacks import LoopbackHelper
 from cosmo.vrfhelper import TVRFHelpers
 from cosmo.manufacturers import ManufacturerFactoryFromDevice
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
@@ -41,21 +42,17 @@ from cosmo.netbox_types import (
 class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
     def __init__(
         self,
-        loopbacks_by_device: dict[str, CosmoLoopbackType],
+        loopbacks: LoopbackHelper,
         asn: int,
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         # Note: I have to use composition since singledispatchmethod does not work well with inheritance
-        self.l2vpn_exporter = RouterL2VPNExporterVisitor(
-            loopbacks_by_device=loopbacks_by_device, asn=asn
-        )
-        self.l2vpn_validator = RouterL2VPNValidatorVisitor(
-            loopbacks_by_device=loopbacks_by_device, asn=asn
-        )
+        self.l2vpn_exporter = RouterL2VPNExporterVisitor(loopbacks=loopbacks, asn=asn)
+        self.l2vpn_validator = RouterL2VPNValidatorVisitor(loopbacks=loopbacks, asn=asn)
         self.bgpcpe_exporter = RouterBgpCpeExporterVisitor()
-        self.loopbacks_by_device = loopbacks_by_device
+        self.loopbacks = loopbacks
         self.allow_private_ips = False
         self.asn = asn
 
@@ -370,12 +367,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         if not parent_interface.isSubInterface():
             return  # guard: do not process root interface
 
-        loopback = self.loopbacks_by_device.get(parent_device.getName())
-        if loopback is None:
-            raise DeviceSerializationError(
-                "Can't derive Router ID, no suitable loopback interface found."
-            )
-
+        loopback = self.loopbacks.getByDevice(parent_device.getName())
         router_id = loopback.deriveRouterId()
         if o.getRouteDistinguisher():
             rd = router_id + ":" + o.getRouteDistinguisher()

@@ -158,7 +158,7 @@ class LoopbackDataQuery(ParallelQuery):
 
     def _merge_into(self, data: dict, query_data):
 
-        loopbacks = dict()
+        loopbacks: dict[str, dict] = dict()
 
         for interface in query_data["interface_list"]:
             child_interface = next(
