@@ -7,6 +7,7 @@ from cosmo.l2vpnhelpertypes import (
     L2VpnVisitorClassFactoryFromL2VpnTypeObject,
     AbstractL2VpnTypeTerminationVisitor,
 )
+from cosmo.loopbacks import LoopbackHelper
 from cosmo.netbox_types import (
     L2VPNType,
     InterfaceType,
@@ -21,12 +22,12 @@ class AbstractL2VPNVisitor(AbstractRouterExporterVisitor):
     def __init__(
         self,
         *args,
-        loopbacks_by_device: dict[str, CosmoLoopbackType],
+        loopbacks: LoopbackHelper,
         asn: int,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        self.loopbacks_by_device = loopbacks_by_device
+        self.loopbacks = loopbacks
         self.asn = asn
 
     @singledispatchmethod
@@ -38,7 +39,7 @@ class AbstractL2VPNVisitor(AbstractRouterExporterVisitor):
     ) -> AbstractL2VpnTypeTerminationVisitor:
         return L2VpnVisitorClassFactoryFromL2VpnTypeObject(o).get()(
             associated_l2vpn=o,
-            loopbacks_by_device=self.loopbacks_by_device,
+            loopbacks=self.loopbacks,
             asn=self.asn,
         )
 

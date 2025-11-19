@@ -4,7 +4,13 @@ from multimethod import multimethod as singledispatchmethod
 from typing import NoReturn
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import head, CosmoOutputType, L2VPNSerializationError
+from cosmo.common import (
+    head,
+    CosmoOutputType,
+    L2VPNSerializationError,
+    DeviceSerializationError,
+)
+from cosmo.loopbacks import LoopbackHelper
 from cosmo.vrfhelper import TVRFHelpers
 from cosmo.log import warn
 from cosmo.netbox_types import (
@@ -88,13 +94,13 @@ class AbstractL2VpnTypeTerminationVisitor(
         self,
         *args,
         associated_l2vpn: L2VPNType,
-        loopbacks_by_device: dict[str, CosmoLoopbackType],
+        loopbacks: LoopbackHelper,
         asn: int,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.associated_l2vpn = associated_l2vpn
-        self.loopbacks_by_device = loopbacks_by_device
+        self.loopbacks = loopbacks
         self.asn = asn
 
     def __repr__(self):
@@ -258,12 +264,7 @@ class AbstractEPLEVPLL2VpnTypeCommon(
                 f"Couldn't find the device associated to the remote end {remote} in "
                 f"EPL/EVPL L2VPN {parent_l2vpn.getName()}."
             )
-        remote_end_loopback = self.loopbacks_by_device.get(associated_device.getName())
-        if not isinstance(remote_end_loopback, CosmoLoopbackType):
-            raise L2VPNSerializationError(
-                f"Couldn't find the associated remote end loopback for remote {associated_device.getName()} "
-                f"in EPL/EVPL L2VPN {parent_l2vpn.getName()}."
-            )
+        remote_end_loopback = self.loopbacks.getByDevice(associated_device.getName())
         return {
             self._l2circuits_key: {
                 parent_l2vpn.getName().replace("WAN: ", ""): {
@@ -361,19 +362,22 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(
 
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
         parent_l2vpn = o.getParent(L2VPNType)
+        parent_device = o.getParent(DeviceType)
         # find local end
         local = next(
             filter(
                 lambda i: (
                     isinstance(i, InterfaceType)
-                    and i.getAssociatedDevice() == o.getParent(DeviceType)
+                    and i.getAssociatedDevice() == parent_device
                 ),
                 parent_l2vpn.getTerminations(),
             )
         )
         # remote end is the other one
         remote = next(filter(lambda i: i != local, parent_l2vpn.getTerminations()))
-        router_id = o.getParent(DeviceType).getRouterID()
+
+        loopback = self.loopbacks.getByDevice(parent_device.getName())
+        router_id = loopback.deriveRouterId()
         return {
             self._vrf_key: {
                 parent_l2vpn.getName().replace("WAN: ", ""): {
@@ -387,8 +391,16 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(
                             "interfaces": {
                                 o.getName(): {
                                     "vpws_service_id": {
-                                        "local": int(local.getID()),
-                                        "remote": int(remote.getID()),
+                                        "local": int(
+                                            local.getParent(
+                                                L2VPNTerminationType
+                                            ).getID()
+                                        ),
+                                        "remote": int(
+                                            remote.getParent(
+                                                L2VPNTerminationType
+                                            ).getID()
+                                        ),
                                     }
                                 }
                             }

@@ -10,6 +10,7 @@ from cosmo.common import (
     CosmoOutputType,
 )
 from cosmo.log import error
+from cosmo.loopbacks import LoopbackHelper
 from cosmo.netbox_types import DeviceType, CosmoLoopbackType
 from cosmo.switchvisitor import SwitchDeviceExporterVisitor
 from cosmo.routervisitor import RouterDeviceExporterVisitor
@@ -45,11 +46,14 @@ class RouterSerializer:
             ["override"],
         )
         self.device["l2vpn_list"] = self.l2vpn_list
-        # breakpoint()
+
+        loopbacks = {
+            key: CosmoLoopbackType(**loopback)
+            for (key, loopback) in self.loopbacks.items()
+        }
+        loopback_helper = LoopbackHelper(loopbacks)
         visitor = RouterDeviceExporterVisitor(
-            loopbacks_by_device={
-                k: CosmoLoopbackType(v) for k, v in self.loopbacks.items()
-            },
+            loopbacks=loopback_helper,
             asn=self.asn,
         )
         if self.allow_private_ips:
