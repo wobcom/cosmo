@@ -1,7 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 from builtins import map
-from multiprocessing import Pool
+from multiprocessing import Manager
 from string import Template
 
 from cosmo.clients.netbox_client import NetboxAPIClient
@@ -16,10 +16,10 @@ class ParallelQuery(ABC):
         self.kwargs = kwargs
 
     def fetch_data(self, pool):
-        return pool.apply_async(self._fetch_data, args=(self.kwargs,))
+        return pool.apply_async(self._fetch_data, args=(self.kwargs, pool))
 
     @abstractmethod
-    def _fetch_data(self, **kwargs):
+    def _fetch_data(self, kwargs, pool):
         pass
 
     def merge_into(self, data_promise, data: dict):
@@ -32,7 +32,7 @@ class ParallelQuery(ABC):
 
 
 class ConnectedDevicesDataQuery(ParallelQuery):
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         query_template = Template(
             """
             query {
@@ -47,6 +47,8 @@ class ConnectedDevicesDataQuery(ParallelQuery):
                       __typename
                       name
                       device {
+                        name
+                        __typename
                         primary_ip4 {
                           __typename
                           address
@@ -105,7 +107,7 @@ class ConnectedDevicesDataQuery(ParallelQuery):
 
 
 class LoopbackDataQuery(ParallelQuery):
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         # Note: This does not use the device list, because we can have other participating devices
         # which are not in the same repository and thus are not appearing in device list.
 
@@ -191,7 +193,7 @@ class LoopbackDataQuery(ParallelQuery):
 
 
 class L2VPNDataQuery(ParallelQuery):
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         query_template = Template(
             """
          query {
@@ -272,7 +274,7 @@ class L2VPNDataQuery(ParallelQuery):
 
 class StaticRouteQuery(ParallelQuery):
 
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         device_list = kwargs.get("device_list")
         return self.client.query_rest(
             "api/plugins/routing/staticroutes/", {"device": device_list}
@@ -291,7 +293,7 @@ class StaticRouteQuery(ParallelQuery):
 
 
 class StaticRouteDummyQuery(ParallelQuery):
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         return []
 
     def _merge_into(self, data: dict, query_data):
@@ -303,7 +305,7 @@ class StaticRouteDummyQuery(ParallelQuery):
 
 class IPPoolDataQuery(ParallelQuery):
 
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         device_list = kwargs.get("device_list")
         return self.client.query_rest(
             "api/plugins/ip-pools/ippools/", {"devices": device_list}
@@ -325,8 +327,7 @@ class IPPoolDataQuery(ParallelQuery):
 
 
 class IPPoolDataDummyQuery(ParallelQuery):
-
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         return []
 
     def _merge_into(self, data: dict, query_data):
@@ -335,10 +336,56 @@ class IPPoolDataDummyQuery(ParallelQuery):
         return data
 
 
+class TobagoLineMembersDataQuery(ParallelQuery):
+    def _fetch_data(self, kwargs, pool):
+        device = kwargs.get("device")
+        line_members = self.client.query_rest(
+            "api/plugins/tobago/line-members/find-by-object/",
+            {"content_type": "dcim.device", "object_name": device},
+        )
+        return line_members
+
+    def _merge_into(self, data: dict, query_result):
+        query_device_name = self.kwargs.get("device")
+        for d in filter(
+            lambda device: device["name"] == query_device_name, data["device_list"]
+        ):
+            for i in d["interfaces"]:
+                attached_tobago_line = next(
+                    filter(
+                        # tobago is returning IDs as int so I have to do a little type casting
+                        lambda l: int(l["termination_a"]["id"]) == int(i["id"])
+                        or int(l["termination_b"]["id"]) == int(i["id"]),
+                        query_result,
+                    ),
+                    None,
+                )
+                i["attached_tobago_line"] = (
+                    {
+                        **attached_tobago_line,
+                        "__typename": "CosmoTobagoLine",
+                    }
+                    if attached_tobago_line
+                    else None
+                )
+        return data
+
+
+class TobagoLineMemberDataDummyQuery(ParallelQuery):
+    def _fetch_data(self, kwargs, pool):
+        return []
+
+    def _merge_into(self, data: dict, query_result):
+        for d in data["device_list"]:
+            for i in d["interfaces"]:
+                i["attached_tobago_line"] = None
+        return data
+
+
 # Note:
 # Netbox v4.2 broke mac addresses in the GraphQL queries. Therefore, we just fetch them via the REST API and add them.
 class DeviceMACQuery(ParallelQuery):
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         device_list = kwargs.get("device_list")
         return self.client.query_rest(
             "api/dcim/interfaces",
@@ -369,7 +416,7 @@ class DeviceDataQuery(ParallelQuery):
         super().__init__(*args, **kwargs)
         self.multiple_mac_addresses = multiple_mac_addresses
 
-    def _fetch_data(self, kwargs):
+    def _fetch_data(self, kwargs, pool):
         device = kwargs.get("device")
         query_template = Template(
             """
@@ -409,6 +456,106 @@ class DeviceDataQuery(ParallelQuery):
                   mode
                   mtu
                   description
+                  connected_endpoints {
+                    ... on ProviderNetworkType {
+                      __typename
+                      display
+                    }
+                    ... on CircuitTerminationType {
+                      __typename
+                      display
+                    }
+                    ... on VirtualCircuitTerminationType {
+                      __typename
+                      display
+                    }
+                    ... on InterfaceType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                    ... on FrontPortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                    ... on RearPortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                    ... on ConsolePortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                    ... on ConsoleServerPortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                  }
+                  link_peers {
+                    ... on CircuitTerminationType {
+                      __typename
+                      display
+                    }
+                    ... on FrontPortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                    ... on RearPortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                    ... on ConsolePortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                    ... on ConsoleServerPortType {
+                      __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                    ... on InterfaceType {
+                       __typename
+                      name
+                      device {
+                        __typename
+                        name
+                      }
+                    }
+                  }
                   vrf {
                     __typename
                     id
@@ -483,7 +630,8 @@ class DeviceDataQuery(ParallelQuery):
 class NetboxV4Strategy:
 
     def __init__(self, url, token, multiple_mac_addresses, feature_flags):
-        self.client = NetboxAPIClient(url, token)
+        self.url = url
+        self.token = token
         self.multiple_mac_addresses = multiple_mac_addresses
         self.feature_flags = feature_flags
 
@@ -492,42 +640,57 @@ class NetboxV4Strategy:
 
         queries = list()
 
-        for d in device_list:
-            queries.append(
-                DeviceDataQuery(
-                    self.client,
-                    device=d,
-                    multiple_mac_addresses=self.multiple_mac_addresses,
+        # https://superfastpython.com/multiprocessing-pool-share-with-workers/
+        # pool object is used through manager's proxy multiprocess object,
+        # this way, subprocesses can spawn more processes as if it was done
+        # from the main thread. by default this is not possible, see
+        # https://stackoverflow.com/questions/72411392/can-you-do-nested-parallelization-using-multiprocessing-in-python
+        # this avoids having to re-architecture completely using worker/task/queue model.
+        with Manager() as manager:
+            client = NetboxAPIClient(self.url, self.token, manager.dict())
+
+            for d in device_list:
+                queries.extend(
+                    [
+                        DeviceDataQuery(
+                            client,
+                            device=d,
+                            multiple_mac_addresses=self.multiple_mac_addresses,
+                        ),
+                        (
+                            TobagoLineMembersDataQuery(client, device=d)
+                            if self.feature_flags["tobago"]
+                            else TobagoLineMemberDataDummyQuery(client, device=d)
+                        ),
+                    ]
                 )
+
+            queries.extend(
+                [
+                    L2VPNDataQuery(client, device_list=device_list),
+                    (
+                        StaticRouteQuery(client, device_list=device_list)
+                        if self.feature_flags["routing"]
+                        else StaticRouteDummyQuery(client, device_list=device_list)
+                    ),
+                    DeviceMACQuery(client, device_list=device_list),
+                    ConnectedDevicesDataQuery(client, device_list=device_list),
+                    LoopbackDataQuery(client, device_list=device_list),
+                    (
+                        IPPoolDataQuery(client, device_list=device_list)
+                        if self.feature_flags["ippools"]
+                        else IPPoolDataDummyQuery(client, device_list=device_list)
+                    ),
+                ]
             )
 
-        queries.extend(
-            [
-                L2VPNDataQuery(self.client, device_list=device_list),
-                (
-                    StaticRouteQuery(self.client, device_list=device_list)
-                    if self.feature_flags["routing"]
-                    else StaticRouteDummyQuery(self.client, device_list=device_list)
-                ),
-                DeviceMACQuery(self.client, device_list=device_list),
-                ConnectedDevicesDataQuery(self.client, device_list=device_list),
-                LoopbackDataQuery(self.client, device_list=device_list),
-                (
-                    IPPoolDataQuery(self.client, device_list=device_list)
-                    if self.feature_flags["ippools"]
-                    else IPPoolDataDummyQuery(self.client, device_list=device_list)
-                ),
-            ]
-        )
+            with manager.Pool() as pool:
+                data_promises = list(map(lambda x: x.fetch_data(pool), queries))
 
-        with Pool() as pool:
+                data = dict()
 
-            data_promises = list(map(lambda x: x.fetch_data(pool), queries))
-
-            data = dict()
-
-            for i, q in enumerate(queries):
-                dp = data_promises[i]
-                data = q.merge_into(dp, data)
+                for i, q in enumerate(queries):
+                    dp = data_promises[i]
+                    data = q.merge_into(dp, data)
 
         return data

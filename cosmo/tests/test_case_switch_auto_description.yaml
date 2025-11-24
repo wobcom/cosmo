@@ -1,0 +1,194 @@
+device_list:
+- device_type:
+    __typename: DeviceTypeType
+    slug: sn3420
+  __typename: DeviceType
+  id: '1718'
+  interfaces:
+  - __typename: InterfaceType
+    custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ''
+    enabled: true
+    id: '30370'
+    ip_addresses: []
+    connected_endpoints:
+      - name: "combo1"
+        __typename: InterfaceType
+        device:
+          __typename: DeviceType
+          name: "mikrotik01"
+    mac_address: null
+    mode: null
+    mtu: null
+    name: swp52
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - __typename: InterfaceType
+    custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: 'do not overwrite me!'
+    enabled: true
+    id: '30378'
+    ip_addresses: []
+    connected_endpoints:
+      - name: "combo2"
+        __typename: InterfaceType
+        device:
+          __typename: DeviceType
+          name: "mikrotik01"
+    mac_address: null
+    mode: null
+    mtu: null
+    name: swp53
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - __typename: InterfaceType
+    custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ""
+    enabled: true
+    id: '30379'
+    ip_addresses: []
+    connected_endpoints:
+      - name: "combo3"
+        __typename: InterfaceType
+        device:
+          __typename: DeviceType
+          name: "mikrotik02"
+    attached_tobago_line:
+      __typename: CosmoTobagoLine
+      component_type: CABLE
+      element:
+        description: ''
+        display: cable 000128934
+        id: 39645
+        label: cable 000128934
+        url: https://netbox.example.com/api/dcim/cables/39645/
+      element_id: 93827
+      element_type: dcim.cable
+      id: 5110
+      index: 1
+      termination_a:
+        _occupied: true
+        cable:
+          description: ''
+          display: cable 000128934
+          id: 39645
+          label: cable 000128934
+          url: https://netbox.example.com/api/dcim/cables/39645/
+        description: ''
+        device:
+          description: ''
+          display: TEST0001
+          id: 1718
+          name: TEST0001
+          url: https://netbox.example.com/api/dcim/devices/1718/
+        display: swp54
+        id: 30379
+        name: swp54
+        url: https://netbox.example.com/api/dcim/interfaces/30379/
+      termination_a_id: 92387
+      termination_a_type: dcim.interface
+      termination_b:
+        _occupied: true
+        id: 198208
+        url: https://netbox.example.com/api/dcim/interfaces/192878/
+        display: DC10 duplex front 10b
+        device:
+          id: 39948
+          url: https://netbox.example.com/api/dcim/device/39948/
+          display: Panel C
+          name: Panel C
+          description: null
+        name: DC10 duplex front 10b
+        description: ""
+      termination_b_id: 454
+      termination_b_type: dcim.frontport
+      version:
+        created: '2025-09-03T11:34:19.643456+01:00'
+        custom_fields: { }
+        id: 2617
+        last_updated: '2025-09-03T11:34:40.819703+01:00'
+        tenant:
+          id: 43876
+          url: https://netbox.example.com/api/plugins/tobago/tenants/43876/
+          display: Contoso Ltd.
+          name: Contoso Ltd.
+          slug: contoso-ltd
+        line:
+          display: cl390287
+          id: 9834
+          name: '390287'
+          name_long: cl390287
+          url: https://netbox.example.com/api/plugins/tobago/lines/9834/
+          service:
+            id: 4893794
+            url: https://netbox.example.com/api/plugins/tobago/services/4893794/
+            display: "#9823 (cl390287)"
+            business_service: null
+        status: current
+    mac_address: null
+    mode: null
+    mtu: null
+    name: swp54
+    tagged_vlans: []
+    tags:
+      - __typename: TagType
+        name: "edge:customer"
+        slug: "edge_customer"
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - __typename: InterfaceType
+    custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: ""
+    enabled: true
+    id: '30380'
+    ip_addresses: []
+    attached_tobago_line: null
+    link_peers:
+      - name: "port6"
+        __typename: InterfaceType
+        device:
+          __typename: DeviceType
+          name: "Panel98473"
+    connected_endpoints:
+      - name: "combo1"
+        __typename: InterfaceType
+        device:
+          __typename: DeviceType
+          name: "mikrotik09"
+    mac_address: null
+    mode: null
+    mtu: null
+    name: swp55
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  name: TEST0001
+  platform:
+    __typename: PlatformType
+    manufacturer:
+      __typename: ManufacturerType
+      slug: cumulus-networks
+    slug: cumulus-linux-4-3
+  primary_ip4:
+    __typename: IPAddressType
+    address: 10.120.142.11/24
+  serial: 4242
+  staticroute_set: []
+l2vpn_list: []

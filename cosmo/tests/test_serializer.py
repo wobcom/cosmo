@@ -1,3 +1,4 @@
+import json
 import re
 import yaml
 import pytest
@@ -214,6 +215,38 @@ def test_router_logical_interface(capsys):
     assert re.search(
         r"0.2] sub-interface number should be same as VLAN \(456\)", output.out
     )
+
+
+def test_router_interface_auto_description():
+    [sd] = get_router_sd_from_path("./test_case_auto_descriptions.yaml")
+
+    assert "et-0/0/0" in sd["interfaces"]
+    assert "et-0/0/1" in sd["interfaces"]
+    assert 2 in sd["interfaces"]["et-0/0/1"]["units"]
+    assert 3 in sd["interfaces"]["et-0/0/1"]["units"]
+    assert "et-0/0/5" in sd["interfaces"]
+
+    assert {
+        "connected_endpoints": [{"name": "combo1", "device": "mikrotik01"}]
+    } == json.loads(sd["interfaces"]["et-0/0/0"]["description"])
+    # auto type description now overrides existing descriptions
+    # assert "do not overwrite me!" == sd["interfaces"]["et-0/0/1"]["description"]
+    assert {
+        "line": "cl390287",
+        "tenant": "Contoso Ltd.",
+        "connected_endpoints": [{"name": "combo2", "device": "mikrotik01"}],
+        "type": "peering",
+    } == json.loads(sd["interfaces"]["et-0/0/1"]["units"][2]["description"])
+    assert {
+        "line": "cl390287",
+        "tenant": "Contoso Ltd.",
+        "connected_endpoints": [{"name": "combo2", "device": "mikrotik01"}],
+        "type": "customer",
+    } == json.loads(sd["interfaces"]["et-0/0/1"]["units"][3]["description"])
+    assert {
+        "link_peers": [{"name": "port_45", "device": "Panel48673"}],
+        "type": "access",
+    } == json.loads(sd["interfaces"]["et-0/0/5"]["description"])
 
 
 def test_router_lag():
@@ -690,6 +723,39 @@ def test_switch_lldp():
     assert "swp52" in sd["cumulus__device_interfaces"]
     assert "lldp" in sd["cumulus__device_interfaces"]["swp52"]
     assert True == sd["cumulus__device_interfaces"]["swp52"]["lldp"]
+
+
+def test_switch_auto_description():
+    [sd] = get_switch_sd_from_path("./test_case_switch_auto_description.yaml")
+
+    assert "swp52" in sd["cumulus__device_interfaces"]
+    assert "swp53" in sd["cumulus__device_interfaces"]
+    assert "swp54" in sd["cumulus__device_interfaces"]
+    assert "swp55" in sd["cumulus__device_interfaces"]
+
+    assert "description" in sd["cumulus__device_interfaces"]["swp52"]
+    assert {
+        "connected_endpoints": [{"name": "combo1", "device": "mikrotik01"}]
+    } == json.loads(sd["cumulus__device_interfaces"]["swp52"]["description"])
+
+    assert "description" in sd["cumulus__device_interfaces"]["swp53"]
+    assert (
+        "do not overwrite me!"
+        == sd["cumulus__device_interfaces"]["swp53"]["description"]
+    )
+
+    assert "description" in sd["cumulus__device_interfaces"]["swp54"]
+    assert {
+        "line": "cl390287",
+        "tenant": "Contoso Ltd.",
+        "connected_endpoints": [{"name": "combo3", "device": "mikrotik02"}],
+        "type": "customer",
+    } == json.loads(sd["cumulus__device_interfaces"]["swp54"]["description"])
+
+    assert "description" in sd["cumulus__device_interfaces"]["swp55"]
+    assert {
+        "connected_endpoints": [{"name": "combo1", "device": "mikrotik09"}]
+    } == json.loads(sd["cumulus__device_interfaces"]["swp55"]["description"])
 
 
 def test_switch_vlans():

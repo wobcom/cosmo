@@ -48,7 +48,7 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
         v4_neighbors = set()
         v6_neighbors = set()
 
-        t_cpe = DeviceType(cpe["device"])
+        t_cpe = cpe["device"]
         for item in iter(t_cpe):
             other_ipa = CpeRouterIPVisitor(other_ip_networks).accept(item)
             if not other_ipa:
@@ -161,7 +161,7 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
             policy_v4["export"] = ["DEFAULT_V4"]
             policy_v6["export"] = ["DEFAULT_V6"]
 
-        t_cpe = DeviceType(cpe["device"])
+        t_cpe = cpe["device"]
         v4_import, v6_import = set(), set()  # unique
         cpe_visitor = CpeRouterExporterVisitor(
             forbidden_networks=list(

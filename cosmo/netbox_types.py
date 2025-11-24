@@ -1,10 +1,12 @@
 import abc
 import ipaddress
 import re
+from enum import StrEnum
+from itertools import chain
 from urllib.parse import urljoin
 
 from collections.abc import Iterable
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 from ipaddress import IPv4Interface, IPv6Interface
 
 from .common import (
@@ -13,10 +15,33 @@ from .common import (
     DeviceSerializationError,
     InterfaceSerializationError,
     head,
+    CosmoOutputType,
 )
-from typing import Self, Iterator, TypeVar, NoReturn, Never, Any
+from typing import (
+    Self,
+    Iterator,
+    TypeVar,
+    NoReturn,
+    Never,
+    Type,
+    Any,
+    Union,
+    Optional,
+    TypeGuard,
+    Callable,
+    Protocol,
+)
+
+
+from .netbox_autodescribable_mixin import AutoDescribableMixin
 
 T = TypeVar("T", bound="AbstractNetboxType")
+ConnectionTerminationType = TypeVar(
+    "ConnectionTerminationType",
+    bound="InterfaceType|CircuitTerminationType|ProviderNetworkType"
+    "|VirtualCircuitTerminationType|FrontPortType|RearPortType"
+    "|ConsolePortType|ConsoleServerPortType",
+)
 
 
 class AbstractNetboxType(abc.ABC, Iterable):
@@ -41,7 +66,9 @@ class AbstractNetboxType(abc.ABC, Iterable):
 
     # I have to write the union in quotes because of this Python bug:
     # https://bugs.python.org/issue45857
-    def __iter__(self) -> Iterator["AbstractNetboxType|list[Any]|str|int|bool|None"]:
+    def __iter__(
+        self,
+    ) -> Iterator["AbstractNetboxType|list[Any]|str|int|bool|object|None"]:
         yield self
         for k, v in without_keys(self._store, ["__parent", "__typename"]).items():
             if isinstance(v, dict):
@@ -52,7 +79,8 @@ class AbstractNetboxType(abc.ABC, Iterable):
                     yield from e
             elif isinstance(v, AbstractNetboxType):
                 yield from iter(v)
-            # Note: We can omit the emit of scalars, because we do not use them.
+            elif isinstance(v, object):
+                yield v  # also yield non AbstractNetboxTypes (other classes)
 
     def __hash__(self):
         non_recursive_clone = without_keys(self._store, "__parent")
@@ -125,6 +153,9 @@ class AbstractNetboxType(abc.ABC, Iterable):
         instance = self["__parent"]
         return type(instance) == target_type
 
+    def isCompositeRoot(self) -> bool:
+        return "__parent" not in self.keys()
+
     def getParent(self, target_type: type[T]) -> T | NoReturn:
         ke = KeyError(
             f"Cannot find any object above {type(self).__name__} which is of type {target_type.__name__}. "
@@ -141,6 +172,20 @@ class AbstractNetboxType(abc.ABC, Iterable):
                 else:
                     instance = instance["__parent"]
             return instance
+
+    def isUnderKeyNameForParentAboveWithType(
+        self, key: str, target_type: type[T]
+    ) -> bool:
+        if self.hasParentAboveWithType(target_type):
+            if key in self.getParent(target_type).keys() and (
+                self.getParent(target_type)[key] == self
+                or (
+                    isinstance(self.getParent(target_type)[key], Iterable)
+                    and self in self.getParent(target_type)[key]
+                )
+            ):  # self can be found under given key
+                return True
+        return False
 
     def getID(self):
         return self.get("id")
@@ -346,7 +391,108 @@ class VRFType(AbstractNetboxType):
         return self["rd"]
 
 
-class InterfaceType(AbstractNetboxType):
+class IWithAssociatedDevice(Protocol, metaclass=ABCMeta):
+    @abstractmethod
+    def get(self, *args, **kwargs):
+        pass
+
+    def getAssociatedDevice(self) -> DeviceType | None:
+        return self.get("device")
+
+
+class IAutoDescCompatibleConnectionTermination(Protocol, metaclass=ABCMeta):
+    @abstractmethod
+    def toDict(self) -> CosmoOutputType:
+        pass
+
+    @abstractmethod
+    def __str__(self):
+        pass
+
+
+class IAutoDescCompatibleConnectionTerminationWithAssociatedDevice(
+    IAutoDescCompatibleConnectionTermination, IWithAssociatedDevice, Protocol
+):
+    def toDict(self) -> CosmoOutputType:
+        associated_device = self.getAssociatedDevice()
+        return {"name": self.get("name")} | (
+            {"device": associated_device.getName()} if associated_device else {}
+        )
+
+    def __str__(self):
+        return f"{self.toDict().get('device')} -> {self.toDict().get('name')}"
+
+
+class FrontPortType(
+    AbstractNetboxType, IAutoDescCompatibleConnectionTerminationWithAssociatedDevice
+):
+    def getBasePath(self):
+        return "/dcim/front-ports/"
+
+
+class RearPortType(
+    AbstractNetboxType, IAutoDescCompatibleConnectionTerminationWithAssociatedDevice
+):
+    def getBasePath(self):
+        return "/dcim/rear-ports/"
+
+
+class ProviderNetworkType(AbstractNetboxType, IAutoDescCompatibleConnectionTermination):
+    def toDict(self) -> CosmoOutputType:
+        return {"provider": str(self.get("display"))}
+
+    def __str__(self):
+        return f"provider {self.toDict().get('provider')}"
+
+    def getBasePath(self):
+        return "/circuits/providers/"
+
+
+class CircuitTerminationType(
+    AbstractNetboxType, IAutoDescCompatibleConnectionTermination
+):
+    def toDict(self) -> CosmoOutputType:
+        return {"circuit": str(self.get("display"))}
+
+    def __str__(self):
+        return f"circuit {self.toDict().get('circuit')}"
+
+    def getBasePath(self):
+        return "/circuits/circuit-terminations/"
+
+
+class VirtualCircuitTerminationType(
+    AbstractNetboxType, IAutoDescCompatibleConnectionTermination
+):
+    def toDict(self) -> CosmoOutputType:
+        return {"virtual_circuit": str(self.get("display"))}
+
+    def __str__(self):
+        return f"virtual_circuit {self.toDict().get('circuit')}"
+
+    def getBasePath(self):
+        return "/circuits/virtual-circuits/"
+
+
+class ConsolePortType(
+    AbstractNetboxType, IAutoDescCompatibleConnectionTerminationWithAssociatedDevice
+):
+    def getBasePath(self):
+        return "/dcim/console-ports/"
+
+
+class ConsoleServerPortType(
+    AbstractNetboxType, IAutoDescCompatibleConnectionTerminationWithAssociatedDevice
+):
+    def getBasePath(self):
+        return "/dcim/console-server-ports/"
+
+
+class InterfaceType(
+    AbstractNetboxType,
+    IAutoDescCompatibleConnectionTerminationWithAssociatedDevice,
+    AutoDescribableMixin,
+):
     def __repr__(self):
         return super().__repr__() + f"({self.getName()})"
 
@@ -355,6 +501,9 @@ class InterfaceType(AbstractNetboxType):
 
     def getMACAddress(self) -> str | None:
         return self.get("mac_address")
+
+    def isCurrentDeviceInterface(self) -> bool:
+        return self.getParent(DeviceType).isCompositeRoot()
 
     def getUntaggedVLAN(self):
         cf = self.getCustomFields()
@@ -385,10 +534,33 @@ class InterfaceType(AbstractNetboxType):
             return True
         return False
 
+    def getAssociatedLagInterface(self) -> Self:
+        if not self.isLagMember():
+            raise InterfaceSerializationError(
+                "attempted to access lag interface on an interface outside of any lag",
+                on=self,
+            )
+        return self["lag"]
+
     def isLagInterface(self):
         if "type" in self.keys() and str(self["type"]).lower() == "lag":
             return True
         return False
+
+    def getAllLagMembers(self) -> list[Self] | Never:
+        def lagMemberFilter(i: Self) -> TypeGuard[Self]:
+            return i.isLagMember() and i.getAssociatedLagInterface() == self
+
+        if not self.isLagInterface():
+            raise InterfaceSerializationError(
+                "cannot find lag members for non-lag interface", on=self
+            )
+        return list(
+            filter(
+                lagMemberFilter,
+                self.getParent(DeviceType).getInterfaces(),
+            )
+        )
 
     def isSubInterface(self):
         return "." in self.getName()
@@ -404,6 +576,18 @@ class InterfaceType(AbstractNetboxType):
         if self.isSubInterface():
             ret = self.getName().split(".")[0]
         return ret
+
+    def getPhysicalInterfaceByFilter(self) -> Optional["InterfaceType"]:
+        if not self.isSubInterface():
+            return self
+        return head(
+            list(
+                filter(
+                    lambda i: i.getName() == self.getSubInterfaceParentInterfaceName(),
+                    self.getParent(DeviceType).getInterfaces(),
+                )
+            )
+        )
 
     def getVRF(self) -> VRFType | None:
         return self.get("vrf")
@@ -498,9 +682,6 @@ class InterfaceType(AbstractNetboxType):
             )
         return False
 
-    def getAssociatedDevice(self) -> DeviceType | None:
-        return self.get("device")
-
     def getIPAddresses(self) -> list[IPAddressType]:
         return self.get("ip_addresses", [])
 
@@ -510,8 +691,74 @@ class InterfaceType(AbstractNetboxType):
     def isLoopbackChild(self):
         return "." in self.getName() and self.getName().startswith("lo")
 
-    def getConnectedEndpoints(self) -> list[DeviceType]:
+    def getConnectedEndpoints(self) -> list[ConnectionTerminationType]:
         return self.get("connected_endpoints", [])
+
+    def _templatedTraversal(
+        self,
+        connection_termination_getter: Callable[
+            ["InterfaceType"], list[ConnectionTerminationType]
+        ],
+    ) -> list[ConnectionTerminationType]:
+        direct_connection: list[ConnectionTerminationType] = (
+            connection_termination_getter(self)
+        )
+        if direct_connection:
+            return direct_connection
+        phy = self.getPhysicalInterfaceByFilter()  # if already phy, phy = self
+        if not phy:
+            return []
+        phy_connected: list[ConnectionTerminationType] = connection_termination_getter(
+            phy
+        )
+        if phy_connected:
+            return phy_connected
+        if phy.isLagInterface():  # multi connected
+            return list(
+                chain.from_iterable(
+                    [connection_termination_getter(i) for i in phy.getAllLagMembers()]
+                )
+            )
+        return []
+
+    def getConnectedEndpointsWithTraversal(self) -> list[ConnectionTerminationType]:
+        def getter(i: Self) -> list[ConnectionTerminationType]:
+            return i.getConnectedEndpoints()
+
+        return self._templatedTraversal(getter)
+
+    def hasConnectedEndpoints(self) -> bool:
+        return bool(len(self.getConnectedEndpoints()))
+
+    def getLinkPeers(self) -> list[ConnectionTerminationType]:
+        return self.get("link_peers", [])
+
+    def hasLinkPeers(self):
+        return bool(len(self.getLinkPeers()))
+
+    def getLinkPeersWithTraversal(self) -> list[ConnectionTerminationType]:
+        def getter(i: Self) -> list[ConnectionTerminationType]:
+            return i.getLinkPeers()
+
+        return self._templatedTraversal(getter)
+
+    def hasAnAttachedTobagoLine(self):
+        return self.get("attached_tobago_line") is not None
+
+    def getAttachedTobagoLine(self) -> Optional["CosmoTobagoLine"]:
+        return self.get("attached_tobago_line")
+
+    def getAttachedTobagoLineWithTraversal(self) -> Optional["CosmoTobagoLine"]:
+        direct_line = self.getAttachedTobagoLine()
+        if direct_line:
+            return direct_line
+        phy = self.getPhysicalInterfaceByFilter()
+        if not phy:
+            return None
+        phy_line = phy.getAttachedTobagoLine()
+        if phy_line:
+            return phy_line
+        return None
 
 
 class VLANType(AbstractNetboxType):
@@ -634,3 +881,35 @@ class CosmoIPPoolType(AbstractNetboxType):
 
     def hasIPRanges(self) -> bool:
         return len(self["ip_ranges"]) > 0
+
+
+class CosmoTobagoLine(AbstractNetboxType):
+    def getBasePath(self):
+        return "/plugins/tobago/lines/"
+
+    def _getCurrentLineMetadata(self):
+        return self["version"]
+
+    def _getCurrentLine(self):
+        return self._getCurrentLineMetadata()["line"]
+
+    def _getCurrentTenant(self):
+        return self._getCurrentLineMetadata()["tenant"]
+
+    def getLineID(self) -> str:
+        return str(self._getCurrentLine()["id"])
+
+    def getLineNameLong(self) -> str:
+        return str(self._getCurrentLine()["name_long"])
+
+    def getName(self) -> str:
+        return self.getLineNameLong()
+
+    def getTenantName(self):
+        return self._getCurrentTenant()["name"]
+
+    def getLineStatus(self):
+        return self._getCurrentLineMetadata()["status"]
+
+    def getRelPath(self) -> str:
+        return urljoin(self.getBasePath(), self.getLineID())

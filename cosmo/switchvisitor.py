@@ -1,6 +1,8 @@
 import ipaddress
 from multimethod import multimethod as singledispatchmethod
 
+from cosmo.autodesc import AbstractComposableAutoDescription
+from cosmo.common import APP_NAME
 from cosmo.log import warn
 from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
 from cosmo.netbox_types import (
@@ -122,17 +124,26 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
 
     @accept.register
     def _(self, o: InterfaceType):
+        if not o.isCurrentDeviceInterface():  # guard
+            return
         # either lag interface
         if o.isLagInterface():
             return self.processLagMember(o)
         # 'lag': {'__typename': 'InterfaceType', 'id': '${ID}', 'name': '${NAME}'}
-        elif o.hasParentAboveWithType(
-            InterfaceType
-        ):  # interface in interface -> lagInfo
-            return self.processInterfaceLagInfo(o)
+        elif o.hasParentAboveWithType(InterfaceType):
+            if o.isUnderKeyNameForParentAboveWithType(
+                "lag",
+                InterfaceType,
+            ):
+                return self.processInterfaceLagInfo(o)
+            return  # interface-in-interface with other key, do not process
         # or "normal" interface
         else:
             return self.processInterface(o)
+
+    @accept.register
+    def _(self, o: AbstractComposableAutoDescription):
+        return {self._interfaces_key: {o.interface.getName(): {"description": str(o)}}}
 
     def processSpeedTag(self, o: TagType):
         parent_interface = o.getParent(InterfaceType)
