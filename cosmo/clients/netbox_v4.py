@@ -6,12 +6,17 @@ from string import Template
 
 from cosmo.clients.netbox_client import NetboxAPIClient
 
+fetcher: NetboxAPIClient
+
+
+def proc_init(url, token, shared_dict):
+    global fetcher
+    fetcher = NetboxAPIClient(url, token, shared_dict)
+
 
 class ParallelQuery(ABC):
 
-    def __init__(self, client: NetboxAPIClient, **kwargs):
-        self.client = client
-
+    def __init__(self, **kwargs):
         self.data_promise = None
         self.kwargs = kwargs
 
@@ -71,7 +76,7 @@ class ConnectedDevicesDataQuery(ParallelQuery):
         """
         )
 
-        return self.client.query(query_template.substitute())["data"]
+        return fetcher.query(query_template.substitute())["data"]
 
     def _merge_into(self, data: dict, query_data):
 
@@ -156,7 +161,7 @@ class LoopbackDataQuery(ParallelQuery):
         """
         )
 
-        return self.client.query(query_template.substitute())["data"]
+        return fetcher.query(query_template.substitute())["data"]
 
     def _merge_into(self, data: dict, query_data):
 
@@ -263,7 +268,7 @@ class L2VPNDataQuery(ParallelQuery):
          """
         )
 
-        return self.client.query(query_template.substitute())["data"]
+        return fetcher.query(query_template.substitute())["data"]
 
     def _merge_into(self, data: dict, query_data):
         return {
@@ -276,7 +281,7 @@ class StaticRouteQuery(ParallelQuery):
 
     def _fetch_data(self, kwargs, pool):
         device_list = kwargs.get("device_list")
-        return self.client.query_rest(
+        return fetcher.query_rest(
             "api/plugins/routing/staticroutes/", {"device": device_list}
         )
 
@@ -307,7 +312,7 @@ class IPPoolDataQuery(ParallelQuery):
 
     def _fetch_data(self, kwargs, pool):
         device_list = kwargs.get("device_list")
-        return self.client.query_rest(
+        return fetcher.query_rest(
             "api/plugins/ip-pools/ippools/", {"devices": device_list}
         )
 
@@ -339,7 +344,7 @@ class IPPoolDataDummyQuery(ParallelQuery):
 class TobagoLineMembersDataQuery(ParallelQuery):
     def _fetch_data(self, kwargs, pool):
         device = kwargs.get("device")
-        line_members = self.client.query_rest(
+        line_members = fetcher.query_rest(
             "api/plugins/tobago/line-members/find-by-object/",
             {"content_type": "dcim.device", "object_name": device},
         )
@@ -387,7 +392,7 @@ class TobagoLineMemberDataDummyQuery(ParallelQuery):
 class DeviceMACQuery(ParallelQuery):
     def _fetch_data(self, kwargs, pool):
         device_list = kwargs.get("device_list")
-        return self.client.query_rest(
+        return fetcher.query_rest(
             "api/dcim/interfaces",
             {"primary_mac_address__n": "null", "device": device_list},
         )
@@ -413,7 +418,7 @@ class DeviceMACQuery(ParallelQuery):
 class DeviceDataQuery(ParallelQuery):
 
     def __init__(self, *args, multiple_mac_addresses=False, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self.multiple_mac_addresses = multiple_mac_addresses
 
     def _fetch_data(self, kwargs, pool):
@@ -615,7 +620,7 @@ class DeviceDataQuery(ParallelQuery):
             device=json.dumps(device),
         )
 
-        query_result = self.client.query(query)
+        query_result = fetcher.query(query)
         return query_result["data"]
 
     def _merge_into(self, data: dict, query_data):
@@ -653,38 +658,39 @@ class NetboxV4Strategy:
                 queries.extend(
                     [
                         DeviceDataQuery(
-                            client,
                             device=d,
                             multiple_mac_addresses=self.multiple_mac_addresses,
                         ),
                         (
-                            TobagoLineMembersDataQuery(client, device=d)
+                            TobagoLineMembersDataQuery(device=d)
                             if self.feature_flags["tobago"]
-                            else TobagoLineMemberDataDummyQuery(client, device=d)
+                            else TobagoLineMemberDataDummyQuery(device=d)
                         ),
                     ]
                 )
 
             queries.extend(
                 [
-                    L2VPNDataQuery(client, device_list=device_list),
+                    L2VPNDataQuery(device_list=device_list),
                     (
-                        StaticRouteQuery(client, device_list=device_list)
+                        StaticRouteQuery(device_list=device_list)
                         if self.feature_flags["routing"]
-                        else StaticRouteDummyQuery(client, device_list=device_list)
+                        else StaticRouteDummyQuery(device_list=device_list)
                     ),
-                    DeviceMACQuery(client, device_list=device_list),
-                    ConnectedDevicesDataQuery(client, device_list=device_list),
-                    LoopbackDataQuery(client, device_list=device_list),
+                    DeviceMACQuery(device_list=device_list),
+                    ConnectedDevicesDataQuery(device_list=device_list),
+                    LoopbackDataQuery(device_list=device_list),
                     (
-                        IPPoolDataQuery(client, device_list=device_list)
+                        IPPoolDataQuery(device_list=device_list)
                         if self.feature_flags["ippools"]
-                        else IPPoolDataDummyQuery(client, device_list=device_list)
+                        else IPPoolDataDummyQuery(device_list=device_list)
                     ),
                 ]
             )
 
-            with manager.Pool() as pool:
+            with manager.Pool(
+                initializer=proc_init, initargs=(self.url, self.token, manager.dict())
+            ) as pool:
                 data_promises = list(map(lambda x: x.fetch_data(pool), queries))
 
                 data = dict()
