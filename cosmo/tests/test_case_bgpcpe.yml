@@ -84,12 +84,23 @@ device_list:
         custom_fields: { }
         id: 2617
         last_updated: '2025-09-03T11:34:40.819703+01:00'
+        tenant:
+          id: 43876
+          url: https://netbox.example.com/api/plugins/tobago/tenants/43876/
+          display: Contoso Ltd.
+          name: Contoso Ltd.
+          slug: contoso-ltd
         line:
           display: cl390287
           id: 9834
           name: '390287'
           name_long: cl390287
           url: https://netbox.example.com/api/plugins/tobago/lines/9834/
+          service:
+            id: 4893794
+            url: https://netbox.example.com/api/plugins/tobago/services/4893794/
+            display: "#9823 (cl390287)"
+            business_service: null
         status: current
     connected_endpoints:
     - name: "xe-0/1/2.3"
