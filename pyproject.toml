@@ -12,9 +12,9 @@ cosmo = "cosmo.__main__:main"
 python = "^3.9"
 requests = ">2.26.0"
 PyYAML = ">5.1"
-packaging = "^24"
+packaging = "^25"
 deepmerge = "^2.0"
-termcolor = "^2.4.0"
+termcolor = "^3.1.0"
 multimethod = "^2.0"
 
 [tool.poetry.dev-dependencies]
