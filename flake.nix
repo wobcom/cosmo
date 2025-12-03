@@ -13,7 +13,7 @@
           inherit (final) system;
         };
       in {
-        cosmo = pkgs.callPackage ./package.nix { version = pyprojectFile.tool.poetry.version; };
+        cosmo = pkgs.python3.pkgs.callPackage ./package.nix { cosmo-version = pyprojectFile.tool.poetry.version; };
       });
     } // (flake-utils.lib.eachDefaultSystem (system:
       let
@@ -30,20 +30,7 @@
 
         devShell = pkgs.mkShell {
           buildInputs = [
-            (pkgs.python3.withPackages (python-pkgs: with python-pkgs; [
-              requests
-              pyyaml 
-              packaging 
-              deepmerge 
-              termcolor
-              # Dev Dependencies
-              mypy
-              pytest
-              pytest-cov
-              pytest-mock
-              types-pyyaml
-              types-requests
-            ]))
+            pkgs.cosmo.pythonEnv
           ];
         };
       }));
