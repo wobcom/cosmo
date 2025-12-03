@@ -1,18 +1,30 @@
-{ python3Packages, version, ... }:
+{ buildPythonApplication,
+  python,
+  poetry-core,
+  requests,
+  pyyaml,
+  packaging,
+  deepmerge,
+  termcolor,
+  multimethod,
+  cosmo-version,
+  pytestCheckHook,
+  pytest-mock,
+  coverage,
+}:
 
-python3Packages.buildPythonApplication rec {
-  inherit version;
-  
+buildPythonApplication rec {
   pname = "cosmo";
+  version = cosmo-version;
   pyproject = true;
 
   src = ./.;
 
-  build-system = with python3Packages; [
+  build-system = [
     poetry-core
   ];
 
-  dependencies = with python3Packages; [
+  dependencies = [
     requests
     pyyaml 
     packaging 
@@ -20,4 +32,14 @@ python3Packages.buildPythonApplication rec {
     termcolor 
     multimethod
   ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-mock
+    coverage
+  ];
+
+  passthru = {
+    pythonEnv = python.withPackages (_: dependencies);
+  };
 }
