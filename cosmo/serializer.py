@@ -11,6 +11,7 @@ from cosmo.common import (
     head,
     CosmoOutputType,
 )
+from cosmo.features import features
 from cosmo.log import error
 from cosmo.netbox_types import DeviceType, CosmoLoopbackType, AbstractNetboxType
 from cosmo.loopbacks import LoopbackHelper
@@ -40,6 +41,8 @@ class AbstractSerializer(metaclass=ABCMeta):
 
     @staticmethod
     def autoDescPreprocess(_: CosmoOutputType, value: AbstractNetboxType):
+        if not features.featureIsEnabled("interface-auto-descriptions"):
+            return  # early return / skip
         MutatingAutoDescVisitor().accept(value)
 
     def walk(
