@@ -8,10 +8,11 @@ class NetboxAPIClient:
     def __init__(self, url, token, interprocess_shared_cache: DictProxy):
         self.url = url
         self.token = token
+        self.session = requests.Session()
         self.cache = interprocess_shared_cache
 
     def query(self, query):
-        r = requests.post(
+        r = self.session.post(
             urljoin(self.url, "/graphql/"),
             json={"query": query},
             headers={
@@ -33,7 +34,7 @@ class NetboxAPIClient:
 
     def _cached_get(self, url, headers):
         if url not in self.cache:
-            self.cache[url] = requests.get(
+            self.cache[url] = self.session.get(
                 url,
                 headers=headers,
             )
