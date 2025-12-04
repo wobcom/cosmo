@@ -10,7 +10,7 @@
         pyprojectFile = builtins.fromTOML (builtins.readFile ./pyproject.toml);
         # We absolutly want to ship our own deps, so we use our own python and our own python3Packages.
         pkgs = import nixpkgs {
-          inherit (final) system;
+          inherit (final.stdenv.hostPlatform) system;
         };
       in {
         cosmo = pkgs.python3.pkgs.callPackage ./package.nix { cosmo-version = pyprojectFile.tool.poetry.version; };
