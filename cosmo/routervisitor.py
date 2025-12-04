@@ -85,7 +85,6 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         if isis_system_id := o.getISISIdentifier():
             isis["isis"] = {"system_id": isis_system_id}
         return {
-            "serial": o.getSerial(),
             **isis,
             self._vrf_key: {
                 manufacturer.getRoutingInstanceName(): {

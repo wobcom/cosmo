@@ -120,7 +120,6 @@ device_list:
   primary_ip4:
     address: 198.51.100.15/24
     __typename: IPAddressType
-  serial: ''
   staticroute_set: []
 l2vpn_list: []
 # This has some double use and gets put into NetboxClient and RouterSerializer.

@@ -427,7 +427,6 @@ class DeviceDataQuery(ParallelQuery):
                 __typename
                 id
                 name
-                serial
                 custom_fields
 
                 device_type {

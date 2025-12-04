@@ -61,7 +61,6 @@ device_list:
   primary_ip4:
     __typename: IPAddressType
     address: 45.139.136.10/32
-  serial: 4242
   staticroute_set: []
   custom_fields:
     isis_system_id: "0000.1234.0010"
