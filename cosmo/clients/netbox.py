@@ -32,7 +32,7 @@ class NetboxClient:
             raise Exception("Unknown Version")
 
         for f, e in feature_flags.items():
-            log.info(f"Feature {f}: {e}")
+            log.info(f"Netbox feature {f}: {e}")
 
     def query_version(self):
         r = requests.get(
