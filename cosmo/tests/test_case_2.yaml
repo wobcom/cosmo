@@ -133,7 +133,6 @@ device_list:
   primary_ip4:
     __typename: IPAddressType
     address: 45.139.136.10/32
-  serial: 4242
   staticroute_set: []
 l2vpn_list: []
 loopbacks:

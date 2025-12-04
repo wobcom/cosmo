@@ -15,7 +15,6 @@ device_list:
   primary_ip4:
     __typename: IPAddressType
     address: 198.51.100.15/24
-  serial: ''
   staticroute_set: []
 l2vpn_list: []
 loopbacks:

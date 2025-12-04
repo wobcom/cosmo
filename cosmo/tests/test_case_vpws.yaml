@@ -58,7 +58,6 @@ device_list:
   primary_ip4:
     __typename: IPAddressType
     address: 45.139.136.11/24
-  serial: ''
   staticroute_set: []
 - device_type:
     __typename: DeviceTypeType
@@ -120,7 +119,6 @@ device_list:
   primary_ip4:
     __typename: IPAddressType
     address: 45.139.136.10/32
-  serial: ''
   staticroute_set: []
 l2vpn_list:
 - id: '39'

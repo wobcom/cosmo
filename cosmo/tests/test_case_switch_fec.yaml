@@ -98,6 +98,5 @@ device_list:
   primary_ip4:
     address: 10.120.142.11/24
     __typename: IPAddressType
-  serial: 4242
   staticroute_set: []
 l2vpn_list: []

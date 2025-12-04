@@ -280,9 +280,6 @@ class DeviceType(AbstractNetboxType):
     def getInterfaces(self) -> list["InterfaceType"]:
         return self.get("interfaces", [])
 
-    def getSerial(self) -> str:
-        return self.get("serial", "")
-
     def getISISIdentifier(self) -> str | None | Never:
         sys_id: Any | None = self.getCustomFields().get("isis_system_id")
         if sys_id and not re.match(r"\d{4}.\d{4}.\d{4}", str(sys_id)):

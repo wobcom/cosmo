@@ -128,7 +128,6 @@ device_list:
   primary_ip4:
     __typename: IPAddressType
     address: 10.120.130.10/24
-  serial: 4242
   staticroute_set:
   - interface: null
     metric: null
