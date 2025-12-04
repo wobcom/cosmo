@@ -71,5 +71,12 @@ class FeatureToggle:
 
         return ToggleFeatureAction
 
+    def __str__(self):
+        features_desc = []
+        conv = {True: "ENABLED", False: "DISABLED"}
+        for feature, state in self._store.items():
+            features_desc.append(f"{feature}: {conv.get(state)}")
+        return ", ".join(features_desc)
+
 
 features = FeatureToggle({"interface-auto-descriptions": True})
