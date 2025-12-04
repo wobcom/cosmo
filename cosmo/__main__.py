@@ -89,8 +89,7 @@ def main() -> int:
     cosmo_configuration = {}
     with open(args.config, "r") as cfg_file:
         cosmo_configuration = yaml.safe_load(cfg_file)
-
-    features.setFeaturesFromYAMLFile(args.config)
+        features.setFeaturesFromConfig(cosmo_configuration)
 
     if not "asn" in cosmo_configuration:
         error(f"Field 'asn' not defined in configuration file", None)

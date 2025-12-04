@@ -41,10 +41,14 @@ class FeatureToggle:
             self.setFeature(feature_key, feature_toggle)
         return self  # chain
 
-    def setFeaturesFromYAML(self, yaml_stream_or_str: TextIO | str) -> Self:
-        config = yaml.safe_load(yaml_stream_or_str)
+    def setFeaturesFromConfig(self, config: dict) -> Self:
         config_dict = dict(config.get(self.CFG_KEY, dict()))
         self.setFeatures(config_dict)
+        return self
+
+    def setFeaturesFromYAML(self, yaml_stream_or_str: TextIO | str) -> Self:
+        config = yaml.safe_load(yaml_stream_or_str)
+        self.setFeaturesFromConfig(config)
         return self
 
     def setFeaturesFromYAMLFile(self, path: str) -> Self:
