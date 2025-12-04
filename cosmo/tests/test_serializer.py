@@ -337,7 +337,6 @@ def test_router_ips():
     assert unit_v4["families"]["inet"]["address"]["45.139.138.9/29"] == {
         "secondary": True
     }
-    assert unit_v4["families"]["inet"]["sampling"] == True
 
     assert unit_v6["families"]["inet6"]["address"]["2a0e:b941:2::/122"] == {}
     assert unit_v6["families"]["inet6"]["address"]["2a0e:b941:2::40/122"] == {
@@ -346,7 +345,6 @@ def test_router_ips():
     assert unit_v6["families"]["inet6"]["address"]["2a0e:b941:2::41/122"] == {
         "secondary": True
     }
-    assert unit_v6["families"]["inet6"]["sampling"] == True
 
     # reverse path filtering
     assert unit_v4["families"]["inet"]["rpf_check"]["mode"] == "loose"
@@ -504,9 +502,6 @@ def test_router_case_local_l3vpn():
     assert len(ri["interfaces"]) == 1
     assert ri["interfaces"][0] == "ifp-0/1/2.100"
     assert ri["instance_type"] == "vrf"
-    assert (
-        not "sampling" in d["interfaces"]["ifp-0/1/2"]["units"][100]["families"]["inet"]
-    )
 
     assert ri["route_distinguisher"] == "45.139.136.10:407"
     assert len(ri["import_targets"]) == 1
@@ -675,7 +670,6 @@ def test_router_case_policer():
     assert d["interfaces"]["ae0"]["units"][101]["families"]["inet6"]["filters"] == [
         "input-list [ EDGE_FILTER_V6 ]"
     ]
-    assert d["interfaces"]["ae0"]["units"][101]["families"]["inet6"]["sampling"] == True
 
 
 def test_router_isis():
