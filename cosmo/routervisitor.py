@@ -815,6 +815,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                 return self.processAccessTag(o)
             case "unnumbered":
                 return self.processBgpUnnumberedTag(o)
+            case "deprecated_naming":
+                pass  # ignore, as it is treated in bgp cpe visitor
             case "bgp":
                 if o.getTagValue() == "cpe":
                     pass  # ignore, treated with whole tag list
