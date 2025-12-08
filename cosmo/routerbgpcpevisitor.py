@@ -7,6 +7,7 @@ from ipaddress import IPv4Interface, IPv6Interface
 from cosmo.common import head, CosmoOutputType, InterfaceSerializationError
 from cosmo.cperoutervisitor import CpeRouterExporterVisitor, CpeRouterIPVisitor
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
+from cosmo.features import features
 from cosmo.log import warn
 from cosmo.netbox_types import (
     TagType,
@@ -130,10 +131,14 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
 
         attached_tobago_line = parent_interface.getAttachedTobagoLine()
         # if legacy naming tag is present, or no tobago line is attached, we keep the old name as a fallback
-        if not attached_tobago_line or any(
-            filter(
-                tagFilter,
-                linked_interface.getTags(),
+        if (
+            not features.featureIsEnabled("new-bgp-cpe-group-naming")
+            or not attached_tobago_line
+            or any(
+                filter(
+                    tagFilter,
+                    linked_interface.getTags(),
+                )
             )
         ):
             return "CPE_" + linked_interface.getName().replace(".", "-").replace(

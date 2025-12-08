@@ -5,6 +5,7 @@ import pytest
 import copy
 
 from cosmo.common import DeviceSerializationError
+from cosmo.features import with_feature, features
 from cosmo.manufacturers import ManufacturerFactoryFromDevice
 from cosmo.netbox_types import DeviceType
 
@@ -516,6 +517,7 @@ def test_router_case_local_l3vpn():
     assert ri["routing_options"] == {}
 
 
+@with_feature(features, "new-bgp-cpe-group-naming")
 def test_router_case_local_bgpcpe():
     [d] = get_router_sd_from_path("./test_case_bgpcpe.yml")
 

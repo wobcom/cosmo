@@ -96,4 +96,6 @@ def with_feature(instance: FeatureToggle, feature_name: str):
     return decorator_with_feature
 
 
-features = FeatureToggle({"interface-auto-descriptions": True})
+features = FeatureToggle(
+    {"interface-auto-descriptions": True, "new-bgp-cpe-group-naming": False}
+)
