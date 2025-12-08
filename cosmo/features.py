@@ -1,7 +1,7 @@
 # implementation guide
 # https://martinfowler.com/articles/feature-toggles.html
 from argparse import Action, ArgumentParser
-from typing import Never, Self, Optional, TextIO, Sequence, Any
+from typing import Never, Self, Optional, TextIO, Sequence, Any, Callable
 
 import yaml
 
@@ -81,6 +81,19 @@ class FeatureToggle:
         for feature, state in self._store.items():
             features_desc.append(f"{feature}: {conv.get(state)}")
         return ", ".join(features_desc)
+
+
+def with_feature(instance: FeatureToggle, feature_name: str):
+    def decorator_with_feature(func: Callable):
+        def exe_with_feature(*args, **kwargs):
+            previous_state = instance.featureIsEnabled(feature_name)
+            instance.setFeature(feature_name, True)
+            func(*args, **kwargs)
+            instance.setFeature(feature_name, previous_state)
+
+        return exe_with_feature
+
+    return decorator_with_feature
 
 
 features = FeatureToggle({"interface-auto-descriptions": True})

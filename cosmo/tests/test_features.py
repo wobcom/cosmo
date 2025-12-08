@@ -3,7 +3,11 @@ import os.path
 
 import pytest
 
-from cosmo.features import NonExistingFeatureToggleException, FeatureToggle
+from cosmo.features import (
+    NonExistingFeatureToggleException,
+    FeatureToggle,
+    with_feature,
+)
 
 
 def test_set_get():
@@ -55,6 +59,17 @@ def test_non_existing_features():
 
     with pytest.raises(NonExistingFeatureToggleException):
         ft.setFeature("i-do-not-exist", True)
+
+
+def test_with_feature_decorator():
+    ft = FeatureToggle({"feature_a": False})
+
+    @with_feature(ft, "feature_a")
+    def execute_with_decorator():
+        assert ft.featureIsEnabled("feature_a")
+
+    execute_with_decorator()
+    assert not ft.featureIsEnabled("feature_a")
 
 
 def test_argparse_integration():
