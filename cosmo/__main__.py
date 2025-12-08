@@ -7,6 +7,7 @@ import yaml
 import argparse
 
 from cosmo.clients.netbox import NetboxClient
+from cosmo.features import features
 from cosmo.log import (
     info,
     logger,
@@ -15,7 +16,7 @@ from cosmo.log import (
     HumanReadableLoggingStrategy,
 )
 from cosmo.serializer import RouterSerializer, SwitchSerializer
-from cosmo.common import DeviceSerializationError
+from cosmo.common import DeviceSerializationError, APP_NAME
 
 
 def main() -> int:
@@ -40,6 +41,24 @@ def main() -> int:
     )
     parser.add_argument(
         "--json", "-j", action="store_true", help="Toggle machine readable output on"
+    )
+    parser.add_argument(
+        "--disable-feature",
+        default=[],
+        metavar="DISABLED_FEATURE",
+        action=features.toggleFeatureActionFactory(False),
+        choices=features.getAllFeatureNames(),
+        dest="nofeatures",
+        help="selectively disable cosmo feature. can be repeated.",
+    )
+    parser.add_argument(
+        "--enable-feature",
+        default=[],
+        metavar="ENABLED_FEATURE",
+        action=features.toggleFeatureActionFactory(True),
+        choices=features.getAllFeatureNames(),
+        dest="yesfeatures",
+        help="selectively enable cosmo feature. can be repeated.",
     )
 
     args = parser.parse_args()
@@ -70,11 +89,13 @@ def main() -> int:
     cosmo_configuration = {}
     with open(args.config, "r") as cfg_file:
         cosmo_configuration = yaml.safe_load(cfg_file)
+        features.setFeaturesFromConfig(cosmo_configuration)
 
     if not "asn" in cosmo_configuration:
         error(f"Field 'asn' not defined in configuration file", None)
         return 1
 
+    info(f"Feature toggles for {APP_NAME}: {features}")
     info(f"Fetching information from Netbox, make sure VPN is enabled on your system.")
 
     netbox_url = os.environ.get("NETBOX_URL")

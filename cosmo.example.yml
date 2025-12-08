@@ -1,5 +1,7 @@
 fqdnSuffix: infra.example.com
 asn: 65542
+features:
+  interface-auto-descriptions: YES
 devices:
   router:
     - "router1"
