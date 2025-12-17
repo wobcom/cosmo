@@ -378,9 +378,12 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         router_id = loopback.deriveRouterId()
         if o.getRouteDistinguisher():
             rd = router_id + ":" + o.getRouteDistinguisher()
-        else:
+        elif not o.isMgmtVRF():
             rd = router_id + ":" + o.getID()
-        default_targets = [self.assembleRT(o.getID())]
+        else:
+            rd = None
+
+        default_targets = [self.assembleRT(o.getID())] if not o.isMgmtVRF() else []
         import_targets = [target.getName() for target in o.getImportTargets()]
         export_targets = [target.getName() for target in o.getExportTargets()]
         return {
