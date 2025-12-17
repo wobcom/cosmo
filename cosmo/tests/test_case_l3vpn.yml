@@ -67,6 +67,68 @@ device_list:
   - custom_fields:
       bpdufilter: false
       inner_tag: null
+      outer_tag: 101
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    __typename: InterfaceType
+    description: ''
+    enabled: true
+    id: '192118'
+    ip_addresses:
+      - address: 45.139.136.21/24
+        __typename: IPAddressType
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: 1500
+    name: ifp-0/1/2.101
+    tagged_vlans: [ ]
+    tags: [ ]
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf:
+      description: ''
+      export_targets: []
+      id: '408'
+      import_targets: []
+      name: L3VPN-2
+      rd: null
+      __typename: VRFType
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: 102
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    __typename: InterfaceType
+    description: ''
+    enabled: true
+    id: '192119'
+    ip_addresses:
+      - address: 45.139.136.22/24
+        __typename: IPAddressType
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: 1500
+    name: ifp-0/1/2.102
+    tagged_vlans: [ ]
+    tags: [ ]
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf:
+      description: ''
+      export_targets: []
+      id: '409'
+      import_targets: []
+      name: mgmt_foo
+      rd: null
+      __typename: VRFType
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
       outer_tag: null
       storm_control__broadcast: null
       storm_control__multicast: null
