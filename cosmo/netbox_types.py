@@ -387,6 +387,9 @@ class VRFType(AbstractNetboxType):
     def getRouteDistinguisher(self) -> str:
         return self["rd"]
 
+    def isMgmtVRF(self) -> bool:
+        return str(self["name"]).startswith("mgmt_")
+
 
 class IWithAssociatedDevice(Protocol, metaclass=ABCMeta):
     @abstractmethod

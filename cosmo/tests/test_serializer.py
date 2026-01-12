@@ -498,23 +498,61 @@ def test_router_case_local_l3vpn():
     assert len(d["interfaces"]) == 2
 
     assert "L3VPN" in d["routing_instances"]
+    assert "L3VPN-2" in d["routing_instances"]
+    assert "mgmt_foo" in d["routing_instances"]
 
-    ri = d["routing_instances"]["L3VPN"]
+    ri_l3vpn = d["routing_instances"]["L3VPN"]
+    ri_l3vpn_2 = d["routing_instances"]["L3VPN-2"]
+    ri_mgmt_foo = d["routing_instances"]["mgmt_foo"]
 
-    assert len(ri["interfaces"]) == 1
-    assert ri["interfaces"][0] == "ifp-0/1/2.100"
-    assert ri["instance_type"] == "vrf"
+    # L3VPN
+
+    assert len(ri_l3vpn["interfaces"]) == 1
+    assert ri_l3vpn["interfaces"][0] == "ifp-0/1/2.100"
+    assert ri_l3vpn["instance_type"] == "vrf"
     assert (
         not "sampling" in d["interfaces"]["ifp-0/1/2"]["units"][100]["families"]["inet"]
     )
 
-    assert ri["route_distinguisher"] == "45.139.136.10:407"
-    assert len(ri["import_targets"]) == 1
-    assert ri["import_targets"][0] == "target:65542:407"
-    assert len(ri["export_targets"]) == 1
-    assert ri["export_targets"][0] == "target:65542:407"
+    assert ri_l3vpn["route_distinguisher"] == "45.139.136.10:407"
+    assert len(ri_l3vpn["import_targets"]) == 1
+    assert ri_l3vpn["import_targets"][0] == "target:65542:407"
+    assert len(ri_l3vpn["export_targets"]) == 1
+    assert ri_l3vpn["export_targets"][0] == "target:65542:407"
 
-    assert ri["routing_options"] == {}
+    assert ri_l3vpn["routing_options"] == {}
+
+    # L3VPN-2
+
+    assert len(ri_l3vpn_2["interfaces"]) == 1
+    assert ri_l3vpn_2["interfaces"][0] == "ifp-0/1/2.101"
+    assert ri_l3vpn_2["instance_type"] == "vrf"
+    assert (
+        not "sampling" in d["interfaces"]["ifp-0/1/2"]["units"][101]["families"]["inet"]
+    )
+
+    assert ri_l3vpn_2["route_distinguisher"] == "45.139.136.10:408"
+    assert len(ri_l3vpn_2["import_targets"]) == 1
+    assert ri_l3vpn_2["import_targets"][0] == "target:65542L:408"
+    assert len(ri_l3vpn_2["export_targets"]) == 1
+    assert ri_l3vpn_2["export_targets"][0] == "target:65542L:408"
+
+    assert ri_l3vpn_2["routing_options"] == {}
+
+    # mgmt_foo
+
+    assert len(ri_mgmt_foo["interfaces"]) == 1
+    assert ri_mgmt_foo["interfaces"][0] == "ifp-0/1/2.102"
+    assert ri_mgmt_foo["instance_type"] == "vrf"
+    assert (
+        not "sampling" in d["interfaces"]["ifp-0/1/2"]["units"][102]["families"]["inet"]
+    )
+
+    assert ri_mgmt_foo["route_distinguisher"] == None
+    assert len(ri_mgmt_foo["import_targets"]) == 0
+    assert len(ri_mgmt_foo["export_targets"]) == 0
+
+    assert ri_mgmt_foo["routing_options"] == {}
 
 
 @with_feature(features, "new-bgp-cpe-group-naming")
