@@ -1,4 +1,7 @@
 import json
+from requests import Session
+
+from cosmo.clients.netbox_client import NetboxAPIClient
 
 
 class CommonSetup:
@@ -85,8 +88,12 @@ class RequestResponseMock:
 
             return ResponseMock(200, {"data": retVal})
 
-        getMock = mocker.patch("requests.get", side_effect=patchGetFunc)
-        postMock = mocker.patch("requests.post", side_effect=patchPostFunc)
+        getMock = mocker.patch.object(
+            NetboxAPIClient, "session", side_effect=patchGetFunc
+        )
+        postMock = mocker.patch.object(
+            NetboxAPIClient, "session", side_effect=patchPostFunc
+        )
         return [getMock, postMock]
 
 
