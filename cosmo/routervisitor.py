@@ -757,22 +757,38 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             }
         }
 
-    def processBgpUnnumberedTag(self, o: TagType):
+    def processBgpUnnumberedTag(self, o: TagType, prefer_unit0=False):
+
+        # Note: Due to RtBrick reasons, we need to use a different loopback interface in the default VRF for our unnumbered shenanigans.
+        # Therefore, there is a unnumbered0 Tag for backwards compat and a unnumbered tag.
+        # This method handles both of them, for unnumbered0 prefer_unit0 is true.
+
+        def loopback_filter_function(i, parent_interface: InterfaceType):
+
+            if prefer_unit0:
+                is_correct_unit = i.getUnitNumber() == 0
+            else:
+                is_correct_unit = i.getUnitNumber() != 0
+
+            return (
+                i.getName().startswith("lo")
+                and i.isSubInterface()
+                and i.getVRF() == parent_interface.getVRF()
+                and is_correct_unit
+            )
+
         parent_interface = o.getParent(InterfaceType)
-        opt_unnumbered_interface = {}
-        if parent_interface.getVRF():
-            loopback_interface = head(
-                list(
-                    filter(
-                        lambda i: i.getName().startswith("lo")
-                        and i.getVRF() == parent_interface.getVRF(),
-                        parent_interface.getParent(DeviceType).getInterfaces(),
-                    )
+        loopback_interface = head(
+            list(
+                filter(
+                    lambda i: loopback_filter_function(i, parent_interface),
+                    parent_interface.getParent(DeviceType).getInterfaces(),
                 )
             )
-            opt_unnumbered_interface = {
-                "unnumbered_interface": loopback_interface.getName()
-            }
+        )
+        opt_unnumbered_interface = {
+            "unnumbered_interface": loopback_interface.getName()
+        }
         return {
             self._interfaces_key: {
                 **parent_interface.spitInterfacePathWith(
@@ -818,6 +834,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                 return self.processAccessTag(o)
             case "unnumbered":
                 return self.processBgpUnnumberedTag(o)
+            case "unnumbered0":
+                return self.processBgpUnnumberedTag(o, prefer_unit0=True)
             case "deprecated_naming":
                 pass  # ignore, as it is treated in bgp cpe visitor
             case "bgp":
