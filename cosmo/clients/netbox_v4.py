@@ -32,11 +32,20 @@ class ParallelQuery(ABC):
 
 
 class ConnectedDevicesDataQuery(ParallelQuery):
+    def __init__(self, *args, netbox_43_query_syntax=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.netbox_43_query_syntax = netbox_43_query_syntax
+
     def _fetch_data(self, kwargs, pool):
+        tag_filter = (
+            'tags: { name: { exact: "bgp_cpe" }}'
+            if self.netbox_43_query_syntax
+            else 'tags: "bgp_cpe"'
+        )
         query_template = Template(
             """
             query {
-              interface_list(filters: { tag: "bgp_cpe" }) {
+              interface_list(filters: { $tag_filter }) {
                 __typename
                 id,
                 parent {
@@ -71,7 +80,9 @@ class ConnectedDevicesDataQuery(ParallelQuery):
         """
         )
 
-        return self.client.query(query_template.substitute())["data"]
+        return self.client.query(query_template.substitute(tag_filter=tag_filter))[
+            "data"
+        ]
 
     def _merge_into(self, data: dict, query_data):
 
@@ -628,10 +639,13 @@ class DeviceDataQuery(ParallelQuery):
 
 class NetboxV4Strategy:
 
-    def __init__(self, url, token, multiple_mac_addresses, feature_flags):
+    def __init__(
+        self, url, token, multiple_mac_addresses, netbox_43_query_syntax, feature_flags
+    ):
         self.url = url
         self.token = token
         self.multiple_mac_addresses = multiple_mac_addresses
+        self.netbox_43_query_syntax = netbox_43_query_syntax
         self.feature_flags = feature_flags
 
     def get_data(self, device_config):
@@ -673,7 +687,11 @@ class NetboxV4Strategy:
                         else StaticRouteDummyQuery(client, device_list=device_list)
                     ),
                     DeviceMACQuery(client, device_list=device_list),
-                    ConnectedDevicesDataQuery(client, device_list=device_list),
+                    ConnectedDevicesDataQuery(
+                        client,
+                        device_list=device_list,
+                        netbox_43_query_syntax=self.netbox_43_query_syntax,
+                    ),
                     LoopbackDataQuery(client, device_list=device_list),
                     (
                         IPPoolDataQuery(client, device_list=device_list)

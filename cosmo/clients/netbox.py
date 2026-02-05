@@ -18,15 +18,32 @@ class NetboxClient:
         base_version_match = re.search(r"[\d.]+", version)
         self.base_version = Version(base_version_match.group(0))
 
-        if self.base_version > Version("4.2.0"):
+        if self.base_version > Version("4.3.0"):
+            log.info("Using version 4.3.x strategy...")
+            self.child_client = NetboxV4Strategy(
+                url,
+                token,
+                multiple_mac_addresses=True,
+                netbox_43_query_syntax=True,
+                feature_flags=feature_flags,
+            )
+        elif self.base_version > Version("4.2.0"):
             log.info("Using version 4.2.x strategy...")
             self.child_client = NetboxV4Strategy(
-                url, token, multiple_mac_addresses=True, feature_flags=feature_flags
+                url,
+                token,
+                multiple_mac_addresses=True,
+                netbox_43_query_syntax=False,
+                feature_flags=feature_flags,
             )
         elif self.base_version > Version("4.0.0"):
             log.info("Using version 4.0.x strategy...")
             self.child_client = NetboxV4Strategy(
-                url, token, multiple_mac_addresses=False, feature_flags=feature_flags
+                url,
+                token,
+                multiple_mac_addresses=False,
+                netbox_43_query_syntax=False,
+                feature_flags=feature_flags,
             )
         else:
             raise Exception("Unknown Version")
