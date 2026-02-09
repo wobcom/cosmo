@@ -40,7 +40,7 @@ class ConnectedDevicesDataQuery(ParallelQuery):
         tag_filter = (
             'tags: { name: { exact: "bgp_cpe" }}'
             if self.netbox_43_query_syntax
-            else 'tags: "bgp_cpe"'
+            else 'tag: "bgp_cpe"'
         )
         query_template = Template(
             """
