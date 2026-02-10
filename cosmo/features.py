@@ -97,5 +97,9 @@ def with_feature(instance: FeatureToggle, feature_name: str):
 
 
 features = FeatureToggle(
-    {"interface-auto-descriptions": True, "new-bgp-cpe-group-naming": False}
+    {
+        "interface-auto-descriptions": True,
+        "new-bgp-cpe-group-naming": False,
+        "allow-private-ips-default-vrf": False,
+    }
 )
