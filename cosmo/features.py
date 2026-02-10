@@ -101,5 +101,6 @@ features = FeatureToggle(
         "interface-auto-descriptions": True,
         "new-bgp-cpe-group-naming": False,
         "allow-private-ips-default-vrf": False,
+        "netbox-loopback-interface-type": False,
     }
 )

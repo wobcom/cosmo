@@ -126,8 +126,7 @@ class LoopbackDataQuery(ParallelQuery):
             """
             query{
               interface_list(filters: {
-                name: {starts_with: "lo"},
-                type: {exact:"loopback"}
+                name: {starts_with: "lo"}
               }) {
                 __typename
                 name,

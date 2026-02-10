@@ -55,7 +55,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         self.l2vpn_validator = RouterL2VPNValidatorVisitor(loopbacks=loopbacks, asn=asn)
         self.bgpcpe_exporter = RouterBgpCpeExporterVisitor()
         self.loopbacks = loopbacks
-        self.allow_private_ips = features.featureIsEnabled("allow-private-ips-default-vrf")
+        self.allow_private_ips = features.featureIsEnabled(
+            "allow-private-ips-default-vrf"
+        )
         self.asn = asn
 
     def getASN(self) -> int:

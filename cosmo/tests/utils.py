@@ -76,7 +76,7 @@ class RequestResponseMock:
                     retVal["interface_list"] = patchKwArgs.get(
                         "connected_devices_interface_list", []
                     )
-                elif "loopback" in q:
+                elif 'starts_with: "lo"' in q:
                     retVal["interface_list"] = patchKwArgs.get(
                         "loopback_interface_list", []
                     )
