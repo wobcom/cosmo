@@ -17,6 +17,7 @@ from .common import (
     head,
     CosmoOutputType,
 )
+from .features import features
 from typing import (
     Self,
     Iterator,
@@ -675,11 +676,15 @@ class InterfaceType(
                 )
             return parent_interface.isLoopbackOrParentIsLoopback()
         elif self.getName().startswith("lo"):
-            raise InterfaceSerializationError(
-                f"Interface {self.getName()} is named as a loopback but is not marked"
-                f"as such in the data source, please fix.",
-                on=self,
-            )
+            if self.getAssociatedType() != "loopback" and features.featureIsEnabled(
+                "netbox-loopback-interface-type"
+            ):
+                raise InterfaceSerializationError(
+                    f"Interface {self.getName()} is named as a loopback but is not marked"
+                    f"as such in the data source, please fix.",
+                    on=self,
+                )
+            return True
         return False
 
     def getIPAddresses(self) -> list[IPAddressType]:

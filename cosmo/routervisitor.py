@@ -19,6 +19,7 @@ from cosmo.loopbacks import LoopbackHelper
 from cosmo.vrfhelper import TVRFHelpers
 from cosmo.manufacturers import ManufacturerFactoryFromDevice
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
+from cosmo.features import features
 from cosmo.routerl2vpnvisitor import (
     RouterL2VPNValidatorVisitor,
     RouterL2VPNExporterVisitor,
@@ -54,7 +55,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         self.l2vpn_validator = RouterL2VPNValidatorVisitor(loopbacks=loopbacks, asn=asn)
         self.bgpcpe_exporter = RouterBgpCpeExporterVisitor()
         self.loopbacks = loopbacks
-        self.allow_private_ips = False
+        self.allow_private_ips = features.featureIsEnabled(
+            "allow-private-ips-default-vrf"
+        )
         self.asn = asn
 
     def getASN(self) -> int:
