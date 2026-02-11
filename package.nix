@@ -1,6 +1,4 @@
-{ lib,
-  stdenv,
-  buildPythonApplication,
+{ buildPythonApplication,
   python,
   poetry-core,
   requests,
@@ -39,16 +37,6 @@ buildPythonApplication rec {
     pytestCheckHook
     pytest-mock
     coverage
-  ];
-
-  disabledTests = lib.optionals stdenv.hostPlatform.isDarwin [
-    # https://github.com/wobcom/cosmo/issues/85
-    "test_limit_argument_with_commas"
-    "test_limit_arguments_with_repeat"
-    "test_device_generation_ansible"
-    "test_device_generation_nix"
-    "test_device_processing_error"
-    "test_case_get_data"
   ];
 
   passthru = {

@@ -4,6 +4,7 @@ from builtins import map
 from multiprocessing import Manager
 from string import Template
 
+from cosmo.clients import get_client_mp_context
 from cosmo.clients.netbox_client import NetboxAPIClient
 
 
@@ -658,7 +659,7 @@ class NetboxV4Strategy:
         # from the main thread. by default this is not possible, see
         # https://stackoverflow.com/questions/72411392/can-you-do-nested-parallelization-using-multiprocessing-in-python
         # this avoids having to re-architecture completely using worker/task/queue model.
-        with Manager() as manager:
+        with get_client_mp_context().Manager() as manager:
             client = NetboxAPIClient(self.url, self.token, manager.dict())
 
             for d in device_list:

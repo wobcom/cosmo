@@ -1,4 +1,12 @@
 import json
+import multiprocessing
+
+
+def override_get_client_mp_context(method=None):
+    def overriden_get_client_mp_context():
+        return multiprocessing.get_context(method=method)
+
+    return overriden_get_client_mp_context
 
 
 class CommonSetup:
@@ -17,6 +25,15 @@ class CommonSetup:
         self.patches.append(self.mocker.patch.dict("os.environ", environ))
         # patch args, since current ones are from pytest call
         self.patches.append(self.mocker.patch("sys.argv", args))
+        # patch netbox client default mp context for the time of the tests
+        # patch may be ineffective since not in correct namespace(?)
+        self.patches.append(
+            self.mocker.patch(
+                "cosmo.clients.netbox_v4.get_client_mp_context",
+                new=override_get_client_mp_context("fork"),
+            )
+        )
+
         # patch configuration file lookup if requested
 
         # Note: If there is no configuration file given, we still need to patch this.
