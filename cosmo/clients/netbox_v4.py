@@ -81,9 +81,9 @@ class ConnectedDevicesDataQuery(ParallelQuery):
         """
         )
 
-        return self.client.query(query_template.substitute(tag_filter=tag_filter))[
-            "data"
-        ]
+        return self.client.query(
+            query_template.substitute(tag_filter=tag_filter), "connected_devices_query"
+        )["data"]
 
     def _merge_into(self, data: dict, query_data):
 
@@ -167,7 +167,7 @@ class LoopbackDataQuery(ParallelQuery):
         """
         )
 
-        return self.client.query(query_template.substitute())["data"]
+        return self.client.query(query_template.substitute(), "loopback_query")["data"]
 
     def _merge_into(self, data: dict, query_data):
 
@@ -274,7 +274,7 @@ class L2VPNDataQuery(ParallelQuery):
          """
         )
 
-        return self.client.query(query_template.substitute())["data"]
+        return self.client.query(query_template.substitute(), "l2vpn_query")["data"]
 
     def _merge_into(self, data: dict, query_data):
         return {
@@ -625,7 +625,7 @@ class DeviceDataQuery(ParallelQuery):
             device=json.dumps(device),
         )
 
-        query_result = self.client.query(query)
+        query_result = self.client.query(query, f"device_query_{device}")
         return query_result["data"]
 
     def _merge_into(self, data: dict, query_data):
