@@ -53,6 +53,8 @@ class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
         terminations = o.getTerminations()
         identifier = o.getIdentifier()
         l2vpn_type = self.getL2VpnTypeTerminationObjectFrom(o)
+        if not l2vpn_type.isValidRawName(o.getName()):
+            raise L2VPNSerializationError(f'L2VPN "{o.getName()}" is incorrectly named')
         if not l2vpn_type.isValidNumberOfTerminations(len(terminations)):
             raise L2VPNSerializationError(
                 f"for {o.getName()}: "
@@ -71,8 +73,7 @@ class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
 
     @accept.register
     def _(self, o: L2VPNType):
-        if o.getName().startswith("WAN"):
-            self.isCompliantWANL2VPN(o)
+        self.isCompliantWANL2VPN(o)
 
 
 class RouterL2VPNExporterVisitor(AbstractL2VPNVisitor):

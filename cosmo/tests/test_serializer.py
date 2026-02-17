@@ -106,6 +106,33 @@ def test_l2vpn_errors(capsys):
 
     template = _yaml_load("./test_case_l2x_err_template.yaml")
 
+    evpn_vpws_incorrect_name = copy.deepcopy(template)
+    evpn_vpws_incorrect_name["l2vpn_list"].append(
+        {
+            "__typename": "L2VPNType",
+            "id": "53",
+            "identifier": 123456,
+            "name": "missing WAN: prefix",
+            "type": "EVPN-VPWS",
+            "terminations": [
+                {
+                    "__typename": "L2VPNTerminationType",
+                    "assigned_object": {
+                        "__typename": "InterfaceType",
+                    },
+                },
+                {
+                    "__typename": "L2VPNTerminationType",
+                    "assigned_object": {
+                        "__typename": "InterfaceType",
+                    },
+                },
+            ],
+        }
+    )
+    with pytest.raises(DeviceSerializationError, match="is incorrectly named"):
+        serialize(evpn_vpws_incorrect_name)
+
     vpws_incorrect_terminations = copy.deepcopy(template)
     vpws_incorrect_terminations["l2vpn_list"].append(
         {
@@ -471,10 +498,10 @@ def test_router_case_local_l2x():
 
     assert len(d["l2circuits"]) == 1
 
-    l2c = d["l2circuits"]["L2X"]
+    l2c = d["l2circuits"]["L2X_CLIENT9372"]
 
     assert len(l2c["interfaces"]) == 2
-    assert l2c["description"] == "EVPL: L2X via TEST0001"
+    assert l2c["description"] == "EVPL: L2X_CLIENT9372 via TEST0001"
 
     assert (
         l2c["interfaces"]["ifp-0/0/4.7"]["local_label"]
