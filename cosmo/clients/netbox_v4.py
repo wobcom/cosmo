@@ -701,7 +701,13 @@ class NetboxV4Strategy:
                 ]
             )
 
-            with manager.Pool() as pool:
+            # manager.Pool normally takes the amount of CPU cores for the amount of processes it spawns.
+            # Since our processes are mostly waiting, I would like to increase this to the amount of queries,
+            # we are going to send.
+            # Note: This will most likely screw the measured times, because Netbox cannot process too many requests at once
+            # and will stall them eventually. So, if you are measuring times, reduce this to a reasonable amounts of 8 or something.
+            worker_amount = len(queries)
+            with manager.Pool(worker_amount) as pool:
                 data_promises = list(map(lambda x: x.fetch_data(pool), queries))
 
                 data = dict()
