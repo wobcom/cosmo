@@ -81,9 +81,9 @@ class ConnectedDevicesDataQuery(ParallelQuery):
         """
         )
 
-        return self.client.query(query_template.substitute(tag_filter=tag_filter))[
-            "data"
-        ]
+        return self.client.query(
+            query_template.substitute(tag_filter=tag_filter), "connected_devices_query"
+        )["data"]
 
     def _merge_into(self, data: dict, query_data):
 
@@ -167,7 +167,7 @@ class LoopbackDataQuery(ParallelQuery):
         """
         )
 
-        return self.client.query(query_template.substitute())["data"]
+        return self.client.query(query_template.substitute(), "loopback_query")["data"]
 
     def _merge_into(self, data: dict, query_data):
 
@@ -274,7 +274,7 @@ class L2VPNDataQuery(ParallelQuery):
          """
         )
 
-        return self.client.query(query_template.substitute())["data"]
+        return self.client.query(query_template.substitute(), "l2vpn_query")["data"]
 
     def _merge_into(self, data: dict, query_data):
         return {
@@ -625,7 +625,7 @@ class DeviceDataQuery(ParallelQuery):
             device=json.dumps(device),
         )
 
-        query_result = self.client.query(query)
+        query_result = self.client.query(query, f"device_query_{device}")
         return query_result["data"]
 
     def _merge_into(self, data: dict, query_data):
@@ -701,7 +701,13 @@ class NetboxV4Strategy:
                 ]
             )
 
-            with manager.Pool() as pool:
+            # manager.Pool normally takes the amount of CPU cores for the amount of processes it spawns.
+            # Since our processes are mostly waiting, I would like to increase this to the amount of queries,
+            # we are going to send.
+            # Note: This will most likely screw the measured times, because Netbox cannot process too many requests at once
+            # and will stall them eventually. So, if you are measuring times, reduce this to a reasonable amounts of 8 or something.
+            worker_amount = len(queries)
+            with manager.Pool(worker_amount) as pool:
                 data_promises = list(map(lambda x: x.fetch_data(pool), queries))
 
                 data = dict()
