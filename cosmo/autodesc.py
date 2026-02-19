@@ -100,7 +100,9 @@ class AbstractComposableAutoDescription(metaclass=ABCMeta):
                     "line": attached_tobago_line.getName(),
                     "tenant": attached_tobago_line.getTenantName(),
                 }
-                if attached_tobago_line and not self.suppressTenant()
+                if attached_tobago_line
+                and attached_tobago_line.hasTenant()
+                and not self.suppressTenant()
                 else {}
             )
             | (

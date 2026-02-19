@@ -892,29 +892,35 @@ class CosmoTobagoLine(AbstractNetboxType):
     def getBasePath(self):
         return "/plugins/tobago/lines/"
 
-    def _getCurrentLineMetadata(self):
-        return self["version"]
+    def _getCurrentLineMetadata(self) -> dict:
+        return self.get("version", dict())  # should always be present
 
-    def _getCurrentLine(self):
-        return self._getCurrentLineMetadata()["line"]
+    def _getCurrentLine(self) -> dict:
+        return self._getCurrentLineMetadata().get(
+            "line", dict()
+        )  # should always be present
 
-    def _getCurrentTenant(self):
-        return self._getCurrentLineMetadata()["tenant"]
+    def _getCurrentTenant(self) -> dict | None:
+        return self._getCurrentLineMetadata().get("tenant")
+
+    def hasTenant(self) -> bool:
+        return bool(self._getCurrentTenant())  # False on None or empty
 
     def getLineID(self) -> str:
-        return str(self._getCurrentLine()["id"])
+        return str(self._getCurrentLine().get("id"))
 
     def getLineNameLong(self) -> str:
-        return str(self._getCurrentLine()["name_long"])
+        return str(self._getCurrentLine().get("name_long"))
 
     def getName(self) -> str:
         return self.getLineNameLong()
 
-    def getTenantName(self):
-        return self._getCurrentTenant()["name"]
-
-    def getLineStatus(self):
-        return self._getCurrentLineMetadata()["status"]
+    def getTenantName(self) -> str | None:
+        tenant = self._getCurrentTenant()
+        if bool(tenant) and isinstance(tenant, dict):  # type safety
+            return tenant.get("name")
+        else:
+            return None
 
     def getRelPath(self) -> str:
         return urljoin(self.getBasePath(), self.getLineID())
