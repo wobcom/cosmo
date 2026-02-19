@@ -268,6 +268,94 @@ device_list:
     description: null
     __typename: InterfaceType
     enabled: true
+    id: '30754'
+    ip_addresses: [ ]
+    connected_endpoints: null
+    attached_tobago_line:
+      __typename: CosmoTobagoLine
+      component_type: CABLE
+      element:
+        description: ''
+        display: cable 000128935
+        id: 39646
+        label: cable 000128935
+        url: https://netbox.example.com/api/dcim/cables/39646/
+      element_id: 93828
+      element_type: dcim.cable
+      id: 5111
+      index: 1
+      termination_a:
+        _occupied: true
+        cable:
+          description: ''
+          display: cable 000128935
+          id: 39646
+          label: cable 000128935
+          url: https://netbox.example.com/api/dcim/cables/39646/
+        description: ''
+        device:
+          description: ''
+          display: TEST0001
+          id: 1747
+          name: TEST0001
+          url: https://netbox.example.com/api/dcim/devices/1747/
+        display: et-0/0/1.4
+        id: 30750
+        name: et-0/0/1.4
+        url: https://netbox.example.com/api/dcim/interfaces/30754/
+      termination_a_id: 92388
+      termination_a_type: dcim.interface
+      termination_b:
+        _occupied: true
+        id: 198209
+        url: https://netbox.example.com/api/dcim/interfaces/192879/
+        display: xe-0/1/4
+        device:
+          id: 39827
+          url: https://netbox.example.com/api/dcim/device/39827/
+          display: TEST0002
+          name: TEST0002
+          description: null
+        name: xe-0/1/4
+        description: "customer A"
+      termination_b_id: 454
+      termination_b_type: dcim.interface
+      version:
+        created: '2025-09-03T11:34:19.643456+01:00'
+        custom_fields: { }
+        id: 2617
+        last_updated: '2025-09-03T11:34:40.819703+01:00'
+        line:
+          display: cl390287
+          id: 9834
+          name: '390287'
+          name_long: cl390287
+          url: https://netbox.example.com/api/plugins/tobago/lines/9834/
+          service: null
+        status: current
+    lag: null
+    mac_address: 94:BF:41:41:41:F4
+    mode: ACCESS
+    mtu: null
+    name: et-0/0/1.4
+    tagged_vlans: [ ]
+    tags:
+      - __typename: TagType
+        name: edge:customer
+        slug: edge_customer
+    type: virtual
+    untagged_vlan:
+      __typename: VLANType
+      id: '8237463'
+      name: TEST-VLAN-4
+      vid: 4
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: null
+    __typename: InterfaceType
+    enabled: true
     id: '30759'
     ip_addresses: [ ]
     link_peers:

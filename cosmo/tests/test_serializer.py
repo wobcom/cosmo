@@ -245,6 +245,10 @@ def test_router_interface_auto_description():
         "type": "customer",
     } == json.loads(sd["interfaces"]["et-0/0/1"]["units"][3]["description"])
     assert {
+        "connected_endpoints": [{"name": "combo2", "device": "mikrotik01"}],
+        "type": "customer",
+    } == json.loads(sd["interfaces"]["et-0/0/1"]["units"][4]["description"])
+    assert {
         "link_peers": [{"name": "port_45", "device": "Panel48673"}],
         "type": "access",
     } == json.loads(sd["interfaces"]["et-0/0/5"]["description"])
