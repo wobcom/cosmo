@@ -1,0 +1,64 @@
+query {
+    l2vpn_list (filters: {name: {starts_with: "WAN: "}}) {
+        __typename
+        id
+        name
+        type
+        identifier
+        terminations {
+            __typename
+            id
+            assigned_object {
+                __typename
+                ... on VLANType {
+                    __typename
+                    id
+                    name
+                    interfaces_as_tagged {
+                        id
+                        name
+                        __typename
+                        device {
+                            __typename
+                            id
+                            name
+                        }
+                    }
+                    interfaces_as_untagged {
+                        id
+                        name
+                        __typename
+                        device {
+                            __typename
+                            id
+                            name
+                        }
+                    }
+                }
+                ... on InterfaceType {
+                    __typename
+                    id
+                    name
+                    custom_fields
+                    untagged_vlan {
+                        __typename
+                        id
+                        name
+                        vid
+                    }
+                    tagged_vlans {
+                        __typename
+                        id
+                        name
+                        vid
+                    }
+                    device {
+                        __typename
+                        id
+                        name
+                    }
+                }
+            }
+        }
+    }
+}
