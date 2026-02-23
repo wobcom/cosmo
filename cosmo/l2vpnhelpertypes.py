@@ -132,10 +132,6 @@ class AbstractL2VpnTypeTerminationVisitor(
     def getInvalidNumberOfTerminationsErrorMessage(cls, i: int):
         return f"{cls.getNetboxTypeName().upper()}: {i} is not a valid number of terminations, ignoring..."
 
-    @abstractmethod
-    def isValidRawName(self, name: str) -> bool:
-        pass
-
     def needsL2VPNIdentifierAsMandatory(self) -> bool:
         return False
 
@@ -236,9 +232,6 @@ class AbstractAnyToAnyL2VpnTypeTerminationVisitor(
 class AbstractEPLEVPLL2VpnTypeCommon(
     AbstractL2VpnTypeTerminationVisitor, metaclass=ABCMeta
 ):
-    def isValidRawName(self, name: str) -> bool:
-        return name.startswith("WAN: L2X_")
-
     def localInterfaceValidationTemplateMethod(self, local: InterfaceType):
         pass
 
@@ -421,10 +414,6 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(
 class VPWSL2VpnTypeTerminationVisitor(
     AbstractVPWSEVPNVPWSVpnTypeCommon, AbstractP2PL2VpnTypeTerminationVisitor
 ):
-    def isValidRawName(self, name: str) -> bool:
-        # VPWS is legacy for us, we do not care about the naming scheme
-        return bool(len(name))
-
     @staticmethod
     def getNetboxTypeName() -> str:
         return "vpws"
@@ -433,18 +422,12 @@ class VPWSL2VpnTypeTerminationVisitor(
 class EVPNVPWSVpnTypeTerminationVisitor(
     AbstractVPWSEVPNVPWSVpnTypeCommon, AbstractP2PL2VpnTypeTerminationVisitor
 ):
-    def isValidRawName(self, name: str) -> bool:
-        return name.startswith("WAN: L2X_")
-
     @staticmethod
     def getNetboxTypeName() -> str:
         return "evpn-vpws"
 
 
 class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVisitor):
-    def isValidRawName(self, name: str) -> bool:
-        return name.startswith("WAN: VS_")
-
     @staticmethod
     def getSupportedEncapTraits() -> list[type[AbstractEncapCapability]]:
         return [VlanBridgeEncapCapability]

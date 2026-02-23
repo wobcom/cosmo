@@ -102,7 +102,7 @@ l2vpn_list:
 - id: '53'
   __typename: L2VPNType
   identifier: 12345
-  name: 'WAN: L2X_CLIENT9372'
+  name: 'WAN: L2X'
   terminations:
   - assigned_object:
       __typename: InterfaceType
