@@ -1,3 +1,6 @@
+from os import PathLike
+from pathlib import Path
+from string import Template
 from abc import ABC, abstractmethod
 from typing import Optional, Union, Protocol, TypeVar, Sequence
 
@@ -70,3 +73,10 @@ def without_keys(d, keys) -> dict:
     if type(keys) != list:
         keys = [keys]
     return {k: v for k, v in d.items() if k not in keys}
+
+
+class FileTemplate(Template):
+    def __init__(self, template_file_path: str | bytes | PathLike):
+        with open(template_file_path, "r") as template_file:
+            template = template_file.read()
+            super().__init__(template)
