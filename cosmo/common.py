@@ -53,8 +53,10 @@ def strictly_decreasing(l: Sequence[Comparable]) -> bool:
 
 
 # next() can raise StopIteration, so that's why I use this function
-# FIXME: should be head[T](l: list[T]) -> Optional[T]
-def head(l):
+T = TypeVar("T")
+
+
+def head(l: list[T]) -> Optional[T]:
     return None if not l else l[0]
 
 
