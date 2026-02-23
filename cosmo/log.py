@@ -16,6 +16,10 @@ class AbstractLogLevel(metaclass=ABCMeta):
         return self.name.upper()
 
 
+class DebugLogLevel(AbstractLogLevel):
+    name = "debug"
+
+
 class InfoLogLevel(AbstractLogLevel):
     name = "info"
 
@@ -47,6 +51,10 @@ class AbstractLoggingStrategy(metaclass=ABCMeta):
 
     @abstractmethod
     def error(self, message: str, on: O):
+        pass
+
+    @abstractmethod
+    def debug(self, message: str, on: O):
         pass
 
     @abstractmethod
@@ -83,6 +91,9 @@ class JsonLoggingStrategy(AbstractLoggingStrategy):
     def error(self, message: str, on: O):
         self.error_queue.append((ErrorLogLevel(), message, on))
 
+    def debug(self, message: str, on: O):
+        self.error_queue.append((DebugLogLevel(), message, on))
+
     def flush(self):
         # JSON-RPC like
         res = {}
@@ -107,13 +118,16 @@ class JsonLoggingStrategy(AbstractLoggingStrategy):
 
 
 class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
-    def __init__(self, *args, netbox_instance_url: str, **kwargs):
+    def __init__(self, *args, show_debug: bool, netbox_instance_url: str, **kwargs):
         super().__init__(*args, **kwargs)
         self.nb_instance_url = netbox_instance_url
+        self.show_debug = show_debug
 
     def formatMessage(self, m: M) -> str:
         log_level, message, obj = m
         match log_level:
+            case DebugLogLevel():
+                color = "magenta"
             case InfoLogLevel():
                 color = "blue"
             case WarningLogLevel():
@@ -152,6 +166,10 @@ class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
     def error(self, message: str, on: O):
         print(self.formatMessage((ErrorLogLevel(), message, on)))
 
+    def debug(self, message: str, on: O):
+        if self.show_debug:
+            print(self.formatMessage((DebugLogLevel(), message, on)))
+
     def flush(self):
         pass
 
@@ -184,6 +202,9 @@ class CosmoLogger:
     def error(self, message: str, on: O):
         self.strategy.error(message, on)
 
+    def debug(self, message: str, on: O):
+        self.strategy.debug(message, on)
+
     def processHandledException(
         self, exception: BaseException
     ):  # for try/catch blocks to use
@@ -213,6 +234,10 @@ def warn(message: str, on: O) -> None:
 
 def error(message: str, on: O) -> None:
     logger.error(message, on)
+
+
+def debug(message: str, on: O = None) -> None:
+    logger.debug(message, on)
 
 
 logger = CosmoLogger()

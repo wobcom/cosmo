@@ -42,6 +42,7 @@ def main() -> int:
     parser.add_argument(
         "--json", "-j", action="store_true", help="Toggle machine readable output on"
     )
+    parser.add_argument("--debug", action="store_true", help="Toggle debug logging on")
     parser.add_argument(
         "--disable-feature",
         default=[],
@@ -68,9 +69,10 @@ def main() -> int:
     else:
         logger.setLoggingStrategy(
             HumanReadableLoggingStrategy(
+                show_debug=args.debug,
                 netbox_instance_url=str(
                     os.environ.get("NETBOX_URL")
-                )  # isn't validated so it's fine
+                ),  # isn't validated so it's fine
             )
         )
 
