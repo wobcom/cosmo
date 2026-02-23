@@ -127,7 +127,7 @@ class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
         log_level, message, obj = m
         match log_level:
             case DebugLogLevel():
-                color = "violet"
+                color = "magenta"
             case InfoLogLevel():
                 color = "blue"
             case WarningLogLevel():
