@@ -257,6 +257,7 @@ def test_router_interface_auto_description():
     assert {
         "connected_endpoints": [{"name": "combo1", "device": "mikrotik01"}]
     } == json.loads(sd["interfaces"]["et-0/0/0"]["description"])
+
     # auto type description now overrides existing descriptions
     # assert "do not overwrite me!" == sd["interfaces"]["et-0/0/1"]["description"]
     assert {
@@ -265,12 +266,26 @@ def test_router_interface_auto_description():
         "connected_endpoints": [{"name": "combo2", "device": "mikrotik01"}],
         "type": "peering",
     } == json.loads(sd["interfaces"]["et-0/0/1"]["units"][2]["description"])
+
+    # sub interface with line with service, connected endpoint and link peers
+    # should display line info, tenant info, connected_endpoint and type
     assert {
         "line": "cl390287",
         "tenant": "Contoso Ltd.",
         "connected_endpoints": [{"name": "combo2", "device": "mikrotik01"}],
         "type": "customer",
     } == json.loads(sd["interfaces"]["et-0/0/1"]["units"][3]["description"])
+
+    # sub interface with line without service should display line number but not tenant
+    # and/or service information
+    assert {
+        "connected_endpoints": [{"name": "combo2", "device": "mikrotik01"}],
+        "line": "cl390287",
+        "type": "customer",
+    } == json.loads(sd["interfaces"]["et-0/0/1"]["units"][4]["description"])
+
+    # interface with only link_peers and no connected_endpoints should display
+    # link_peer information
     assert {
         "link_peers": [{"name": "port_45", "device": "Panel48673"}],
         "type": "access",

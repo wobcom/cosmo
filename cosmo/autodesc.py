@@ -92,7 +92,10 @@ class AbstractComposableAutoDescription(metaclass=ABCMeta):
             )
             | (  # directly attached line has priority
                 {"line": attached_tobago_line.getName()}
-                if attached_tobago_line and self.suppressTenant()
+                # two different cases: either we have to suppress tenant
+                # OR tenant is not defined due to no linked service definition
+                if (attached_tobago_line and self.suppressTenant())
+                or (attached_tobago_line and not attached_tobago_line.hasTenant())
                 else {}
             )
             | (
@@ -100,7 +103,9 @@ class AbstractComposableAutoDescription(metaclass=ABCMeta):
                     "line": attached_tobago_line.getName(),
                     "tenant": attached_tobago_line.getTenantName(),
                 }
-                if attached_tobago_line and not self.suppressTenant()
+                if attached_tobago_line
+                and attached_tobago_line.hasTenant()
+                and not self.suppressTenant()
                 else {}
             )
             | (
