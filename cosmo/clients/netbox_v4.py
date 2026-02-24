@@ -317,10 +317,9 @@ class StaticRouteDummyQuery(ParallelQuery):
 class IPPoolDataQuery(ParallelQuery):
 
     def _fetch_data(self, kwargs, pool):
-        device_list = kwargs.get("device_list")
-        return self.client.query_rest(
-            "api/plugins/ip-pools/ippools/", {"devices": device_list}
-        )
+        # Filters for ippools are fucked.
+        # Also, pagination is broken, so we just raise the limit and hope, it works.
+        return self.client.query_rest("api/plugins/ip-pools/ippools/", {"limit": 1000})
 
     def _merge_into(self, data: dict, query_data):
 
