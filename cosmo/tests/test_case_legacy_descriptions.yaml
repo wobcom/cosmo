@@ -1,0 +1,396 @@
+device_list:
+- device_type:
+    __typename: DeviceTypeType
+    slug: mx204
+  __typename: DeviceType
+  id: '1747'
+  interfaces:
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: "test description"
+    __typename: InterfaceType
+    enabled: true
+    id: '30747'
+    ip_addresses: []
+    connected_endpoints:
+      - name: "combo1"
+        __typename: InterfaceType
+        device:
+          __typename: DeviceType
+          name: "mikrotik01"
+    lag: null
+    mac_address: 94:BF:41:41:41:F3
+    mode: null
+    mtu: null
+    name: et-0/0/0
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: "do not overwrite me!"
+    __typename: InterfaceType
+    enabled: true
+    id: '30748'
+    ip_addresses: []
+    connected_endpoints:
+      - name: "combo2"
+        __typename: InterfaceType
+        device:
+          __typename: DeviceType
+          name: "mikrotik01"
+    lag: null
+    mac_address: 94:BF:41:41:41:F3
+    mode: null
+    mtu: null
+    name: et-0/0/1
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: "test description et-0/0/1.2"
+    __typename: InterfaceType
+    enabled: true
+    id: '30749'
+    ip_addresses: [ ]
+    connected_endpoints: null
+    attached_tobago_line:
+      __typename: CosmoTobagoLine
+      component_type: CABLE
+      element:
+        description: ''
+        display: cable 000128934
+        id: 39645
+        label: cable 000128934
+        url: https://netbox.example.com/api/dcim/cables/39645/
+      element_id: 93827
+      element_type: dcim.cable
+      id: 5110
+      index: 1
+      termination_a:
+        _occupied: true
+        cable:
+          description: ''
+          display: cable 000128934n
+          id: 39645
+          label: cable 000128934
+          url: https://netbox.example.com/api/dcim/cables/39645/
+        description: ''
+        device:
+          description: ''
+          display: TEST0001
+          id: 1747
+          name: TEST0001
+          url: https://netbox.example.com/api/dcim/devices/1747/
+        display: et-0/0/1.2
+        id: 30749
+        name: et-0/0/1.2
+        url: https://netbox.example.com/api/dcim/interfaces/30749/
+      termination_a_id: 92387
+      termination_a_type: dcim.interface
+      termination_b:
+        _occupied: true
+        cable:
+          description: ''
+          display: 031240 GF:5781 / 031241 GF:5782
+          id: 39645
+          label: 031240 GF:5781 / 031241 GF:5782
+          url: https://netbox.example.com/api/dcim/cables/39645/
+        circuit:
+          cid: FS 3298327 1-1-2
+          description: ''
+          display: FS 3298327 1-1-2
+          id: 138
+          provider:
+            description: ''
+            display: Circuit Provider A
+            id: 12
+            name: Circuit Provider A
+            slug: circuit-provider-a
+            url: https://netbox.example.com/api/circuits/providers/12/
+          url: https://netbox.example.com/api/circuits/circuits/138/
+        description: ''
+        display: 'FS 3298327 1-1-2'
+        id: 454
+        term_side: A
+        url: https://netbox.example.com/api/circuits/circuit-terminations/454/
+      termination_b_id: 454
+      termination_b_type: circuits.circuittermination
+      version:
+        created: '2025-09-03T11:34:19.643456+01:00'
+        custom_fields: { }
+        id: 2617
+        last_updated: '2025-09-03T11:34:40.819703+01:00'
+        tenant:
+          id: 43876
+          url: https://netbox.example.com/api/plugins/tobago/tenants/43876/
+          display: Contoso Ltd.
+          name: Contoso Ltd.
+          slug: contoso-ltd
+        line:
+          display: cl390287
+          id: 9834
+          name: '390287'
+          name_long: cl390287
+          url: https://netbox.example.com/api/plugins/tobago/lines/9834/
+          service:
+            id: 4893794
+            url: https://netbox.example.com/api/plugins/tobago/services/4893794/
+            display: "#9823 (cl390287)"
+            business_service: null
+        status: current
+    lag: null
+    mac_address: 94:BF:41:41:41:F3
+    mode: ACCESS
+    mtu: null
+    name: et-0/0/1.2
+    tagged_vlans: [ ]
+    tags:
+      - __typename: TagType
+        name: edge:peering-ixp
+        slug: edge_peering-ixp
+    type: virtual
+    untagged_vlan:
+      __typename: VLANType
+      id: '8237462'
+      name: TEST-VLAN-2
+      vid: 2
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: "test description et-0/0/1.3"
+    __typename: InterfaceType
+    enabled: true
+    id: '30750'
+    ip_addresses: [ ]
+    connected_endpoints: [ ]
+    attached_tobago_line:
+      __typename: CosmoTobagoLine
+      component_type: CABLE
+      element:
+        description: ''
+        display: cable 000128934
+        id: 39645
+        label: cable 000128934
+        url: https://netbox.example.com/api/dcim/cables/39645/
+      element_id: 93827
+      element_type: dcim.cable
+      id: 5110
+      index: 1
+      termination_a:
+        _occupied: true
+        cable:
+          description: ''
+          display: cable 000128934
+          id: 39645
+          label: cable 000128934
+          url: https://netbox.example.com/api/dcim/cables/39645/
+        description: ''
+        device:
+          description: ''
+          display: TEST0001
+          id: 1747
+          name: TEST0001
+          url: https://netbox.example.com/api/dcim/devices/1747/
+        display: et-0/0/1.3
+        id: 30750
+        name: et-0/0/1.3
+        url: https://netbox.example.com/api/dcim/interfaces/30750/
+      termination_a_id: 92387
+      termination_a_type: dcim.interface
+      termination_b:
+        _occupied: true
+        id: 198208
+        url: https://netbox.example.com/api/dcim/interfaces/192878/
+        display: xe-0/1/0
+        device:
+          id: 39827
+          url: https://netbox.example.com/api/dcim/device/39827/
+          display: TEST0002
+          name: TEST0002
+          description: null
+        name: xe-0/1/0
+        description: "customer A"
+      termination_b_id: 454
+      termination_b_type: dcim.interface
+      version:
+        created: '2025-09-03T11:34:19.643456+01:00'
+        custom_fields: { }
+        id: 2617
+        last_updated: '2025-09-03T11:34:40.819703+01:00'
+        tenant:
+          id: 43876
+          url: https://netbox.example.com/api/plugins/tobago/tenants/43876/
+          display: Contoso Ltd.
+          name: Contoso Ltd.
+          slug: contoso-ltd
+        line:
+          display: cl390287
+          id: 9834
+          name: '390287'
+          name_long: cl390287
+          url: https://netbox.example.com/api/plugins/tobago/lines/9834/
+          service:
+            id: 4893794
+            url: https://netbox.example.com/api/plugins/tobago/services/4893794/
+            display: "#9823 (cl390287)"
+            business_service: null
+        status: current
+    lag: null
+    mac_address: 94:BF:41:41:41:F3
+    mode: ACCESS
+    mtu: null
+    name: et-0/0/1.3
+    tagged_vlans: [ ]
+    tags:
+      - __typename: TagType
+        name: edge:customer
+        slug: edge_customer
+    type: virtual
+    untagged_vlan:
+      __typename: VLANType
+      id: '8237463'
+      name: TEST-VLAN-3
+      vid: 3
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: "test description et-0/0/1.4"
+    __typename: InterfaceType
+    enabled: true
+    id: '30754'
+    ip_addresses: [ ]
+    connected_endpoints: null
+    attached_tobago_line:
+      __typename: CosmoTobagoLine
+      component_type: CABLE
+      element:
+        description: ''
+        display: cable 000128935
+        id: 39646
+        label: cable 000128935
+        url: https://netbox.example.com/api/dcim/cables/39646/
+      element_id: 93828
+      element_type: dcim.cable
+      id: 5111
+      index: 1
+      termination_a:
+        _occupied: true
+        cable:
+          description: ''
+          display: cable 000128935
+          id: 39646
+          label: cable 000128935
+          url: https://netbox.example.com/api/dcim/cables/39646/
+        description: ''
+        device:
+          description: ''
+          display: TEST0001
+          id: 1747
+          name: TEST0001
+          url: https://netbox.example.com/api/dcim/devices/1747/
+        display: et-0/0/1.4
+        id: 30750
+        name: et-0/0/1.4
+        url: https://netbox.example.com/api/dcim/interfaces/30754/
+      termination_a_id: 92388
+      termination_a_type: dcim.interface
+      termination_b:
+        _occupied: true
+        id: 198209
+        url: https://netbox.example.com/api/dcim/interfaces/192879/
+        display: xe-0/1/4
+        device:
+          id: 39827
+          url: https://netbox.example.com/api/dcim/device/39827/
+          display: TEST0002
+          name: TEST0002
+          description: null
+        name: xe-0/1/4
+        description: "customer A"
+      termination_b_id: 454
+      termination_b_type: dcim.interface
+      version:
+        created: '2025-09-03T11:34:19.643456+01:00'
+        custom_fields: { }
+        id: 2617
+        last_updated: '2025-09-03T11:34:40.819703+01:00'
+        line:
+          display: cl390287
+          id: 9834
+          name: '390287'
+          name_long: cl390287
+          url: https://netbox.example.com/api/plugins/tobago/lines/9834/
+          service: null
+        status: current
+    lag: null
+    mac_address: 94:BF:41:41:41:F4
+    mode: ACCESS
+    mtu: null
+    name: et-0/0/1.4
+    tagged_vlans: [ ]
+    tags:
+      - __typename: TagType
+        name: edge:customer
+        slug: edge_customer
+    type: virtual
+    untagged_vlan:
+      __typename: VLANType
+      id: '8237463'
+      name: TEST-VLAN-4
+      vid: 4
+    vrf: null
+  - custom_fields:
+      inner_tag: null
+      outer_tag: null
+    description: "test description et-0/0/5"
+    __typename: InterfaceType
+    enabled: true
+    id: '30759'
+    ip_addresses: [ ]
+    link_peers:
+      - name: "port_45"
+        __typename: InterfaceType
+        device:
+          __typename: DeviceType
+          name: "Panel48673"
+    connected_endpoints: []
+    attached_tobago_line: null
+    lag: null
+    mac_address: 94:BF:41:41:41:F3
+    mode: null
+    mtu: null
+    name: et-0/0/5
+    tagged_vlans: [ ]
+    tags:
+      - __typename: TagType
+        name: access:q_pppoe
+        slug: access_q_pppoe
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  name: TEST0001
+  platform:
+    __typename: PlatformType
+    manufacturer:
+      __typename: ManufacturerType
+      slug: juniper
+    slug: junos-21-4r3-s5-4
+  primary_ip4:
+    __typename: IPAddressType
+    address: 45.139.136.10/32
+  staticroute_set: []
+l2vpn_list: []
+loopbacks:
+  TEST0001:
+    ipv4: 45.139.136.10/32
