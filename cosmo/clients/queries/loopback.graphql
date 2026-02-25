@@ -1,0 +1,39 @@
+query{
+    interface_list(filters: {
+        name: {starts_with: "lo"}
+    }) {
+        __typename
+        name,
+        child_interfaces {
+            __typename
+            name,
+            vrf {
+                __typename
+                id
+                name
+                description
+                rd
+                export_targets {
+                    __typename
+                    name
+                }
+                import_targets {
+                    __typename
+                    name
+                }
+            },
+            ip_addresses {
+                __typename
+                address,
+                family {
+                    __typename
+                    value,
+                }
+            }
+        }
+        device{
+            __typename
+            name,
+        }
+    }
+}

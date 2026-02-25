@@ -1,0 +1,99 @@
+query {
+    device_list(filters: {
+        name: { i_exact: $device },
+    }) {
+        __typename
+        id
+        name
+        custom_fields
+
+        device_type {
+            __typename
+            slug
+        }
+        platform {
+            __typename
+            manufacturer {
+                __typename
+                slug
+            }
+            slug
+        }
+        primary_ip4 {
+            __typename
+            address
+        }
+
+        interfaces {
+            __typename
+            id
+            name
+            enabled
+            type
+            mode
+            mtu
+            description
+            connected_endpoints {
+                ... on InterfaceType {
+                    __typename
+                    name
+                    device {
+                        __typename
+                        name
+                    }
+                }
+                $autodesc_query_extension
+            }
+            vrf {
+                __typename
+                id
+                name
+                description
+                rd
+                export_targets {
+                    __typename
+                    name
+                }
+                import_targets {
+                    __typename
+                    name
+                }
+            }
+            lag {
+                __typename
+                id
+                name
+            }
+            ip_addresses {
+                __typename
+                address
+                role
+            }
+            untagged_vlan {
+                __typename
+                id
+                name
+                vid
+            }
+            tagged_vlans {
+                __typename
+                id
+                name
+                vid
+            }
+            tags {
+                __typename
+                id
+                name
+                slug
+            }
+            parent {
+                __typename
+                id
+                mtu
+                name
+            }
+            custom_fields
+        }
+    }
+}

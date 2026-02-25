@@ -2,10 +2,13 @@ import json
 from abc import ABC, abstractmethod
 from builtins import map
 from multiprocessing import Manager
-from string import Template
+from os import PathLike
+from pathlib import Path
 
 from cosmo.clients import get_client_mp_context
 from cosmo.clients.netbox_client import NetboxAPIClient
+from cosmo.common import FileTemplate
+from cosmo.features import features
 
 
 class ParallelQuery(ABC):
@@ -15,6 +18,10 @@ class ParallelQuery(ABC):
 
         self.data_promise = None
         self.kwargs = kwargs
+
+    @staticmethod
+    def file_template(relpath: str | PathLike):
+        return FileTemplate(Path(__file__).parent.joinpath(Path(relpath)))
 
     def fetch_data(self, pool):
         return pool.apply_async(self._fetch_data, args=(self.kwargs, pool))
@@ -43,43 +50,7 @@ class ConnectedDevicesDataQuery(ParallelQuery):
             if self.netbox_43_query_syntax
             else 'tag: "bgp_cpe"'
         )
-        query_template = Template(
-            """
-            query {
-              interface_list(filters: { $tag_filter }) {
-                __typename
-                id,
-                parent {
-                  __typename
-                  id,
-                  connected_endpoints {
-                    ... on InterfaceType {
-                      __typename
-                      name
-                      device {
-                        name
-                        __typename
-                        primary_ip4 {
-                          __typename
-                          address
-                        }
-                        interfaces {
-                          id
-                          name
-                          __typename
-                          ip_addresses {
-                            __typename
-                            address
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }    
-        """
-        )
+        query_template = self.file_template("queries/connected_devices.graphql")
 
         return self.client.query(
             query_template.substitute(tag_filter=tag_filter), "connected_devices_query"
@@ -123,49 +94,7 @@ class LoopbackDataQuery(ParallelQuery):
         # Note: This does not use the device list, because we can have other participating devices
         # which are not in the same repository and thus are not appearing in device list.
 
-        query_template = Template(
-            """
-            query{
-              interface_list(filters: {
-                name: {starts_with: "lo"}
-              }) {
-                __typename
-                name,
-                child_interfaces {
-                  __typename
-                  name,
-                  vrf {
-                    __typename
-                    id
-                    name
-                    description
-                    rd
-                    export_targets {
-                      __typename
-                      name
-                    }
-                    import_targets {
-                      __typename
-                      name
-                    }
-                  },
-                  ip_addresses {
-                    __typename
-                    address,
-                    family {
-                     __typename
-                     value,
-                    }
-                  }
-                }
-                device{
-                  __typename
-                  name,
-                }
-              }
-            }
-        """
-        )
+        query_template = self.file_template("queries/loopback.graphql")
 
         return self.client.query(query_template.substitute(), "loopback_query")["data"]
 
@@ -205,74 +134,7 @@ class LoopbackDataQuery(ParallelQuery):
 
 class L2VPNDataQuery(ParallelQuery):
     def _fetch_data(self, kwargs, pool):
-        query_template = Template(
-            """
-         query {
-            l2vpn_list (filters: {name: {starts_with: "WAN: "}}) {
-                __typename
-                id
-                name
-                type
-                identifier
-                terminations {
-                  __typename
-                  id
-                  assigned_object {
-                    __typename
-                    ... on VLANType {
-                      __typename
-                      id
-                      name
-                      interfaces_as_tagged {
-                         id
-                         name
-                         __typename
-                         device {
-                            __typename
-                            id
-                            name
-                         }
-                      }
-                      interfaces_as_untagged {
-                         id
-                         name
-                         __typename
-                         device {
-                            __typename
-                            id
-                            name
-                         }
-                      }
-                    }
-                    ... on InterfaceType {
-                      __typename
-                      id
-                      name
-                      custom_fields
-                      untagged_vlan {
-                        __typename
-                        id
-                        name
-                        vid
-                       }
-                      tagged_vlans {
-                        __typename
-                        id
-                        name
-                        vid
-                      }
-                      device {
-                        __typename
-                        id
-                        name
-                      }
-                    }
-                  }
-                }
-            }
-         }
-         """
-        )
+        query_template = self.file_template("queries/l2vpn.graphql")
 
         return self.client.query(query_template.substitute(), "l2vpn_query")["data"]
 
@@ -428,200 +290,19 @@ class DeviceDataQuery(ParallelQuery):
 
     def _fetch_data(self, kwargs, pool):
         device = kwargs.get("device")
-        query_template = Template(
-            """
-            query {
-              device_list(filters: {
-                name: { i_exact: $device },
-              }) {
-                __typename
-                id
-                name
-                custom_fields
+        if features.featureIsEnabled("interface-auto-descriptions"):
+            autodesc_query_extension_template = self.file_template(
+                "queries/device_autodesc_query.graphql"
+            )
+        else:
+            autodesc_query_extension_template = self.file_template(
+                "queries/device_no_autodesc_query.graphql"
+            )
 
-                device_type {
-                  __typename
-                  slug
-                }
-                platform {
-                  __typename
-                  manufacturer {
-                    __typename
-                    slug
-                  }
-                  slug
-                }
-                primary_ip4 {
-                  __typename
-                  address
-                }
-
-                interfaces {
-                  __typename
-                  id
-                  name
-                  enabled
-                  type
-                  mode
-                  mtu
-                  description
-                  connected_endpoints {
-                    ... on ProviderNetworkType {
-                      __typename
-                      display
-                    }
-                    ... on CircuitTerminationType {
-                      __typename
-                      display
-                    }
-                    ... on VirtualCircuitTerminationType {
-                      __typename
-                      display
-                    }
-                    ... on InterfaceType {
-                      __typename
-                      name
-                      device {
-                        __typename
-                        name
-                      }
-                    }
-                    ... on FrontPortType {
-                      __typename
-                      name
-                      device {
-                        __typename
-                        name
-                      }
-                    }
-                    ... on RearPortType {
-                      __typename
-                      name
-                      device {
-                        __typename
-                        name
-                      }
-                    }
-                    ... on ConsolePortType {
-                      __typename
-                      name
-                      device {
-                        __typename
-                        name
-                      }
-                    }
-                    ... on ConsoleServerPortType {
-                      __typename
-                      name
-                      device {
-                        __typename
-                        name
-                      }
-                    }
-                  }
-                  link_peers {
-                    ... on CircuitTerminationType {
-                      __typename
-                      display
-                    }
-                    ... on FrontPortType {
-                      __typename
-                      name
-                      device {
-                        __typename
-                        name
-                      }
-                    }
-                    ... on RearPortType {
-                      __typename
-                      name
-                      device {
-                        __typename
-                        name
-                      }
-                    }
-                    ... on ConsolePortType {
-                      __typename
-                      name
-                      device {
-                        __typename
-                        name
-                      }
-                    }
-                    ... on ConsoleServerPortType {
-                      __typename
-                      name
-                      device {
-                        __typename
-                        name
-                      }
-                    }
-                    ... on InterfaceType {
-                       __typename
-                      name
-                      device {
-                        __typename
-                        name
-                      }
-                    }
-                  }
-                  vrf {
-                    __typename
-                    id
-                    name
-                    description
-                    rd
-                    export_targets {
-                      __typename
-                      name
-                    }
-                    import_targets {
-                      __typename
-                      name
-                    }
-                  }
-                  lag {
-                    __typename
-                    id
-                    name
-                  }
-                  ip_addresses {
-                    __typename
-                    address
-                    role
-                  }
-                  untagged_vlan {
-                    __typename
-                    id
-                    name
-                    vid
-                  }
-                  tagged_vlans {
-                    __typename
-                    id
-                    name
-                    vid
-                  }
-                  tags {
-                    __typename
-                    id
-                    name
-                    slug
-                  }
-                  parent {
-                    __typename
-                    id
-                    mtu
-                    name
-                  }
-                  custom_fields
-                }
-              }
-            }"""
-        )
-
+        query_template = self.file_template("queries/device.graphql")
         query = query_template.substitute(
             device=json.dumps(device),
+            autodesc_query_extension=autodesc_query_extension_template.substitute(),
         )
 
         query_result = self.client.query(query, f"device_query_{device}")
@@ -672,6 +353,7 @@ class NetboxV4Strategy:
                         (
                             TobagoLineMembersDataQuery(client, device=d)
                             if self.feature_flags["tobago"]
+                            and features.featureIsEnabled("interface-auto-descriptions")
                             else TobagoLineMemberDataDummyQuery(client, device=d)
                         ),
                     ]

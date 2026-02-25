@@ -1,0 +1,90 @@
+                ... on ProviderNetworkType {
+                    __typename
+                    display
+                }
+                ... on CircuitTerminationType {
+                    __typename
+                    display
+                }
+                ... on VirtualCircuitTerminationType {
+                    __typename
+                    display
+                }
+                ... on FrontPortType {
+                    __typename
+                    name
+                    device {
+                        __typename
+                        name
+                    }
+                }
+                ... on RearPortType {
+                    __typename
+                    name
+                    device {
+                        __typename
+                        name
+                    }
+                }
+                ... on ConsolePortType {
+                    __typename
+                    name
+                    device {
+                        __typename
+                        name
+                    }
+                }
+                ... on ConsoleServerPortType {
+                    __typename
+                    name
+                    device {
+                        __typename
+                        name
+                    }
+                }
+            }
+            link_peers {
+                ... on CircuitTerminationType {
+                    __typename
+                    display
+                }
+                ... on FrontPortType {
+                    __typename
+                    name
+                    device {
+                        __typename
+                        name
+                    }
+                }
+                ... on RearPortType {
+                    __typename
+                    name
+                    device {
+                        __typename
+                        name
+                    }
+                }
+                ... on ConsolePortType {
+                    __typename
+                    name
+                    device {
+                        __typename
+                        name
+                    }
+                }
+                ... on ConsoleServerPortType {
+                    __typename
+                    name
+                    device {
+                        __typename
+                        name
+                    }
+                }
+                ... on InterfaceType {
+                    __typename
+                    name
+                    device {
+                        __typename
+                        name
+                    }
+                }
