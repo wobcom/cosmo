@@ -82,8 +82,8 @@ class VlanBridgeEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
 
 
 # generic supported termination types. it's this shape so that it can be directly used by isinstance()
-# (same shape as _ClassInfo)
-T = tuple[type[AbstractNetboxType], type[AbstractNetboxType]] | type[AbstractNetboxType]
+# (same shape as _ClassInfo). can be class/subclasses or N-length homogeneous tuple of class/subclasses
+T = tuple[type[AbstractNetboxType], ...] | type[AbstractNetboxType]
 
 
 # FIXME simplify this!
