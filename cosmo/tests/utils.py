@@ -56,28 +56,46 @@ class CommonSetup:
             self.mocker.stop(patch)
 
 
-class RequestResponseMock:
+class ResponseMock:
+    def __init__(self, status_code, obj):
+        self.status_code = status_code
+        self.text = json.dumps(obj)
+        self.obj = obj
 
-    @staticmethod
-    def patchNetboxClient(mocker, **patchKwArgs):
+    def json(self):
+        return self.obj
+
+
+class RequestResponseMock:
+    def __init__(self):
+        self.get_responses = dict()
+        self.post_responses = dict()
+
+    def patchNetboxClient(self, mocker, **patchKwArgs):
 
         def patchGetFunc(url, **kwargs):
             if "/api/status" in url:
-                return ResponseMock(
+                r = ResponseMock(
                     200,
                     {
                         "netbox-version": "4.1.2+wobcom_0.4.2",
-                        "plugins": [],
+                        "plugins": [
+                            "netbox_plugin_tobago",
+                            "netbox_plugin_ip_pools",
+                            "netbox_plugin_routing",
+                        ],
                     },
                 )
-
-            return ResponseMock(
-                200,
-                {
-                    "next": None,
-                    "results": [],
-                },
-            )
+            else:
+                r = ResponseMock(
+                    200,
+                    {
+                        "next": None,
+                        "results": [],
+                    },
+                )
+            self.get_responses[url] = r
+            return r
 
         def patchPostFunc(url, json, **kwargs):
             q = json.get("query")
@@ -100,21 +118,14 @@ class RequestResponseMock:
                 elif rl in q:
                     retVal[rl] = patchKwArgs.get(rl, [])
 
-            return ResponseMock(200, {"data": retVal})
+            r = ResponseMock(200, {"data": retVal})
+            # TODO: find out why value set is being trashed outside context ???
+            self.post_responses[q] = r
+            return r
 
         getMock = mocker.patch("requests.get", side_effect=patchGetFunc)
         postMock = mocker.patch("requests.post", side_effect=patchPostFunc)
         return [getMock, postMock]
-
-
-class ResponseMock:
-    def __init__(self, status_code, obj):
-        self.status_code = status_code
-        self.text = json.dumps(obj)
-        self.obj = obj
-
-    def json(self):
-        return self.obj
 
 
 # it has to be stateful - so I'm making an object

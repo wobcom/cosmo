@@ -7,6 +7,7 @@ import os
 
 import cosmo.tests.utils as utils
 from cosmo.__main__ import main as cosmoMain
+from cosmo.features import with_feature, features, without_feature
 
 
 def test_missing_config(mocker):
@@ -33,7 +34,7 @@ def test_limit_argument_with_commas(mocker):
     utils.CommonSetup(
         mocker, args=[utils.CommonSetup.PROGNAME, "--limit", "router1,router2"]
     )
-    utils.RequestResponseMock.patchNetboxClient(mocker)
+    utils.RequestResponseMock().patchNetboxClient(mocker)
     assert cosmoMain() == 0
 
 
@@ -42,7 +43,7 @@ def test_limit_arguments_with_repeat(mocker):
         mocker,
         args=[utils.CommonSetup.PROGNAME, "--limit", "router1", "--limit", "router2"],
     )
-    utils.RequestResponseMock.patchNetboxClient(mocker)
+    utils.RequestResponseMock().patchNetboxClient(mocker)
     assert cosmoMain() == 0
 
 
@@ -50,7 +51,7 @@ def test_device_generation_ansible(mocker):
     testEnv = utils.CommonSetup(mocker, cfgFile="cosmo/tests/cosmo.devgen_ansible.yml")
     with open(f"cosmo/tests/test_case_l3vpn.yml") as f:
         test_data = yaml.safe_load(f)
-        utils.RequestResponseMock.patchNetboxClient(mocker, **test_data)
+        utils.RequestResponseMock().patchNetboxClient(mocker, **test_data)
     assert cosmoMain() == 0
     testEnv.stop()
     assert os.path.isfile("host_vars/test0001/generated-cosmo.yml")
@@ -60,7 +61,7 @@ def test_device_generation_nix(mocker):
     testEnv = utils.CommonSetup(mocker, cfgFile="cosmo/tests/cosmo.devgen_nix.yml")
     with open(f"cosmo/tests/test_case_l3vpn.yml") as f:
         test_data = yaml.safe_load(f)
-        utils.RequestResponseMock.patchNetboxClient(mocker, **test_data)
+        utils.RequestResponseMock().patchNetboxClient(mocker, **test_data)
     assert cosmoMain() == 0
     testEnv.stop()
     assert os.path.isfile("machines/test0001/generated-cosmo.json")
@@ -70,9 +71,31 @@ def test_device_processing_error(mocker, capsys):
     testEnv = utils.CommonSetup(mocker, cfgFile="cosmo/tests/cosmo.devgen_nix.yml")
     with open(f"cosmo/tests/test_case_vendor_unknown.yaml") as f:
         test_data = yaml.safe_load(f)
-        utils.RequestResponseMock.patchNetboxClient(mocker, **test_data)
+        utils.RequestResponseMock().patchNetboxClient(mocker, **test_data)
     with pytest.raises(
         Exception, match="Cannot find suitable manufacturer for device .*"
     ):
         cosmoMain()
+    testEnv.stop()
+
+
+@with_feature(features, "interface-auto-descriptions")
+def test_autodesc_enabled(mocker):
+    testEnv = utils.CommonSetup(mocker, cfgFile="cosmo/tests/cosmo.devgen_ansible.yml")
+    requestsMock = utils.RequestResponseMock()
+    with open("cosmo/tests/test_case_auto_descriptions.yaml") as f:
+        test_data = yaml.safe_load(f)
+        utils.RequestResponseMock().patchNetboxClient(mocker, **test_data)
+    assert cosmoMain() == 0
+    testEnv.stop()
+
+
+@without_feature(features, "interface-auto-descriptions")
+def test_autodesc_disabled(mocker):
+    testEnv = utils.CommonSetup(mocker, cfgFile="cosmo/tests/cosmo.devgen_ansible.yml")
+    requestsMock = utils.RequestResponseMock()
+    with open(f"cosmo/tests/test_case_auto_descriptions.yaml") as f:
+        test_data = yaml.safe_load(f)
+        utils.RequestResponseMock().patchNetboxClient(mocker, **test_data)
+    assert cosmoMain() == 0
     testEnv.stop()

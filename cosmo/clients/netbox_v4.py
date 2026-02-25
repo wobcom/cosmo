@@ -8,6 +8,7 @@ from pathlib import Path
 from cosmo.clients import get_client_mp_context
 from cosmo.clients.netbox_client import NetboxAPIClient
 from cosmo.common import FileTemplate
+from cosmo.features import features
 
 
 class ParallelQuery(ABC):
@@ -289,10 +290,19 @@ class DeviceDataQuery(ParallelQuery):
 
     def _fetch_data(self, kwargs, pool):
         device = kwargs.get("device")
-        query_template = self.file_template("queries/device.graphql")
+        if features.featureIsEnabled("interface-auto-descriptions"):
+            autodesc_query_extension_template = self.file_template(
+                "queries/device_autodesc_query.graphql"
+            )
+        else:
+            autodesc_query_extension_template = self.file_template(
+                "queries/device_no_autodesc_query.graphql"
+            )
 
+        query_template = self.file_template("queries/device.graphql")
         query = query_template.substitute(
             device=json.dumps(device),
+            autodesc_query_extension=autodesc_query_extension_template.substitute(),
         )
 
         query_result = self.client.query(query, f"device_query_{device}")
@@ -343,6 +353,7 @@ class NetboxV4Strategy:
                         (
                             TobagoLineMembersDataQuery(client, device=d)
                             if self.feature_flags["tobago"]
+                            and features.featureIsEnabled("interface-auto-descriptions")
                             else TobagoLineMemberDataDummyQuery(client, device=d)
                         ),
                     ]
