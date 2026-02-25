@@ -22,7 +22,7 @@ def test_case_get_data(mocker):
         "l2vpn_list": [],
         "loopbacks": {},
     }
-    [getMock, postMock] = utils.RequestResponseMock.patchNetboxClient(mocker)
+    [getMock, postMock] = utils.RequestResponseMock().patchNetboxClient(mocker)
 
     nc = NetboxClient(TEST_URL, TEST_TOKEN)
     assert nc.base_version == Version("4.1.2")
