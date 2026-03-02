@@ -67,9 +67,11 @@ class ResponseMock:
 
 
 class RequestResponseMock:
-    def __init__(self):
-        self.get_responses = dict()
-        self.post_responses = dict()
+    def get_callback(self, k: str, v: ResponseMock):
+        pass
+
+    def post_callback(self, k: str, v: ResponseMock):
+        pass
 
     def patchNetboxClient(self, mocker, **patchKwArgs):
 
@@ -94,7 +96,7 @@ class RequestResponseMock:
                         "results": [],
                     },
                 )
-            self.get_responses[url] = r
+            self.get_callback(url, r)
             return r
 
         def patchPostFunc(url, json, **kwargs):
@@ -120,7 +122,7 @@ class RequestResponseMock:
 
             r = ResponseMock(200, {"data": retVal})
             # TODO: find out why value set is being trashed outside context ???
-            self.post_responses[q] = r
+            self.post_callback(q, r)
             return r
 
         getMock = mocker.patch("requests.get", side_effect=patchGetFunc)
