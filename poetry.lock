@@ -836,6 +836,20 @@ files = [
 ]
 
 [[package]]
+name = "sharedmock"
+version = "0.1.0"
+description = "A multiprocessing-friendly Python mock object"
+optional = false
+python-versions = "*"
+groups = ["dev"]
+files = [
+    {file = "sharedmock-0.1.0.tar.gz", hash = "sha256:807104fca48b7bc4cc4260cbf235e276948181ead15fc65353895d3a2a0becc0"},
+]
+
+[package.extras]
+test = ["coveralls (==1.1)", "prospector (==0.12.4)", "pylint (==1.6.5)", "pytest (==3.0.5)", "pytest-cov (==2.4.0)"]
+
+[[package]]
 name = "termcolor"
 version = "3.1.0"
 description = "ANSI color formatting for output in terminal"
@@ -969,4 +983,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "e5ade6f47a41718a4e4c82306000c5e1287ee2e4fe1307ca8d9c61a20410c1fa"
+content-hash = "f5e17ef11f29444b0e3cf0fbee459e838a2873305328f7409b3d59c7545dac2c"
