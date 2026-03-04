@@ -7,6 +7,7 @@ from cosmo.features import (
     NonExistingFeatureToggleException,
     FeatureToggle,
     with_feature,
+    without_feature,
 )
 
 
@@ -70,6 +71,17 @@ def test_with_feature_decorator():
 
     execute_with_decorator()
     assert not ft.featureIsEnabled("feature_a")
+
+
+def test_without_feature_decorator():
+    ft = FeatureToggle({"feature_a": True})
+
+    @without_feature(ft, "feature_a")
+    def execute_with_decorator():
+        assert not ft.featureIsEnabled("feature_a")
+
+    execute_with_decorator()
+    assert ft.featureIsEnabled("feature_a")
 
 
 def test_argparse_integration():

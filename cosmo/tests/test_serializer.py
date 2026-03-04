@@ -5,7 +5,7 @@ import pytest
 import copy
 
 from cosmo.common import DeviceSerializationError
-from cosmo.features import with_feature, features
+from cosmo.features import with_feature, features, without_feature
 from cosmo.manufacturers import ManufacturerFactoryFromDevice
 from cosmo.netbox_types import DeviceType
 
@@ -245,6 +245,7 @@ def test_router_logical_interface(capsys):
     )
 
 
+@with_feature(features, "interface-auto-descriptions")
 def test_router_interface_auto_description():
     [sd] = get_router_sd_from_path("./test_case_auto_descriptions.yaml")
 
@@ -290,6 +291,40 @@ def test_router_interface_auto_description():
         "link_peers": [{"name": "port_45", "device": "Panel48673"}],
         "type": "access",
     } == json.loads(sd["interfaces"]["et-0/0/5"]["description"])
+
+
+@without_feature(features, "interface-auto-descriptions")
+def test_router_interface_legacy_description():
+    [sd] = get_router_sd_from_path("./test_case_legacy_descriptions.yaml")
+
+    assert "et-0/0/0" in sd["interfaces"]
+    assert "et-0/0/1" in sd["interfaces"]
+    assert 2 in sd["interfaces"]["et-0/0/1"]["units"]
+    assert 3 in sd["interfaces"]["et-0/0/1"]["units"]
+    assert "et-0/0/5" in sd["interfaces"]
+
+    assert sd["interfaces"]["et-0/0/0"]["description"] == "test description"
+
+    # normal description mode should add "Peering" in front when autodesc is disabled
+    assert (
+        sd["interfaces"]["et-0/0/1"]["units"][2]["description"]
+        == "Peering: test description et-0/0/1.2"
+    )
+
+    # customer tag
+    assert (
+        sd["interfaces"]["et-0/0/1"]["units"][3]["description"]
+        == "Customer: test description et-0/0/1.3"
+    )
+
+    # customer tag
+    assert (
+        sd["interfaces"]["et-0/0/1"]["units"][4]["description"]
+        == "Customer: test description et-0/0/1.4"
+    )
+
+    # whole interface
+    assert sd["interfaces"]["et-0/0/5"]["description"] == "test description et-0/0/5"
 
 
 def test_router_lag():
@@ -606,17 +641,20 @@ def test_router_case_local_bgpcpe():
     assert 3 in d["interfaces"]["ifp-0/1/2"]["units"]
     assert 4 in d["interfaces"]["ifp-0/1/2"]["units"]
     assert 5 in d["interfaces"]["ifp-0/1/2"]["units"]
+    assert "ifp-0/1/3" in d["interfaces"]
+    assert 3 in d["interfaces"]["ifp-0/1/3"]["units"]
     assert "lo-0/0/0" in d["interfaces"]
-    assert len(d["interfaces"]) == 2
+    assert len(d["interfaces"]) == 3
 
     assert "protocols" in d["routing_instances"]["default"]
     assert "bgp" in d["routing_instances"]["default"]["protocols"]
 
     groups_default = d["routing_instances"]["default"]["protocols"]["bgp"]["groups"]
-    assert len(groups_default) == 1
+    assert len(groups_default) == 2
     assert (
         "CUST_cl390287" in groups_default
     )  #  parent interface has tobago line attached
+    assert groups_default["CUST_cl390287"]["any_as"] == True
     assert groups_default["CUST_cl390287"]["neighbors"][0]["interface"] == "ifp-0/1/2.3"
     assert groups_default["CUST_cl390287"]["family"]["ipv4_unicast"]["policy"][
         "export"
@@ -630,6 +668,12 @@ def test_router_case_local_bgpcpe():
     assert groups_default["CUST_cl390287"]["family"]["ipv6_unicast"]["policy"][
         "import_list"
     ] == ["2a0e:b941:2:42::/64", "2a0e:b941:2::/122"]
+
+    assert (
+        "CPE_ifp-0-1-3-3_V4" in groups_default
+    )  # no tobago line attached, so no new naming
+    assert groups_default["CPE_ifp-0-1-3-3_V4"]["peer_as"] == 65086
+    assert groups_default["CPE_ifp-0-1-3-3_V4"]["neighbors"][0]["peer"] == "10.129.6.12"
 
     groups_L3VPN = d["routing_instances"]["L3VPN"]["protocols"]["bgp"]["groups"]
 
@@ -805,6 +849,7 @@ def test_switch_lldp():
     assert True == sd["cumulus__device_interfaces"]["swp52"]["lldp"]
 
 
+@with_feature(features, "interface-auto-descriptions")
 def test_switch_auto_description():
     [sd] = get_switch_sd_from_path("./test_case_switch_auto_description.yaml")
 
@@ -836,6 +881,42 @@ def test_switch_auto_description():
     assert {
         "connected_endpoints": [{"name": "combo1", "device": "mikrotik09"}]
     } == json.loads(sd["cumulus__device_interfaces"]["swp55"]["description"])
+
+
+@without_feature(features, "interface-auto-descriptions")
+def test_switch_legacy_description():
+    [sd] = get_switch_sd_from_path("./test_case_switch_legacy_description.yaml")
+
+    assert "swp52" in sd["cumulus__device_interfaces"]
+    assert "swp53" in sd["cumulus__device_interfaces"]
+    assert "swp54" in sd["cumulus__device_interfaces"]
+    assert "swp55" in sd["cumulus__device_interfaces"]
+
+    assert "description" in sd["cumulus__device_interfaces"]["swp52"]
+    assert (
+        "test description swp52"
+        == sd["cumulus__device_interfaces"]["swp52"]["description"]
+    )
+
+    assert "description" in sd["cumulus__device_interfaces"]["swp53"]
+    assert (
+        "do not overwrite me!"
+        == sd["cumulus__device_interfaces"]["swp53"]["description"]
+    )
+
+    # no Customer: prefix when customer tag exists with switch legacy description
+    assert "description" in sd["cumulus__device_interfaces"]["swp54"]
+    assert (
+        sd["cumulus__device_interfaces"]["swp54"]["description"]
+        == "test description swp54"
+    )
+
+    # same as above
+    assert "description" in sd["cumulus__device_interfaces"]["swp55"]
+    assert (
+        sd["cumulus__device_interfaces"]["swp55"]["description"]
+        == "test description swp55"
+    )
 
 
 def test_switch_vlans():

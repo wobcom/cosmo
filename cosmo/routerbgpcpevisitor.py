@@ -50,6 +50,11 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
         v6_neighbors = set()
 
         t_cpe = cpe["device"]
+        asn_constraint = {"any_as": True}
+        assigned_asn = t_cpe.getAssignedDeviceASN()
+        if assigned_asn:
+            asn_constraint = {"peer_as": assigned_asn}
+
         for item in iter(t_cpe):
             other_ipa = CpeRouterIPVisitor(other_ip_networks).accept(item)
             if not other_ipa:
@@ -58,9 +63,9 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
                 v4_neighbors.add(str(other_ipa.ip))
             elif type(other_ipa) is IPv6Interface:
                 v6_neighbors.add(str(other_ipa.ip))
+
         if v4_neighbors:
-            groups[f"{base_group_name}_V4"] = {
-                "any_as": True,
+            groups[f"{base_group_name}_V4"] = asn_constraint | {
                 "local_address": str(own_ipv4_address.ip),
                 "neighbors": list(map(lambda n: {"peer": n}, v4_neighbors)),
                 "family": {
@@ -71,8 +76,7 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
                 },
             }
         if v6_neighbors:
-            groups[f"{base_group_name}_V6"] = {
-                "any_as": True,
+            groups[f"{base_group_name}_V6"] = asn_constraint | {
                 "local_address": str(own_ipv6_address.ip),
                 "neighbors": list(map(lambda n: {"peer": n}, v6_neighbors)),
                 "family": {
