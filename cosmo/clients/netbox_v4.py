@@ -7,7 +7,7 @@ from pathlib import Path
 
 from cosmo.clients import get_client_mp_context
 from cosmo.clients.netbox_client import NetboxAPIClient
-from cosmo.common import FileTemplate
+from cosmo.common import FileTemplate, clip
 from cosmo.features import features
 
 
@@ -318,6 +318,8 @@ class DeviceDataQuery(ParallelQuery):
 
 
 class NetboxV4Strategy:
+    MAGIC_MIN_INFLIGHT = 1
+    MAGIC_MAX_INFLIGHT = 15
 
     def __init__(
         self, url, token, multiple_mac_addresses, netbox_43_query_syntax, feature_flags
@@ -327,6 +329,9 @@ class NetboxV4Strategy:
         self.multiple_mac_addresses = multiple_mac_addresses
         self.netbox_43_query_syntax = netbox_43_query_syntax
         self.feature_flags = feature_flags
+
+    def worker_amount(self, n_queries: int):
+        return clip(n_queries, self.MAGIC_MIN_INFLIGHT, self.MAGIC_MAX_INFLIGHT)
 
     def get_data(self, device_config):
         device_list = device_config["router"] + device_config["switch"]
@@ -387,7 +392,7 @@ class NetboxV4Strategy:
             # we are going to send.
             # Note: This will most likely screw the measured times, because Netbox cannot process too many requests at once
             # and will stall them eventually. So, if you are measuring times, reduce this to a reasonable amounts of 8 or something.
-            worker_amount = len(queries)
+            worker_amount = self.worker_amount(len(queries))
             with manager.Pool(worker_amount) as pool:
                 data_promises = list(map(lambda x: x.fetch_data(pool), queries))
 
