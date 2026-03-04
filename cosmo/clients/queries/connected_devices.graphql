@@ -11,6 +11,7 @@ query {
           name
           device {
             name
+            custom_fields
             __typename
             primary_ip4 {
               __typename
