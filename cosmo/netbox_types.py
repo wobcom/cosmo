@@ -289,6 +289,13 @@ class DeviceType(AbstractNetboxType):
             )
         return str(sys_id)
 
+    def getAssignedDeviceASN(self) -> int | None:
+        asn: Any | None = self.getCustomFields().get("ASN")
+        if asn:
+            return int(asn)
+        else:
+            return None
+
 
 class DeviceTypeType(AbstractNetboxType):
     def getBasePath(self):
