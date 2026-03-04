@@ -61,6 +61,10 @@ def head(l):
     return None if not l else l[0]
 
 
+def clip(x: int, lower: int, upper: int):
+    return min(max(x, lower), upper)
+
+
 def deepsort(e):
     if isinstance(e, list):
         return sorted(deepsort(v) for v in e)
