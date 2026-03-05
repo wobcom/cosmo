@@ -1,3 +1,8 @@
+output_format: ansible
+asn: 65542
+devices:
+  router: []
+  switch: []
 features:
   feature_a: YES
   feature_b: NO

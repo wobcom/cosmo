@@ -1,0 +1,6 @@
+output_format: "unknown"
+asn: -732
+devices:
+  router:
+    TEST0001: NO
+  switch: perhaps

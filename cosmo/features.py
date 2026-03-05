@@ -21,7 +21,7 @@ class FeatureToggle:
         if key in self._authorized_keys:
             return True
         raise NonExistingFeatureToggleException(
-            f"feature toggle {key} is unknown, please check your code"
+            f"feature toggle {key} does not exist, cannot proceed"
         )
 
     def getAllFeatureNames(self) -> list[str]:
