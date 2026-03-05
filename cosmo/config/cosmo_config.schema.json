@@ -13,8 +13,7 @@
     },
     "features": {
       "type": "object",
-      "properties": {
-      }
+      "$comment": "structure check is delegated to features.py to avoid duplication"
     },
     "asn": {
       "type": "number",

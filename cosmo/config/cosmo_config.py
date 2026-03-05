@@ -22,15 +22,9 @@ class CosmoConfig:
         with open(config_file_path, "r") as cfg_file_fd:
             return cfg_file_fd.read()  # let exception bubble up
 
-    @staticmethod
-    def _expand_schema_with_dynamic_features(schema):
-        for ft in features.getAllFeatureNames():
-            schema["properties"]["features"]["properties"][ft] = {"type": "boolean"}
-
     def _validate(self, raw_config: str) -> dict | Never:
         with open(self.SCHEMA_PATH, "r") as schema_file_fd:
             schema = json.load(schema_file_fd)
-            self._expand_schema_with_dynamic_features(schema)
             cosmo_configuration = yaml.safe_load(raw_config)
             validate(
                 instance=cosmo_configuration, schema=schema
