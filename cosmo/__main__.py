@@ -7,6 +7,7 @@ import yaml
 import argparse
 
 from cosmo.clients.netbox import NetboxClient
+from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.features import features
 from cosmo.log import (
     info,
@@ -83,20 +84,8 @@ def main() -> int:
     else:
         allowed_hosts = None
 
-    if not os.path.isfile(args.config):
-        raise Exception(
-            "Missing {}, please provide a configuration.".format(args.config)
-        )
-
-    cosmo_configuration = {}
-    with open(args.config, "r") as cfg_file:
-        cosmo_configuration = yaml.safe_load(cfg_file)
-        features.setFeaturesFromConfig(cosmo_configuration)
-
-    if not "asn" in cosmo_configuration:
-        error(f"Field 'asn' not defined in configuration file", None)
-        return 1
-
+    cosmo_configuration = CosmoConfig(args.config)
+    features.setFeaturesFromConfig(cosmo_configuration.toDict())
     info(f"Feature toggles for {APP_NAME}: {features}")
     info(f"Fetching information from Netbox, make sure VPN is enabled on your system.")
 
@@ -119,7 +108,7 @@ def main() -> int:
 
     for device in cosmo_data["device_list"]:
 
-        if "fqdnSuffix" in cosmo_configuration:
+        if cosmo_configuration.get("fqdnSuffix"):
             device_fqdn = (
                 f"{str(device['name']).lower()}.{cosmo_configuration['fqdnSuffix']}"
             )

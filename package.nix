@@ -31,6 +31,7 @@ buildPythonApplication rec {
     deepmerge 
     termcolor 
     multimethod
+    jsonschema
   ];
 
   nativeCheckInputs = [
