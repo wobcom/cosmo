@@ -367,6 +367,7 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(
     def needsL2VPNIdentifierAsMandatory(self) -> bool:
         return True
 
+    # TODO: fix vrf
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
         parent_l2vpn = o.getParent(L2VPNType)
         parent_device = o.getParent(DeviceType)

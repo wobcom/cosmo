@@ -1,6 +1,8 @@
 import ipaddress
+
 from multimethod import multimethod as singledispatchmethod
 
+from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.autodesc import AbstractComposableAutoDescription
 from cosmo.common import APP_NAME
 from cosmo.log import warn
@@ -18,13 +20,18 @@ from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
     _interfaces_key = "cumulus__device_interfaces"
 
+    def __init__(self, cosmo_config: CosmoConfig):
+        self._cosmo_config = cosmo_config
+
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
 
     @accept.register
     def _(self, o: IPAddressType):
-        manufacturer = ManufacturerFactoryFromDevice(o.getParent(DeviceType)).get()
+        manufacturer = ManufacturerFactoryFromDevice(
+            o.getParent(DeviceType), self._cosmo_config
+        ).get()
         if not o.hasParentAboveWithType(InterfaceType):
             return
         parent_interface = o.getParent(InterfaceType)
@@ -84,9 +91,10 @@ class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):
             ]
         return ret
 
-    @staticmethod
-    def processInterfaceCommon(o: InterfaceType):
-        manufacturer = ManufacturerFactoryFromDevice(o.getParent(DeviceType)).get()
+    def processInterfaceCommon(self, o: InterfaceType):
+        manufacturer = ManufacturerFactoryFromDevice(
+            o.getParent(DeviceType), self._cosmo_config
+        ).get()
         description = {"description": o.getDescription()} if o.hasDescription() else {}
         bpdu_filter = (
             {"bpdufilter": True} if not manufacturer.isManagementInterface(o) else {}
