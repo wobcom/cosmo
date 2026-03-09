@@ -8,6 +8,11 @@ authors = ["Ember Keske <ember.keske@wobcom.de>", "Johann Wagner <johann.wagner@
 [tool.poetry.scripts]
 cosmo = "cosmo.__main__:main"
 
+[tool.coverage.run]
+omit = [
+  "cosmo/tests/*"
+]
+
 [tool.poetry.dependencies]
 python = "^3.9"
 requests = ">2.26.0"

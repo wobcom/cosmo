@@ -32,4 +32,5 @@ jobs:
            source .venv/bin/activate
            black --check cosmo
            pytest --cov=cosmo
+           coverage report --fail-under 85
            mypy cosmo
