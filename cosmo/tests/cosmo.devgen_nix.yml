@@ -1,5 +1,6 @@
 output_format: "nix"
 asn: 65542
+global_vrf: default
 devices:
   router:
     - "TEST0001"

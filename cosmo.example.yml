@@ -1,5 +1,6 @@
 fqdnSuffix: infra.example.com
 output_format: ansible
+global_vrf: global
 asn: 65542
 features:
   interface-auto-descriptions: YES
