@@ -373,6 +373,9 @@ class RouteTargetType(AbstractNetboxType):
 
 
 class VRFType(AbstractNetboxType):
+    def __str__(self):
+        return self.getName()
+
     def getBasePath(self):
         return "/ipam/vrfs/"
 

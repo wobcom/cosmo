@@ -5,13 +5,49 @@ import pytest
 import copy
 
 from cosmo.common import DeviceSerializationError
+from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.features import with_feature, features
 from cosmo.manufacturers import ManufacturerFactoryFromDevice
-from cosmo.netbox_types import DeviceType
+from cosmo.netbox_types import DeviceType, VRFType
 
 from coverage.html import os
 
 from cosmo.serializer import RouterSerializer, SwitchSerializer
+
+
+def mock_cosmo_config():
+    return CosmoConfig(f"cosmo/tests/cosmo.devgen_ansible.yml")
+
+
+@pytest.fixture
+def mock_cosmo_config_fixture():
+    return CosmoConfig(f"cosmo/tests/cosmo.devgen_ansible.yml")
+
+
+@pytest.fixture
+def mock_global_vrf(mock_cosmo_config_fixture):
+    return VRFType(
+        {
+            "description": "default vrf",
+            "name": mock_cosmo_config_fixture.getGlobalVRFName(),
+            "import_targets": {},
+            "export_targets": {},
+            "rd": "",
+        }
+    )
+
+
+@pytest.fixture
+def mock_l3vpn_vrf():
+    return VRFType(
+        {
+            "description": "",
+            "name": "L3VPN-NTD",
+            "import_targets": {},
+            "export_targets": {},
+            "rd": "409",
+        }
+    )
 
 
 def _yaml_load(path):
@@ -32,6 +68,7 @@ def get_router_s_from_path(path):
             l2vpn_list=test_data["l2vpn_list"],
             loopbacks=test_data.get("loopbacks", {}),
             asn=65542,
+            cosmo_config=mock_cosmo_config(),
         ).allowPrivateIPs()
         return_list.append(rs)
 
@@ -40,7 +77,10 @@ def get_router_s_from_path(path):
 
 def get_switch_s_from_path(path):
     test_data = _yaml_load(path)
-    return [SwitchSerializer(device=device) for device in test_data["device_list"]]
+    return [
+        SwitchSerializer(device=device, cosmo_config=mock_cosmo_config())
+        for device in test_data["device_list"]
+    ]
 
 
 def get_router_sd_from_path(path):
@@ -71,21 +111,41 @@ def get_switch_sd_from_path(path):
     return return_switches
 
 
-def test_router_platforms():
+def test_router_platforms(mock_cosmo_config_fixture, mock_global_vrf, mock_l3vpn_vrf):
 
     [juniper_s] = get_router_s_from_path("./test_case_2.yaml")
     juniper_manufacturer = ManufacturerFactoryFromDevice(
-        DeviceType(juniper_s.device)
+        DeviceType(juniper_s.device), mock_cosmo_config_fixture
     ).get()
     assert juniper_manufacturer.getRoutingInstanceName() == "mgmt_junos"
     assert juniper_manufacturer.myManufacturerSlug() == "juniper"
+    assert (
+        juniper_manufacturer.spitVRFPathWith(mock_global_vrf, {})
+        == juniper_manufacturer._spitDefaultVRFPathWith({})
+        == {"routing_options": {}}
+    )
+    assert (
+        juniper_manufacturer.spitVRFPathWith(mock_l3vpn_vrf, {})
+        == juniper_manufacturer._spitOtherVRFPathWith(mock_l3vpn_vrf.getName(), {})
+        == {"routing_instances": {mock_l3vpn_vrf.getName(): {}}}
+    )
 
     [rtbrick_s] = get_router_s_from_path("./test_case_l3vpn.yml")
-    juniper_manufacturer = ManufacturerFactoryFromDevice(
-        DeviceType(rtbrick_s.device)
+    rtbrick_manufacturer = ManufacturerFactoryFromDevice(
+        DeviceType(rtbrick_s.device), mock_cosmo_config_fixture
     ).get()
-    assert juniper_manufacturer.getRoutingInstanceName() == "mgmt"
-    assert juniper_manufacturer.myManufacturerSlug() == "rtbrick"
+    assert rtbrick_manufacturer.getRoutingInstanceName() == "mgmt"
+    assert rtbrick_manufacturer.myManufacturerSlug() == "rtbrick"
+    assert (
+        rtbrick_manufacturer.spitVRFPathWith(mock_global_vrf, {})
+        == rtbrick_manufacturer._spitDefaultVRFPathWith({})
+        == {"routing_instances": {"default": {}}}
+    )
+    assert (
+        rtbrick_manufacturer.spitVRFPathWith(mock_l3vpn_vrf, {})
+        == rtbrick_manufacturer._spitOtherVRFPathWith(mock_l3vpn_vrf.getName(), {})
+        == {"routing_instances": {mock_l3vpn_vrf.getName(): {}}}
+    )
 
     with pytest.raises(Exception):
         s = get_router_s_from_path("./test_case_vendor_unknown.yaml")
@@ -96,12 +156,13 @@ def test_router_platforms():
         s.serialize()
 
 
-def test_l2vpn_errors(capsys):
+def test_l2vpn_errors(capsys, mock_cosmo_config_fixture):
     serialize = lambda y: RouterSerializer(
         device=y["device_list"][0],
         l2vpn_list=y["l2vpn_list"],
         loopbacks=y["loopbacks"],
         asn=65542,
+        cosmo_config=mock_cosmo_config_fixture,
     ).serialize()
 
     template = _yaml_load("./test_case_l2x_err_template.yaml")
