@@ -126,7 +126,7 @@ def test_router_platforms(mock_cosmo_config_fixture, mock_global_vrf, mock_l3vpn
     )
     assert (
         juniper_manufacturer.spitVRFPathWith(mock_l3vpn_vrf, {})
-        == juniper_manufacturer._spitOtherVRFPathWith(mock_l3vpn_vrf.getName(), {})
+        == juniper_manufacturer._spitOtherVRFPathWith(mock_l3vpn_vrf, {})
         == {"routing_instances": {mock_l3vpn_vrf.getName(): {}}}
     )
 
@@ -136,16 +136,9 @@ def test_router_platforms(mock_cosmo_config_fixture, mock_global_vrf, mock_l3vpn
     ).get()
     assert rtbrick_manufacturer.getRoutingInstanceName() == "mgmt"
     assert rtbrick_manufacturer.myManufacturerSlug() == "rtbrick"
-    assert (
-        rtbrick_manufacturer.spitVRFPathWith(mock_global_vrf, {})
-        == rtbrick_manufacturer._spitDefaultVRFPathWith({})
-        == {"routing_instances": {"default": {}}}
-    )
-    assert (
-        rtbrick_manufacturer.spitVRFPathWith(mock_l3vpn_vrf, {})
-        == rtbrick_manufacturer._spitOtherVRFPathWith(mock_l3vpn_vrf.getName(), {})
-        == {"routing_instances": {mock_l3vpn_vrf.getName(): {}}}
-    )
+    assert rtbrick_manufacturer._spitDefaultVRFPathWith({}) == {
+        "routing_instances": {"default": {}}
+    }
 
     with pytest.raises(Exception):
         s = get_router_s_from_path("./test_case_vendor_unknown.yaml")

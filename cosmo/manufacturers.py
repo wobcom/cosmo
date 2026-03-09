@@ -55,12 +55,11 @@ class AbstractManufacturer(ABC):
 
     @classmethod
     @abstractmethod
-    def _spitOtherVRFPathWith(cls, v: str, d: dict) -> dict:
+    def _spitOtherVRFPathWith(cls, v, d: dict) -> dict:
         pass
 
-    def spitVRFPathWith(self, v: VRFType | str, d: dict) -> dict:
-        v = str(v)
-        if v == self._cosmo_config.getGlobalVRFName():
+    def spitVRFPathWith(self, v: VRFType, d: dict) -> dict:
+        if v.getName() == self._cosmo_config.getGlobalVRFName():
             return self._spitDefaultVRFPathWith(d)
         else:
             return self._spitOtherVRFPathWith(v, d)
@@ -100,8 +99,8 @@ class JuniperManufacturer(AbstractManufacturer):
         return {cls.ROUTING_OPTIONS_KEY: {**d}}
 
     @classmethod
-    def _spitOtherVRFPathWith(cls, v: str, d: dict) -> dict:
-        return {cls.VRF_KEY: {v: {**d}}}
+    def _spitOtherVRFPathWith(cls, v, d: dict) -> dict:
+        return {cls.VRF_KEY: {v.getName(): {**d}}}
 
 
 class RtBrickManufacturer(AbstractManufacturer):
@@ -135,8 +134,8 @@ class RtBrickManufacturer(AbstractManufacturer):
         return {cls.VRF_KEY: {cls.DEFAULT_VRF_KEY: {**d}}}
 
     @classmethod
-    def _spitOtherVRFPathWith(cls, v: str, d: dict) -> dict:
-        return {cls.VRF_KEY: {v: {**d}}}
+    def _spitOtherVRFPathWith(cls, v, d: dict) -> dict:
+        return {cls.VRF_KEY: {v.getName(): {**d}}}
 
 
 class CumulusNetworksManufacturer(AbstractManufacturer):

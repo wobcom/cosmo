@@ -19,8 +19,8 @@ from cosmo.netbox_types import (
 
 
 class AbstractBgpCpeExporter(metaclass=ABCMeta):
-    _vrf_key = "routing_instances"
-    _default_vrf_name = "default"
+    _vrf_key = "routing_instances"  # TODO: deleteme
+    _default_vrf_name = "default"  # TODO: deleteme
 
     @abstractmethod
     def getOptionalMaxPrefixAttrs(self) -> CosmoOutputType:
@@ -151,6 +151,7 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
         else:  # use new naming scheme with tobago line name
             return "CUST_" + attached_tobago_line.getLineNameLong()
 
+    # TODO: fix vrf
     def processBgpCpeTag(self, o: TagType):
         linked_interface = o.getParent(InterfaceType)
         if not linked_interface.hasParentInterface():
