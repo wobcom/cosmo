@@ -20,6 +20,9 @@
       "minimum": 1,
       "maximum": 4294967294
     },
+    "global_vrf": {
+      "type": "string"
+    },
     "output_format": {
       "type": "string",
       "enum": ["nix", "ansible"]
@@ -44,7 +47,7 @@
       "required": ["switch", "router"]
     }
   },
-  "required": ["asn", "output_format", "devices"],
+  "required": ["asn", "output_format", "devices", "global_vrf"],
   "$defs": {
     "hostname": {
       "type": "string",

@@ -1,5 +1,6 @@
 output_format: "unknown"
 asn: -732
+global_vrf: YES
 devices:
   router:
     TEST0001: NO
