@@ -11,6 +11,7 @@
   pytestCheckHook,
   pytest-mock,
   coverage,
+  callPackage,
 }:
 
 buildPythonApplication rec {
@@ -31,6 +32,21 @@ buildPythonApplication rec {
     deepmerge 
     termcolor 
     multimethod
+    (callPackage (
+      { buildPythonPackage, fetchPypi, setuptools }:
+      buildPythonPackage rec {
+        pname = "sharedmock";
+        version = "0.1.0";
+
+        format = "pyproject";
+        build-system = [ setuptools ];
+
+        src = fetchPypi {
+          inherit pname version;
+          hash = "sha256-gHEE/KSLe8TMQmDL8jXidpSBgerRX8ZTU4ldOioL7MA=";
+        };
+      }
+    ) {})
   ];
 
   nativeCheckInputs = [
