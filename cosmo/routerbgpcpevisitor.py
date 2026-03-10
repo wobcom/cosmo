@@ -5,10 +5,12 @@ from multimethod import multimethod as singledispatchmethod
 from ipaddress import IPv4Interface, IPv6Interface
 
 from cosmo.common import head, CosmoOutputType, InterfaceSerializationError
+from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.cperoutervisitor import CpeRouterExporterVisitor, CpeRouterIPVisitor
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.features import features
 from cosmo.log import warn
+from cosmo.manufacturers import ManufacturerFactoryFromDevice
 from cosmo.netbox_types import (
     TagType,
     InterfaceType,
@@ -19,8 +21,8 @@ from cosmo.netbox_types import (
 
 
 class AbstractBgpCpeExporter(metaclass=ABCMeta):
-    _vrf_key = "routing_instances"  # TODO: deleteme
-    _default_vrf_name = "default"  # TODO: deleteme
+    def __init__(self, cosmo_config: CosmoConfig):
+        self._cosmo_config = cosmo_config
 
     @abstractmethod
     def getOptionalMaxPrefixAttrs(self) -> CosmoOutputType:
@@ -151,9 +153,11 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
         else:  # use new naming scheme with tobago line name
             return "CUST_" + attached_tobago_line.getLineNameLong()
 
-    # TODO: fix vrf
     def processBgpCpeTag(self, o: TagType):
         linked_interface = o.getParent(InterfaceType)
+        manufacturer = ManufacturerFactoryFromDevice(
+            o.getParent(DeviceType), self._cosmo_config
+        ).get()
         if not linked_interface.hasParentInterface():
             warn(
                 f"does not have a parent interface configured, skipping...",
@@ -176,7 +180,7 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
             return
 
         group_name = self.getGroupName(linked_interface, parent_interface)
-        vrf_name = self._default_vrf_name
+        vrf_name = self._cosmo_config.getGlobalVRFName()
         # make the type checker happy, since it cannot reliably infer
         # type from default values of policy_v4 and policy_v6
         policy_v4: CosmoOutputType = {"import_list": []}
@@ -188,7 +192,7 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
         if isinstance(vrf_object, VRFType):
             vrf_name = vrf_object.getName()
         self.acceptVRFNameOrFailOn(vrf_name, linked_interface)
-        if vrf_name == self._default_vrf_name:
+        if manufacturer.isGlobalVRF(vrf_name):
             policy_v4["export"] = ["DEFAULT_V4"]
             policy_v6["export"] = ["DEFAULT_V6"]
 
@@ -221,7 +225,9 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
             groups = self.processUnnumberedBGP(
                 group_name, linked_interface, policy_v4, policy_v6
             )
-        return {self._vrf_key: {vrf_name: {"protocols": {"bgp": {"groups": groups}}}}}
+        return manufacturer.spitVRFPathWith(
+            vrf_name, {"protocols": {"bgp": {"groups": groups}}}
+        )
 
 
 class MaxPrefixBgpCpeExporter(AbstractBgpCpeExporter):
@@ -230,7 +236,7 @@ class MaxPrefixBgpCpeExporter(AbstractBgpCpeExporter):
         self.max_prefix_n = max_prefix_n
 
     def acceptVRFNameOrFailOn(self, vrf_name: str, on: AbstractNetboxType):
-        if vrf_name == self._default_vrf_name:
+        if vrf_name == self._cosmo_config.getGlobalVRFName():
             raise InterfaceSerializationError(
                 f"forbidden use of max-prefix in default vrf", on=on
             )
@@ -263,6 +269,9 @@ class DefinedImportListBgpCpeExporter(AbstractBgpCpeExporter):
 
 
 class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
+    def __init__(self, cosmo_config: CosmoConfig):
+        self._cosmo_config = cosmo_config
+
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
@@ -272,7 +281,10 @@ class RouterBgpCpeExporterVisitor(AbstractRouterExporterVisitor):
         if "bgp:cpe" in o and "max-prefixes" in o:
             prefix_tag = head(TagType.filterTags(o, "max-prefixes"))
             return MaxPrefixBgpCpeExporter(
-                max_prefix_n=int(prefix_tag.getTagValue())
+                max_prefix_n=int(prefix_tag.getTagValue()),
+                cosmo_config=self._cosmo_config,
             ).processBgpCpeTag(head(o))
         elif "bgp:cpe" in o:
-            return DefinedImportListBgpCpeExporter().processBgpCpeTag(head(o))
+            return DefinedImportListBgpCpeExporter(
+                cosmo_config=self._cosmo_config
+            ).processBgpCpeTag(head(o))

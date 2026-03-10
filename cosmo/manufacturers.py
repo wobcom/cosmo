@@ -58,11 +58,11 @@ class AbstractManufacturer(ABC):
     def _spitOtherVRFPathWith(cls, v: str, d: dict) -> dict:
         pass
 
-    def _isGlobalVRF(self, v: VRFType | str):
+    def isGlobalVRF(self, v: VRFType | str) -> bool:
         return str(v) == self._cosmo_config.getGlobalVRFName()
 
     def spitVRFPathWith(self, v: VRFType | str, d: dict) -> dict:
-        if self._isGlobalVRF(v):
+        if self.isGlobalVRF(v):
             return self._spitDefaultVRFPathWith(d)
         else:
             return self._spitOtherVRFPathWith(str(v), d)
@@ -92,16 +92,16 @@ class AbstractJuniperRtBrickManufacturerCommon(AbstractManufacturer, ABC):
     def spitRoutingOptionsPathWith(self, v: VRFType | str, d: dict) -> dict:
         return self.spitVRFPathWith(v, {self.ROUTING_OPTIONS_KEY: d})
 
-    def getRibTableNameFor(self, v: VRFType, af: int) -> str:
-        match self._isGlobalVRF(v), af:
+    def getRibTableNameFor(self, v: VRFType | str, af: int) -> str:
+        match self.isGlobalVRF(v), af:
             case True, 4:
                 return "inet.0"
             case True, 6:
                 return "inet6.0"
             case False, 4:
-                return f"{v.getName()}.inet.0"
+                return f"{v}.inet.0"
             case False, 6:
-                return f"{v.getName()}.inet6.0"
+                return f"{v}.inet6.0"
             case _:
                 raise NotImplementedError
 

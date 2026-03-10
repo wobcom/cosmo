@@ -5,9 +5,6 @@ from cosmo.visitors import AbstractNoopNetboxTypesVisitor
 
 
 class AbstractRouterExporterVisitor(AbstractNoopNetboxTypesVisitor, ABC):
-    _vrf_key = (
-        "routing_instances"  # TODO: deleteme, use manufacturer VRF methods instead
-    )
     _interfaces_key = "interfaces"
     _mgmt_vrf_description = "MGMT-ROUTING-INSTANCE"
     _l2circuits_key = "l2circuits"
