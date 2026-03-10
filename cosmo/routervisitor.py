@@ -52,16 +52,20 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
+        self._cosmo_config = cosmo_config
         # Note: I have to use composition since singledispatchmethod does not work well with inheritance
-        self.l2vpn_exporter = RouterL2VPNExporterVisitor(loopbacks=loopbacks, asn=asn)
-        self.l2vpn_validator = RouterL2VPNValidatorVisitor(loopbacks=loopbacks, asn=asn)
+        self.l2vpn_exporter = RouterL2VPNExporterVisitor(
+            loopbacks=loopbacks, asn=asn, cosmo_config=self._cosmo_config
+        )
+        self.l2vpn_validator = RouterL2VPNValidatorVisitor(
+            loopbacks=loopbacks, asn=asn, cosmo_config=self._cosmo_config
+        )
         self.bgpcpe_exporter = RouterBgpCpeExporterVisitor()
         self.loopbacks = loopbacks
         self.allow_private_ips = features.featureIsEnabled(
             "allow-private-ips-default-vrf"
         )
         self.asn = asn
-        self._cosmo_config = cosmo_config
 
     def getASN(self) -> int:
         return self.asn
