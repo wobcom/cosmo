@@ -21,17 +21,12 @@ from cosmo.netbox_types import (
 
 class AbstractL2VPNVisitor(AbstractRouterExporterVisitor):
     def __init__(
-        self,
-        *args,
-        loopbacks: LoopbackHelper,
-        asn: int,
-        cosmo_config: CosmoConfig,
-        **kwargs,
+        self, *args, loopbacks: LoopbackHelper, cosmo_config: CosmoConfig, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.loopbacks = loopbacks
-        self.asn = asn
         self._cosmo_config = cosmo_config
+        self.asn = self._cosmo_config["asn"]
 
     @singledispatchmethod
     def accept(self, o):
@@ -43,7 +38,6 @@ class AbstractL2VPNVisitor(AbstractRouterExporterVisitor):
         return L2VpnVisitorClassFactoryFromL2VpnTypeObject(o).get()(
             associated_l2vpn=o,
             loopbacks=self.loopbacks,
-            asn=self.asn,
             cosmo_config=self._cosmo_config,
         )
 

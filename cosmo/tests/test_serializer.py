@@ -67,7 +67,6 @@ def get_router_s_from_path(path):
             device=device,
             l2vpn_list=test_data["l2vpn_list"],
             loopbacks=test_data.get("loopbacks", {}),
-            asn=65542,
             cosmo_config=mock_cosmo_config(),
         ).allowPrivateIPs()
         return_list.append(rs)
@@ -183,7 +182,6 @@ def test_l2vpn_errors(capsys, mock_cosmo_config_fixture):
         device=y["device_list"][0],
         l2vpn_list=y["l2vpn_list"],
         loopbacks=y["loopbacks"],
-        asn=65542,
         cosmo_config=mock_cosmo_config_fixture,
     ).serialize()
 

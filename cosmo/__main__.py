@@ -131,7 +131,6 @@ def main() -> int:
                     device,
                     cosmo_data["l2vpn_list"],
                     cosmo_data["loopbacks"],
-                    cosmo_configuration["asn"],
                     cosmo_configuration,
                 )
                 content = router_serializer.serialize()
