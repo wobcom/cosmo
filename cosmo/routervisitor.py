@@ -60,7 +60,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         self.l2vpn_validator = RouterL2VPNValidatorVisitor(
             loopbacks=loopbacks, asn=asn, cosmo_config=self._cosmo_config
         )
-        self.bgpcpe_exporter = RouterBgpCpeExporterVisitor()
+        self.bgpcpe_exporter = RouterBgpCpeExporterVisitor(
+            cosmo_config=self._cosmo_config
+        )
         self.loopbacks = loopbacks
         self.allow_private_ips = features.featureIsEnabled(
             "allow-private-ips-default-vrf"
@@ -123,25 +125,22 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         manufacturer = ManufacturerFactoryFromDevice(
             o.getParent(DeviceType), self._cosmo_config
         ).get()
-        return {
-            self._vrf_key: {
-                manufacturer.getManagementVRFName(): {
-                    "routing_options": {
-                        "rib": {
-                            f"{manufacturer.getManagementVRFName()}.inet.0": {
-                                "static": {
-                                    "0.0.0.0/0": {
-                                        "next_hop": str(
-                                            o.getIPInterfaceObject().network[1]
-                                        ),
-                                    }
-                                }
+        return manufacturer.spitRoutingOptionsPathWith(
+            manufacturer.getManagementVRFName(),
+            {
+                "rib": {
+                    manufacturer.getRibTableNameFor(
+                        manufacturer.getManagementVRFName(), af=4
+                    ): {
+                        "static": {
+                            "0.0.0.0/0": {
+                                "next_hop": str(o.getIPInterfaceObject().network[1]),
                             }
                         }
                     }
                 }
-            }
-        }
+            },
+        )
 
     @accept.register
     def _(self, o: IPAddressType):
@@ -383,6 +382,10 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
     def _(self, o: VRFType):
         parent_device = o.getParent(DeviceType)
         parent_interface = o.getParent(InterfaceType)
+        manufacturer = ManufacturerFactoryFromDevice(
+            parent_device, self._cosmo_config
+        ).get()
+
         if not parent_interface.isSubInterface():
             return  # guard: do not process root interface
 
@@ -398,25 +401,24 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         default_targets = [self.assembleRT(o.getID())] if not o.isMgmtVRF() else []
         import_targets = [target.getName() for target in o.getImportTargets()]
         export_targets = [target.getName() for target in o.getExportTargets()]
-        return {
-            self._vrf_key: {
-                o.getName(): {
-                    "interfaces": [parent_interface.getName()],
-                    "description": o.getDescription(),
-                    "instance_type": "vrf",
-                    "route_distinguisher": rd,
-                    "import_targets": (
-                        import_targets if import_targets else default_targets
-                    ),
-                    "export_targets": (
-                        export_targets if export_targets else default_targets
-                    ),
-                    "routing_options": {
-                        # should always have this key present
-                    },
-                }
-            }
-        }
+        return manufacturer.spitVRFPathWith(
+            o,
+            {
+                "interfaces": [parent_interface.getName()],
+                "description": o.getDescription(),
+                "instance_type": "vrf",
+                "route_distinguisher": rd,
+                "import_targets": (
+                    import_targets if import_targets else default_targets
+                ),
+                "export_targets": (
+                    export_targets if export_targets else default_targets
+                ),
+                "routing_options": {
+                    # should always have this key present
+                },
+            },
+        )
 
     @staticmethod
     def processStaticRouteCommon(o: CosmoStaticRouteType, m: AbstractManufacturer):
