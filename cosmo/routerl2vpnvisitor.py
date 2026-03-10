@@ -3,6 +3,7 @@ from multimethod import multimethod as singledispatchmethod
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import head, L2VPNSerializationError
+from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.l2vpnhelpertypes import (
     L2VpnVisitorClassFactoryFromL2VpnTypeObject,
     AbstractL2VpnTypeTerminationVisitor,
@@ -24,11 +25,13 @@ class AbstractL2VPNVisitor(AbstractRouterExporterVisitor):
         *args,
         loopbacks: LoopbackHelper,
         asn: int,
+        cosmo_config: CosmoConfig,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.loopbacks = loopbacks
         self.asn = asn
+        self._cosmo_config = cosmo_config
 
     @singledispatchmethod
     def accept(self, o):
@@ -41,6 +44,7 @@ class AbstractL2VPNVisitor(AbstractRouterExporterVisitor):
             associated_l2vpn=o,
             loopbacks=self.loopbacks,
             asn=self.asn,
+            cosmo_config=self._cosmo_config,
         )
 
 
