@@ -55,14 +55,25 @@ class AbstractManufacturer(ABC):
 
     @classmethod
     @abstractmethod
-    def _spitOtherVRFPathWith(cls, v, d: dict) -> dict:
+    def _spitOtherVRFPathWith(cls, v: str, d: dict) -> dict:
         pass
 
-    def spitVRFPathWith(self, v: VRFType, d: dict) -> dict:
-        if v.getName() == self._cosmo_config.getGlobalVRFName():
+    def _isGlobalVRF(self, v: VRFType | str):
+        return str(v) == self._cosmo_config.getGlobalVRFName()
+
+    def spitVRFPathWith(self, v: VRFType | str, d: dict) -> dict:
+        if self._isGlobalVRF(v):
             return self._spitDefaultVRFPathWith(d)
         else:
-            return self._spitOtherVRFPathWith(v, d)
+            return self._spitOtherVRFPathWith(str(v), d)
+
+    @abstractmethod
+    def spitRoutingOptionsPathWith(self, v: VRFType | str, d: dict) -> dict:
+        pass
+
+    @abstractmethod
+    def getRibTableNameFor(self, v: VRFType, af: int) -> str:
+        pass
 
     @staticmethod
     @abstractmethod
@@ -70,9 +81,32 @@ class AbstractManufacturer(ABC):
         pass
 
 
-class JuniperManufacturer(AbstractManufacturer):
+class AbstractJuniperRtBrickManufacturerCommon(AbstractManufacturer, ABC):
     VRF_KEY: Final[str] = "routing_instances"
     ROUTING_OPTIONS_KEY: Final[str] = "routing_options"
+
+    @classmethod
+    def _spitOtherVRFPathWith(cls, v: str, d: dict) -> dict:
+        return {cls.VRF_KEY: {v: {**d}}}
+
+    def spitRoutingOptionsPathWith(self, v: VRFType | str, d: dict) -> dict:
+        return self.spitVRFPathWith(v, {self.ROUTING_OPTIONS_KEY: d})
+
+    def getRibTableNameFor(self, v: VRFType, af: int) -> str:
+        match self._isGlobalVRF(v), af:
+            case True, 4:
+                return "inet.0"
+            case True, 6:
+                return "inet6.0"
+            case False, 4:
+                return f"{v.getName()}.inet.0"
+            case False, 6:
+                return f"{v.getName()}.inet6.0"
+            case _:
+                raise NotImplementedError
+
+
+class JuniperManufacturer(AbstractJuniperRtBrickManufacturerCommon):
     _platform_re = re.compile(r"REPLACEME")
 
     @staticmethod
@@ -96,15 +130,10 @@ class JuniperManufacturer(AbstractManufacturer):
 
     @classmethod
     def _spitDefaultVRFPathWith(cls, d: dict) -> dict:
-        return {cls.ROUTING_OPTIONS_KEY: {**d}}
-
-    @classmethod
-    def _spitOtherVRFPathWith(cls, v, d: dict) -> dict:
-        return {cls.VRF_KEY: {v.getName(): {**d}}}
+        return {**d}
 
 
-class RtBrickManufacturer(AbstractManufacturer):
-    VRF_KEY: Final[str] = "routing_instances"
+class RtBrickManufacturer(AbstractJuniperRtBrickManufacturerCommon):
     DEFAULT_VRF_KEY: Final[str] = "default"
     _platform_re = re.compile(r"REPLACEME")
 
@@ -132,10 +161,6 @@ class RtBrickManufacturer(AbstractManufacturer):
     @classmethod
     def _spitDefaultVRFPathWith(cls, d: dict) -> dict:
         return {cls.VRF_KEY: {cls.DEFAULT_VRF_KEY: {**d}}}
-
-    @classmethod
-    def _spitOtherVRFPathWith(cls, v, d: dict) -> dict:
-        return {cls.VRF_KEY: {v.getName(): {**d}}}
 
 
 class CumulusNetworksManufacturer(AbstractManufacturer):
@@ -166,6 +191,12 @@ class CumulusNetworksManufacturer(AbstractManufacturer):
 
     @classmethod
     def _spitOtherVRFPathWith(cls, v, d: dict) -> dict:
+        raise NotImplementedError
+
+    def spitRoutingOptionsPathWith(self, v: VRFType | str, d: dict) -> dict:
+        raise NotImplementedError
+
+    def getRibTableNameFor(self, v: VRFType, af: int) -> str:
         raise NotImplementedError
 
 
