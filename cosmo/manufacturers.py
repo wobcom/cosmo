@@ -41,7 +41,7 @@ class AbstractManufacturer(ABC):
 
     @staticmethod
     @abstractmethod
-    def getRoutingInstanceName():
+    def getManagementVRFName():
         pass
 
     @abstractmethod
@@ -84,7 +84,7 @@ class JuniperManufacturer(AbstractManufacturer):
         return cls._platform_re
 
     @staticmethod
-    def getRoutingInstanceName():
+    def getManagementVRFName():
         return "mgmt_junos"
 
     def isManagementInterface(self, o: InterfaceType):
@@ -117,7 +117,7 @@ class RtBrickManufacturer(AbstractManufacturer):
         return cls._platform_re
 
     @staticmethod
-    def getRoutingInstanceName():
+    def getManagementVRFName():
         return "mgmt"
 
     def isManagementInterface(self, o: InterfaceType):
@@ -150,7 +150,7 @@ class CumulusNetworksManufacturer(AbstractManufacturer):
         return cls._platform_re
 
     @staticmethod
-    def getRoutingInstanceName():
+    def getManagementVRFName():
         return "mgmt"
 
     def isManagementInterface(self, o: InterfaceType):
