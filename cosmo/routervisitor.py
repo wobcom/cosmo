@@ -93,7 +93,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         return {
             **isis,
             self._vrf_key: {
-                manufacturer.getRoutingInstanceName(): {
+                manufacturer.getManagementVRFName(): {
                     "description": self._mgmt_vrf_name,
                 }
             },
@@ -123,10 +123,10 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         ).get()
         return {
             self._vrf_key: {
-                manufacturer.getRoutingInstanceName(): {
+                manufacturer.getManagementVRFName(): {
                     "routing_options": {
                         "rib": {
-                            f"{manufacturer.getRoutingInstanceName()}.inet.0": {
+                            f"{manufacturer.getManagementVRFName()}.inet.0": {
                                 "static": {
                                     "0.0.0.0/0": {
                                         "next_hop": str(

@@ -117,7 +117,7 @@ def test_router_platforms(mock_cosmo_config_fixture, mock_global_vrf, mock_l3vpn
     juniper_manufacturer = ManufacturerFactoryFromDevice(
         DeviceType(juniper_s.device), mock_cosmo_config_fixture
     ).get()
-    assert juniper_manufacturer.getRoutingInstanceName() == "mgmt_junos"
+    assert juniper_manufacturer.getManagementVRFName() == "mgmt_junos"
     assert juniper_manufacturer.myManufacturerSlug() == "juniper"
     assert (
         juniper_manufacturer.spitVRFPathWith(mock_global_vrf, {})
@@ -134,7 +134,7 @@ def test_router_platforms(mock_cosmo_config_fixture, mock_global_vrf, mock_l3vpn
     rtbrick_manufacturer = ManufacturerFactoryFromDevice(
         DeviceType(rtbrick_s.device), mock_cosmo_config_fixture
     ).get()
-    assert rtbrick_manufacturer.getRoutingInstanceName() == "mgmt"
+    assert rtbrick_manufacturer.getManagementVRFName() == "mgmt"
     assert rtbrick_manufacturer.myManufacturerSlug() == "rtbrick"
     assert rtbrick_manufacturer._spitDefaultVRFPathWith({}) == {
         "routing_instances": {"default": {}}
