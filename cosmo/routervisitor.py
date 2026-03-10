@@ -18,7 +18,7 @@ from cosmo.common import (
 )
 from cosmo.loopbacks import LoopbackHelper
 from cosmo.vrfhelper import TVRFHelpers
-from cosmo.manufacturers import ManufacturerFactoryFromDevice
+from cosmo.manufacturers import ManufacturerFactoryFromDevice, AbstractManufacturer
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
 from cosmo.features import features
 from cosmo.routerl2vpnvisitor import (
@@ -415,9 +415,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         }
 
     @staticmethod
-    def processStaticRouteCommon(o: CosmoStaticRouteType):
+    def processStaticRouteCommon(o: CosmoStaticRouteType, m: AbstractManufacturer):
         next_hop = None
-        table = str()
         next_hop_ipaddr_object = o.getNextHop()
         interface_object = o.getInterface()
         vrf_object = o.getVRF()
@@ -426,41 +425,35 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         elif isinstance(interface_object, InterfaceType):
             next_hop = interface_object.getName()
         if isinstance(vrf_object, VRFType):
-            if o.getPrefixFamily() == 4:
-                table = f"{vrf_object.getName()}.inet.0"
-            elif o.getPrefixFamily() == 6:
-                table = f"{vrf_object.getName()}.inet6.0"
-            else:
-                raise StaticRouteSerializationError(
-                    f"Cannot find associated VRF for {o}! Please check Netbox data."
-                )
+            table = m.getRibTableNameFor(vrf_object, o.getPrefixFamily())
+        else:
+            raise StaticRouteSerializationError(
+                f"Cannot find associated VRF for {o}! Please check Netbox data."
+            )
         return {
-            "routing_options": {
-                "rib": {
-                    table: {
-                        "static": {
-                            o.getPrefix(): {
-                                "next_hop": next_hop,
-                                "resolve_direct": True,
-                            }
-                            | ({"metric": o.getMetric()} if o.getMetric() else {})
+            "rib": {
+                table: {
+                    "static": {
+                        o.getPrefix(): {
+                            "next_hop": next_hop,
+                            "resolve_direct": True,
                         }
+                        | ({"metric": o.getMetric()} if o.getMetric() else {})
                     }
                 }
             }
         }
 
-    # TODO: fix VRF
     @accept.register
     def _(self, o: CosmoStaticRouteType):
         vrf_object = o.getVRF()
+        manufacturer = ManufacturerFactoryFromDevice(
+            o.getParent(DeviceType), self._cosmo_config
+        ).get()
         if isinstance(vrf_object, VRFType):
-            return {
-                # vrf-wide static route
-                self._vrf_key: {
-                    vrf_object.getName(): {**self.processStaticRouteCommon(o)}
-                }
-            }
+            return manufacturer.spitRoutingOptionsPathWith(
+                vrf_object, self.processStaticRouteCommon(o, manufacturer)
+            )
         else:
             raise StaticRouteSerializationError(
                 f"Static route {o.getName()} is missing a VRF. VRFs are mandatory for static routes.",

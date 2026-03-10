@@ -123,13 +123,19 @@ def test_router_platforms(mock_cosmo_config_fixture, mock_global_vrf, mock_l3vpn
     assert (
         juniper_manufacturer.spitVRFPathWith(mock_global_vrf, {})
         == juniper_manufacturer._spitDefaultVRFPathWith({})
-        == {"routing_options": {}}
+        == {}
     )
     assert (
         juniper_manufacturer.spitVRFPathWith(mock_l3vpn_vrf, {})
         == juniper_manufacturer._spitOtherVRFPathWith(mock_l3vpn_vrf.getName(), {})
         == {"routing_instances": {mock_l3vpn_vrf.getName(): {}}}
     )
+    assert juniper_manufacturer.spitRoutingOptionsPathWith(mock_global_vrf, {}) == {
+        "routing_options": {}
+    }
+    assert juniper_manufacturer.spitRoutingOptionsPathWith(mock_l3vpn_vrf, {}) == {
+        "routing_instances": {mock_l3vpn_vrf.getName(): {"routing_options": {}}}
+    }
     assert (
         juniper_sd["routing_instances"]["mgmt_junos"]["description"]
         == "MGMT-ROUTING-INSTANCE"
@@ -152,6 +158,12 @@ def test_router_platforms(mock_cosmo_config_fixture, mock_global_vrf, mock_l3vpn
         == rtbrick_manufacturer._spitOtherVRFPathWith(mock_l3vpn_vrf.getName(), {})
         == {"routing_instances": {mock_l3vpn_vrf.getName(): {}}}
     )
+    assert rtbrick_manufacturer.spitRoutingOptionsPathWith(mock_global_vrf, {}) == {
+        "routing_instances": {"default": {"routing_options": {}}}
+    }
+    assert rtbrick_manufacturer.spitRoutingOptionsPathWith(mock_l3vpn_vrf, {}) == {
+        "routing_instances": {mock_l3vpn_vrf.getName(): {"routing_options": {}}}
+    }
     assert (
         rtbrick_sd["routing_instances"]["mgmt"]["description"]
         == "MGMT-ROUTING-INSTANCE"
@@ -426,6 +438,24 @@ def test_router_vrf_rib():
     [sd] = get_router_sd_from_path("./test_case_vrf_staticroute.yaml")
 
     assert "routing_instances" in sd
+    assert "routing_options" in sd
+    assert "rib" in sd["routing_options"]
+    assert "inet.0" in sd["routing_options"]["rib"]
+    assert "static" in sd["routing_options"]["rib"]["inet.0"]
+    assert "10.0.0.0/8" in sd["routing_options"]["rib"]["inet.0"]["static"]
+    assert "next_hop" in sd["routing_options"]["rib"]["inet.0"]["static"]["10.0.0.0/8"]
+    assert (
+        sd["routing_options"]["rib"]["inet.0"]["static"]["10.0.0.0/8"]["next_hop"]
+        == "et-0/0/2.3"
+    )
+    assert (
+        sd["routing_options"]["rib"]["inet.0"]["static"]["10.0.0.0/8"]["resolve_direct"]
+        == True
+    )
+    assert (
+        sd["routing_options"]["rib"]["inet.0"]["static"]["10.0.0.0/8"]["metric"] == 100
+    )
+
     assert "L3VPN-TEST" in sd["routing_instances"]
     assert "routing_options" in sd["routing_instances"]["L3VPN-TEST"]
     assert "rib" in sd["routing_instances"]["L3VPN-TEST"]["routing_options"]
