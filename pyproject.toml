@@ -14,13 +14,15 @@ omit = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.10,<4.0"
 requests = ">2.26.0"
 PyYAML = ">5.1"
 packaging = "^25"
 deepmerge = "^2.0"
 termcolor = "^3.1.0"
 multimethod = "^2.0"
+jsonschema = "^4.26.0"
+types-jsonschema = "^4.26.0.20260202"
 
 [tool.poetry.dev-dependencies]
 

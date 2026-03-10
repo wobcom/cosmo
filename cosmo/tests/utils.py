@@ -40,11 +40,13 @@ class CommonSetup:
         # The user can have a cosmo.yml in their folder, which still gets loaded without a mock.
         # Afterward the test would run with an unknown cosmo.yml.
         if cfgFile:
-            p = PatchIoFilePath(self.mocker, "cosmo.__main__", "cosmo.yml", cfgFile)
+            p = PatchIoFilePath(
+                self.mocker, "cosmo.config.cosmo_config", "cosmo.yml", cfgFile
+            )
         else:
             p = PatchIoFilePath(
                 self.mocker,
-                "cosmo.__main__",
+                "cosmo.config.cosmo_config",
                 "f5175f8c-dd7c-4b3b-904f-ece63c45ea49.yml",
                 cfgFile,
             )

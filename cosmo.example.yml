@@ -1,4 +1,5 @@
 fqdnSuffix: infra.example.com
+output_format: ansible
 asn: 65542
 features:
   interface-auto-descriptions: YES

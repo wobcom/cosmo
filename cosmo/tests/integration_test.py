@@ -1,6 +1,7 @@
 import json
 import re
 
+import jsonschema.exceptions
 import yaml
 import pytest
 import os
@@ -74,5 +75,12 @@ def test_device_processing_error(mocker, capsys):
     with pytest.raises(
         Exception, match="Cannot find suitable manufacturer for device .*"
     ):
+        cosmoMain()
+    testEnv.stop()
+
+
+def test_invalid_config_file(mocker, capsys):
+    testEnv = utils.CommonSetup(mocker, cfgFile="cosmo/tests/cosmo.wrong.yml")
+    with pytest.raises(jsonschema.exceptions.ValidationError):
         cosmoMain()
     testEnv.stop()

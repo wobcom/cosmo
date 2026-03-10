@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.wobcom.de/cosmo_config.schema.json",
+  "title": "Cosmo Configuration",
+  "description": "Cosmo (the netbox intermediate format exporter for router and switches) configuration file schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "fqdnSuffix": {
+      "type": "string",
+      "$comment": "# Pattern Source - https://stackoverflow.com/a/20204811\\n# Posted by bkr, modified by community. See post 'Timeline' for change history\\n# Retrieved 2026-03-05, License - CC BY-SA 4.0\\n\\n",
+      "pattern": "(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\\.)+[a-zA-Z]{2,63}$)"
+    },
+    "features": {
+      "type": "object",
+      "$comment": "structure check is delegated to features.py to avoid duplication"
+    },
+    "asn": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 4294967294
+    },
+    "output_format": {
+      "type": "string",
+      "enum": ["nix", "ansible"]
+    },
+    "devices": {
+      "type": "object",
+      "properties": {
+        "additionalProperties": false,
+        "switch": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/hostname"
+          },
+          "router": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/hostname"
+            }
+          }
+        }
+      },
+      "required": ["switch", "router"]
+    }
+  },
+  "required": ["asn", "output_format", "devices"],
+  "$defs": {
+    "hostname": {
+      "type": "string",
+      "pattern": "[a-zA-Z0-9]+"
+    }
+  }
+}
