@@ -114,6 +114,7 @@ def get_switch_sd_from_path(path):
 def test_router_platforms(mock_cosmo_config_fixture, mock_global_vrf, mock_l3vpn_vrf):
 
     [juniper_s] = get_router_s_from_path("./test_case_2.yaml")
+    [juniper_sd] = get_router_sd_from_path("./test_case_2.yaml")
     juniper_manufacturer = ManufacturerFactoryFromDevice(
         DeviceType(juniper_s.device), mock_cosmo_config_fixture
     ).get()
@@ -126,19 +127,35 @@ def test_router_platforms(mock_cosmo_config_fixture, mock_global_vrf, mock_l3vpn
     )
     assert (
         juniper_manufacturer.spitVRFPathWith(mock_l3vpn_vrf, {})
-        == juniper_manufacturer._spitOtherVRFPathWith(mock_l3vpn_vrf, {})
+        == juniper_manufacturer._spitOtherVRFPathWith(mock_l3vpn_vrf.getName(), {})
         == {"routing_instances": {mock_l3vpn_vrf.getName(): {}}}
+    )
+    assert (
+        juniper_sd["routing_instances"]["mgmt_junos"]["description"]
+        == "MGMT-ROUTING-INSTANCE"
     )
 
     [rtbrick_s] = get_router_s_from_path("./test_case_l3vpn.yml")
+    [rtbrick_sd] = get_router_sd_from_path("./test_case_l3vpn.yml")
     rtbrick_manufacturer = ManufacturerFactoryFromDevice(
         DeviceType(rtbrick_s.device), mock_cosmo_config_fixture
     ).get()
     assert rtbrick_manufacturer.getManagementVRFName() == "mgmt"
     assert rtbrick_manufacturer.myManufacturerSlug() == "rtbrick"
-    assert rtbrick_manufacturer._spitDefaultVRFPathWith({}) == {
-        "routing_instances": {"default": {}}
-    }
+    assert (
+        rtbrick_manufacturer.spitVRFPathWith(mock_global_vrf, {})
+        == rtbrick_manufacturer._spitDefaultVRFPathWith({})
+        == {"routing_instances": {"default": {}}}
+    )
+    assert (
+        rtbrick_manufacturer.spitVRFPathWith(mock_l3vpn_vrf, {})
+        == rtbrick_manufacturer._spitOtherVRFPathWith(mock_l3vpn_vrf.getName(), {})
+        == {"routing_instances": {mock_l3vpn_vrf.getName(): {}}}
+    )
+    assert (
+        rtbrick_sd["routing_instances"]["mgmt"]["description"]
+        == "MGMT-ROUTING-INSTANCE"
+    )
 
     with pytest.raises(Exception):
         s = get_router_s_from_path("./test_case_vendor_unknown.yaml")
