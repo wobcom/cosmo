@@ -69,13 +69,12 @@ class AbstractSerializer(metaclass=ABCMeta):
 
 
 class RouterSerializer(AbstractSerializer):
-    def __init__(self, device, l2vpn_list, loopbacks, asn, cosmo_config):
+    def __init__(self, device, l2vpn_list, loopbacks, cosmo_config):
         super().__init__(device)
         self.l2vpn_list = l2vpn_list
         self.device["l2vpn_list"] = self.l2vpn_list
         self.device = DeviceType(self.device)
         self.loopbacks = loopbacks
-        self.asn = asn
         self.cosmo_config = cosmo_config
 
         self.l2vpns = {}
@@ -89,9 +88,7 @@ class RouterSerializer(AbstractSerializer):
         }
         loopback_helper = LoopbackHelper(loopbacks)
         self.router_device_export_visitor = RouterDeviceExporterVisitor(
-            loopbacks=loopback_helper,
-            asn=self.asn,
-            cosmo_config=cosmo_config,
+            loopbacks=loopback_helper, cosmo_config=cosmo_config
         )
         if self.allow_private_ips:
             self.router_device_export_visitor.allowPrivateIPs()

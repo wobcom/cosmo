@@ -43,22 +43,15 @@ from cosmo.netbox_types import (
 
 
 class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
-    def __init__(
-        self,
-        loopbacks: LoopbackHelper,
-        asn: int,
-        cosmo_config: CosmoConfig,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
+    def __init__(self, loopbacks: LoopbackHelper, cosmo_config: CosmoConfig):
         self._cosmo_config = cosmo_config
+        self.asn = self._cosmo_config["asn"]
         # Note: I have to use composition since singledispatchmethod does not work well with inheritance
         self.l2vpn_exporter = RouterL2VPNExporterVisitor(
-            loopbacks=loopbacks, asn=asn, cosmo_config=self._cosmo_config
+            loopbacks=loopbacks, cosmo_config=self._cosmo_config
         )
         self.l2vpn_validator = RouterL2VPNValidatorVisitor(
-            loopbacks=loopbacks, asn=asn, cosmo_config=self._cosmo_config
+            loopbacks=loopbacks, cosmo_config=self._cosmo_config
         )
         self.bgpcpe_exporter = RouterBgpCpeExporterVisitor(
             cosmo_config=self._cosmo_config
@@ -67,7 +60,6 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         self.allow_private_ips = features.featureIsEnabled(
             "allow-private-ips-default-vrf"
         )
-        self.asn = asn
 
     def getASN(self) -> int:
         return self.asn

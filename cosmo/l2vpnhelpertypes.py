@@ -98,14 +98,13 @@ class AbstractL2VpnTypeTerminationVisitor(
         associated_l2vpn: L2VPNType,
         loopbacks: LoopbackHelper,
         cosmo_config: CosmoConfig,
-        asn: int,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.associated_l2vpn = associated_l2vpn
         self.loopbacks = loopbacks
-        self.asn = asn
         self._cosmo_config = cosmo_config
+        self.asn = self._cosmo_config["asn"]
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.associated_l2vpn})"
