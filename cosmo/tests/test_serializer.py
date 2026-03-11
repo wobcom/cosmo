@@ -5,13 +5,49 @@ import pytest
 import copy
 
 from cosmo.common import DeviceSerializationError
+from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.features import with_feature, features
 from cosmo.manufacturers import ManufacturerFactoryFromDevice
-from cosmo.netbox_types import DeviceType
+from cosmo.netbox_types import DeviceType, VRFType
 
 from coverage.html import os
 
 from cosmo.serializer import RouterSerializer, SwitchSerializer
+
+
+def mock_cosmo_config():
+    return CosmoConfig(f"cosmo/tests/cosmo.devgen_ansible.yml")
+
+
+@pytest.fixture
+def mock_cosmo_config_fixture():
+    return CosmoConfig(f"cosmo/tests/cosmo.devgen_ansible.yml")
+
+
+@pytest.fixture
+def mock_global_vrf(mock_cosmo_config_fixture):
+    return VRFType(
+        {
+            "description": "default vrf",
+            "name": mock_cosmo_config_fixture.getGlobalVRFName(),
+            "import_targets": {},
+            "export_targets": {},
+            "rd": "",
+        }
+    )
+
+
+@pytest.fixture
+def mock_l3vpn_vrf():
+    return VRFType(
+        {
+            "description": "",
+            "name": "L3VPN-NTD",
+            "import_targets": {},
+            "export_targets": {},
+            "rd": "409",
+        }
+    )
 
 
 def _yaml_load(path):
@@ -31,7 +67,7 @@ def get_router_s_from_path(path):
             device=device,
             l2vpn_list=test_data["l2vpn_list"],
             loopbacks=test_data.get("loopbacks", {}),
-            asn=65542,
+            cosmo_config=mock_cosmo_config(),
         ).allowPrivateIPs()
         return_list.append(rs)
 
@@ -40,7 +76,10 @@ def get_router_s_from_path(path):
 
 def get_switch_s_from_path(path):
     test_data = _yaml_load(path)
-    return [SwitchSerializer(device=device) for device in test_data["device_list"]]
+    return [
+        SwitchSerializer(device=device, cosmo_config=mock_cosmo_config())
+        for device in test_data["device_list"]
+    ]
 
 
 def get_router_sd_from_path(path):
@@ -71,21 +110,63 @@ def get_switch_sd_from_path(path):
     return return_switches
 
 
-def test_router_platforms():
+def test_router_platforms(mock_cosmo_config_fixture, mock_global_vrf, mock_l3vpn_vrf):
 
     [juniper_s] = get_router_s_from_path("./test_case_2.yaml")
+    [juniper_sd] = get_router_sd_from_path("./test_case_2.yaml")
     juniper_manufacturer = ManufacturerFactoryFromDevice(
-        DeviceType(juniper_s.device)
+        DeviceType(juniper_s.device), mock_cosmo_config_fixture
     ).get()
-    assert juniper_manufacturer.getRoutingInstanceName() == "mgmt_junos"
+    assert juniper_manufacturer.getManagementVRFName() == "mgmt_junos"
     assert juniper_manufacturer.myManufacturerSlug() == "juniper"
+    assert (
+        juniper_manufacturer.spitVRFPathWith(mock_global_vrf, {})
+        == juniper_manufacturer._spitDefaultVRFPathWith({})
+        == {}
+    )
+    assert (
+        juniper_manufacturer.spitVRFPathWith(mock_l3vpn_vrf, {})
+        == juniper_manufacturer._spitOtherVRFPathWith(mock_l3vpn_vrf.getName(), {})
+        == {"routing_instances": {mock_l3vpn_vrf.getName(): {}}}
+    )
+    assert juniper_manufacturer.spitRoutingOptionsPathWith(mock_global_vrf, {}) == {
+        "routing_options": {}
+    }
+    assert juniper_manufacturer.spitRoutingOptionsPathWith(mock_l3vpn_vrf, {}) == {
+        "routing_instances": {mock_l3vpn_vrf.getName(): {"routing_options": {}}}
+    }
+    assert (
+        juniper_sd["routing_instances"]["mgmt_junos"]["description"]
+        == "MGMT-ROUTING-INSTANCE"
+    )
 
     [rtbrick_s] = get_router_s_from_path("./test_case_l3vpn.yml")
-    juniper_manufacturer = ManufacturerFactoryFromDevice(
-        DeviceType(rtbrick_s.device)
+    [rtbrick_sd] = get_router_sd_from_path("./test_case_l3vpn.yml")
+    rtbrick_manufacturer = ManufacturerFactoryFromDevice(
+        DeviceType(rtbrick_s.device), mock_cosmo_config_fixture
     ).get()
-    assert juniper_manufacturer.getRoutingInstanceName() == "mgmt"
-    assert juniper_manufacturer.myManufacturerSlug() == "rtbrick"
+    assert rtbrick_manufacturer.getManagementVRFName() == "mgmt"
+    assert rtbrick_manufacturer.myManufacturerSlug() == "rtbrick"
+    assert (
+        rtbrick_manufacturer.spitVRFPathWith(mock_global_vrf, {})
+        == rtbrick_manufacturer._spitDefaultVRFPathWith({})
+        == {"routing_instances": {"default": {}}}
+    )
+    assert (
+        rtbrick_manufacturer.spitVRFPathWith(mock_l3vpn_vrf, {})
+        == rtbrick_manufacturer._spitOtherVRFPathWith(mock_l3vpn_vrf.getName(), {})
+        == {"routing_instances": {mock_l3vpn_vrf.getName(): {}}}
+    )
+    assert rtbrick_manufacturer.spitRoutingOptionsPathWith(mock_global_vrf, {}) == {
+        "routing_instances": {"default": {"routing_options": {}}}
+    }
+    assert rtbrick_manufacturer.spitRoutingOptionsPathWith(mock_l3vpn_vrf, {}) == {
+        "routing_instances": {mock_l3vpn_vrf.getName(): {"routing_options": {}}}
+    }
+    assert (
+        rtbrick_sd["routing_instances"]["mgmt"]["description"]
+        == "MGMT-ROUTING-INSTANCE"
+    )
 
     with pytest.raises(Exception):
         s = get_router_s_from_path("./test_case_vendor_unknown.yaml")
@@ -96,12 +177,12 @@ def test_router_platforms():
         s.serialize()
 
 
-def test_l2vpn_errors(capsys):
+def test_l2vpn_errors(capsys, mock_cosmo_config_fixture):
     serialize = lambda y: RouterSerializer(
         device=y["device_list"][0],
         l2vpn_list=y["l2vpn_list"],
         loopbacks=y["loopbacks"],
-        asn=65542,
+        cosmo_config=mock_cosmo_config_fixture,
     ).serialize()
 
     template = _yaml_load("./test_case_l2x_err_template.yaml")
@@ -320,6 +401,24 @@ def test_router_vrf_rib():
     [sd] = get_router_sd_from_path("./test_case_vrf_staticroute.yaml")
 
     assert "routing_instances" in sd
+    assert "routing_options" in sd
+    assert "rib" in sd["routing_options"]
+    assert "inet.0" in sd["routing_options"]["rib"]
+    assert "static" in sd["routing_options"]["rib"]["inet.0"]
+    assert "10.0.0.0/8" in sd["routing_options"]["rib"]["inet.0"]["static"]
+    assert "next_hop" in sd["routing_options"]["rib"]["inet.0"]["static"]["10.0.0.0/8"]
+    assert (
+        sd["routing_options"]["rib"]["inet.0"]["static"]["10.0.0.0/8"]["next_hop"]
+        == "et-0/0/2.3"
+    )
+    assert (
+        sd["routing_options"]["rib"]["inet.0"]["static"]["10.0.0.0/8"]["resolve_direct"]
+        == True
+    )
+    assert (
+        sd["routing_options"]["rib"]["inet.0"]["static"]["10.0.0.0/8"]["metric"] == 100
+    )
+
     assert "L3VPN-TEST" in sd["routing_instances"]
     assert "routing_options" in sd["routing_instances"]["L3VPN-TEST"]
     assert "rib" in sd["routing_instances"]["L3VPN-TEST"]["routing_options"]

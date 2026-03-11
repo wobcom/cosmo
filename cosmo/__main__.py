@@ -131,11 +131,11 @@ def main() -> int:
                     device,
                     cosmo_data["l2vpn_list"],
                     cosmo_data["loopbacks"],
-                    cosmo_configuration["asn"],
+                    cosmo_configuration,
                 )
                 content = router_serializer.serialize()
             elif device["name"] in cosmo_configuration["devices"]["switch"]:
-                switch_serializer = SwitchSerializer(device)
+                switch_serializer = SwitchSerializer(device, cosmo_configuration)
                 content = switch_serializer.serialize()
         except DeviceSerializationError as dse:
             error(

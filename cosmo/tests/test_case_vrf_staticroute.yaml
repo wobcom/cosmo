@@ -118,6 +118,39 @@ device_list:
       name: L3VPN-TEST
       rd: null
       __typename: VRFType
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      ipv6_ra: false
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    __typename: InterfaceType
+    description: ''
+    enabled: true
+    id: '2005'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: ACCESS
+    mtu: 1500
+    name: et-0/0/2.3
+    tagged_vlans: []
+    type: VIRTUAL
+    untagged_vlan:
+      __typename: VLANType
+      id: '1003'
+      name: ''
+      vid: 3
+    vrf:
+      description: Test Global VRF
+      export_targets: []
+      id: '407'
+      import_targets: []
+      name: global
+      rd: null
+      __typename: VRFType
   name: TEST0001
   platform:
     __typename: PlatformType
@@ -151,6 +184,17 @@ device_list:
       prefix: fd98::1/128
     vrf:
       name: L3VPN-TEST
+  - interface:
+      name: et-0/0/2.3
+    next_hop: null
+    __typename: CosmoStaticRouteType
+    metric: 100
+    prefix:
+      family:
+        value: 4
+      prefix: 10.0.0.0/8
+    vrf:
+      name: global
 l2vpn_list: []
 loopbacks:
   TEST0001:

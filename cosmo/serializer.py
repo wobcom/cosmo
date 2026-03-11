@@ -69,13 +69,13 @@ class AbstractSerializer(metaclass=ABCMeta):
 
 
 class RouterSerializer(AbstractSerializer):
-    def __init__(self, device, l2vpn_list, loopbacks, asn):
+    def __init__(self, device, l2vpn_list, loopbacks, cosmo_config):
         super().__init__(device)
         self.l2vpn_list = l2vpn_list
         self.device["l2vpn_list"] = self.l2vpn_list
         self.device = DeviceType(self.device)
         self.loopbacks = loopbacks
-        self.asn = asn
+        self.cosmo_config = cosmo_config
 
         self.l2vpns = {}
         self.l3vpns = {}
@@ -88,8 +88,7 @@ class RouterSerializer(AbstractSerializer):
         }
         loopback_helper = LoopbackHelper(loopbacks)
         self.router_device_export_visitor = RouterDeviceExporterVisitor(
-            loopbacks=loopback_helper,
-            asn=self.asn,
+            loopbacks=loopback_helper, cosmo_config=cosmo_config
         )
         if self.allow_private_ips:
             self.router_device_export_visitor.allowPrivateIPs()
@@ -113,8 +112,12 @@ class RouterSerializer(AbstractSerializer):
 
 
 class SwitchSerializer(AbstractSerializer):
+    def __init__(self, device, cosmo_config):
+        super().__init__(device)
+        self._cosmo_config = cosmo_config
+
     def switchExport(self, device_stub: CosmoOutputType, value: AbstractNetboxType):
-        new = SwitchDeviceExporterVisitor().accept(value)
+        new = SwitchDeviceExporterVisitor(cosmo_config=self._cosmo_config).accept(value)
         if new:
             device_stub = self.getMerger().merge(device_stub, new)
 

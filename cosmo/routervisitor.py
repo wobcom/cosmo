@@ -5,6 +5,7 @@ from multimethod import multimethod as singledispatchmethod
 
 import deepmerge
 
+from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.autodesc import AbstractComposableAutoDescription
 from cosmo.log import warn
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
@@ -17,7 +18,7 @@ from cosmo.common import (
 )
 from cosmo.loopbacks import LoopbackHelper
 from cosmo.vrfhelper import TVRFHelpers
-from cosmo.manufacturers import ManufacturerFactoryFromDevice
+from cosmo.manufacturers import ManufacturerFactoryFromDevice, AbstractManufacturer
 from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
 from cosmo.features import features
 from cosmo.routerl2vpnvisitor import (
@@ -42,23 +43,23 @@ from cosmo.netbox_types import (
 
 
 class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
-    def __init__(
-        self,
-        loopbacks: LoopbackHelper,
-        asn: int,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
+    def __init__(self, loopbacks: LoopbackHelper, cosmo_config: CosmoConfig):
+        self._cosmo_config = cosmo_config
+        self.asn = self._cosmo_config["asn"]
         # Note: I have to use composition since singledispatchmethod does not work well with inheritance
-        self.l2vpn_exporter = RouterL2VPNExporterVisitor(loopbacks=loopbacks, asn=asn)
-        self.l2vpn_validator = RouterL2VPNValidatorVisitor(loopbacks=loopbacks, asn=asn)
-        self.bgpcpe_exporter = RouterBgpCpeExporterVisitor()
+        self.l2vpn_exporter = RouterL2VPNExporterVisitor(
+            loopbacks=loopbacks, cosmo_config=self._cosmo_config
+        )
+        self.l2vpn_validator = RouterL2VPNValidatorVisitor(
+            loopbacks=loopbacks, cosmo_config=self._cosmo_config
+        )
+        self.bgpcpe_exporter = RouterBgpCpeExporterVisitor(
+            cosmo_config=self._cosmo_config
+        )
         self.loopbacks = loopbacks
         self.allow_private_ips = features.featureIsEnabled(
             "allow-private-ips-default-vrf"
         )
-        self.asn = asn
 
     def getASN(self) -> int:
         return self.asn
@@ -83,17 +84,15 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
     def _(self, o: DeviceType):
         if not o.isCompositeRoot():  # not root, do not process!
             return
-        manufacturer = ManufacturerFactoryFromDevice(o).get()
+        manufacturer = ManufacturerFactoryFromDevice(o, self._cosmo_config).get()
         isis = {}
         if isis_system_id := o.getISISIdentifier():
             isis["isis"] = {"system_id": isis_system_id}
-        return {
+        return manufacturer.spitVRFPathWith(
+            manufacturer.getManagementVRFName(),
+            {"description": self._mgmt_vrf_description},
+        ) | {
             **isis,
-            self._vrf_key: {
-                manufacturer.getRoutingInstanceName(): {
-                    "description": self._mgmt_vrf_name,
-                }
-            },
             self._pools_key: {
                 # this one should always exist
             },
@@ -115,26 +114,25 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         }
 
     def processMgmtInterfaceIPAddress(self, o: IPAddressType):
-        manufacturer = ManufacturerFactoryFromDevice(o.getParent(DeviceType)).get()
-        return {
-            self._vrf_key: {
-                manufacturer.getRoutingInstanceName(): {
-                    "routing_options": {
-                        "rib": {
-                            f"{manufacturer.getRoutingInstanceName()}.inet.0": {
-                                "static": {
-                                    "0.0.0.0/0": {
-                                        "next_hop": str(
-                                            o.getIPInterfaceObject().network[1]
-                                        ),
-                                    }
-                                }
+        manufacturer = ManufacturerFactoryFromDevice(
+            o.getParent(DeviceType), self._cosmo_config
+        ).get()
+        return manufacturer.spitRoutingOptionsPathWith(
+            manufacturer.getManagementVRFName(),
+            {
+                "rib": {
+                    manufacturer.getRibTableNameFor(
+                        manufacturer.getManagementVRFName(), af=4
+                    ): {
+                        "static": {
+                            "0.0.0.0/0": {
+                                "next_hop": str(o.getIPInterfaceObject().network[1]),
                             }
                         }
                     }
                 }
-            }
-        }
+            },
+        )
 
     @accept.register
     def _(self, o: IPAddressType):
@@ -142,7 +140,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             return
         if not o.getParent(InterfaceType).isCurrentDeviceInterface():
             return
-        manufacturer = ManufacturerFactoryFromDevice(o.getParent(DeviceType)).get()
+        manufacturer = ManufacturerFactoryFromDevice(
+            o.getParent(DeviceType), self._cosmo_config
+        ).get()
         optional_attrs = {}
         parent_interface = o.getParent(InterfaceType)
         if not parent_interface.isSubInterface():
@@ -374,6 +374,10 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
     def _(self, o: VRFType):
         parent_device = o.getParent(DeviceType)
         parent_interface = o.getParent(InterfaceType)
+        manufacturer = ManufacturerFactoryFromDevice(
+            parent_device, self._cosmo_config
+        ).get()
+
         if not parent_interface.isSubInterface():
             return  # guard: do not process root interface
 
@@ -389,30 +393,28 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         default_targets = [self.assembleRT(o.getID())] if not o.isMgmtVRF() else []
         import_targets = [target.getName() for target in o.getImportTargets()]
         export_targets = [target.getName() for target in o.getExportTargets()]
-        return {
-            self._vrf_key: {
-                o.getName(): {
-                    "interfaces": [parent_interface.getName()],
-                    "description": o.getDescription(),
-                    "instance_type": "vrf",
-                    "route_distinguisher": rd,
-                    "import_targets": (
-                        import_targets if import_targets else default_targets
-                    ),
-                    "export_targets": (
-                        export_targets if export_targets else default_targets
-                    ),
-                    "routing_options": {
-                        # should always have this key present
-                    },
-                }
-            }
-        }
+        return manufacturer.spitVRFPathWith(
+            o,
+            {
+                "interfaces": [parent_interface.getName()],
+                "description": o.getDescription(),
+                "instance_type": "vrf",
+                "route_distinguisher": rd,
+                "import_targets": (
+                    import_targets if import_targets else default_targets
+                ),
+                "export_targets": (
+                    export_targets if export_targets else default_targets
+                ),
+                "routing_options": {
+                    # should always have this key present
+                },
+            },
+        )
 
     @staticmethod
-    def processStaticRouteCommon(o: CosmoStaticRouteType):
+    def processStaticRouteCommon(o: CosmoStaticRouteType, m: AbstractManufacturer):
         next_hop = None
-        table = str()
         next_hop_ipaddr_object = o.getNextHop()
         interface_object = o.getInterface()
         vrf_object = o.getVRF()
@@ -421,25 +423,20 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         elif isinstance(interface_object, InterfaceType):
             next_hop = interface_object.getName()
         if isinstance(vrf_object, VRFType):
-            if o.getPrefixFamily() == 4:
-                table = f"{vrf_object.getName()}.inet.0"
-            elif o.getPrefixFamily() == 6:
-                table = f"{vrf_object.getName()}.inet6.0"
-            else:
-                raise StaticRouteSerializationError(
-                    f"Cannot find associated VRF for {o}! Please check Netbox data."
-                )
+            table = m.getRibTableNameFor(vrf_object, o.getPrefixFamily())
+        else:
+            raise StaticRouteSerializationError(
+                f"Cannot find associated VRF for {o}! Please check Netbox data."
+            )
         return {
-            "routing_options": {
-                "rib": {
-                    table: {
-                        "static": {
-                            o.getPrefix(): {
-                                "next_hop": next_hop,
-                                "resolve_direct": True,
-                            }
-                            | ({"metric": o.getMetric()} if o.getMetric() else {})
+            "rib": {
+                table: {
+                    "static": {
+                        o.getPrefix(): {
+                            "next_hop": next_hop,
+                            "resolve_direct": True,
                         }
+                        | ({"metric": o.getMetric()} if o.getMetric() else {})
                     }
                 }
             }
@@ -448,18 +445,18 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
     @accept.register
     def _(self, o: CosmoStaticRouteType):
         vrf_object = o.getVRF()
+        manufacturer = ManufacturerFactoryFromDevice(
+            o.getParent(DeviceType), self._cosmo_config
+        ).get()
         if isinstance(vrf_object, VRFType):
-            return {
-                # vrf-wide static route
-                self._vrf_key: {
-                    vrf_object.getName(): {**self.processStaticRouteCommon(o)}
-                }
-            }
+            return manufacturer.spitRoutingOptionsPathWith(
+                vrf_object, self.processStaticRouteCommon(o, manufacturer)
+            )
         else:
-            return {
-                # device-wide static route
-                **self.processStaticRouteCommon(o)
-            }
+            raise StaticRouteSerializationError(
+                f"Static route {o.getName()} is missing a VRF. VRFs are mandatory for static routes.",
+                on=o,
+            )
 
     @accept.register
     def _(self, o: CosmoIPPoolType):
@@ -649,7 +646,9 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         }
 
     def processCoreTag(self, o: TagType):
-        manufacturer = ManufacturerFactoryFromDevice(o.getParent(DeviceType)).get()
+        manufacturer = ManufacturerFactoryFromDevice(
+            o.getParent(DeviceType), self._cosmo_config
+        ).get()
 
         interface = o.getParent(InterfaceType)
         parent_interface = head(
