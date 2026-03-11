@@ -373,10 +373,7 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(
         # find local end
         local = next(
             filter(
-                lambda i: (
-                    isinstance(i, InterfaceType)
-                    and i.getAssociatedDevice() == parent_device
-                ),
+                lambda i: (isinstance(i, InterfaceType) and i == o),
                 parent_l2vpn.getTerminations(),
             )
         )
