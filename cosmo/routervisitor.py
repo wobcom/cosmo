@@ -88,11 +88,12 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         isis = {}
         if isis_system_id := o.getISISIdentifier():
             isis["isis"] = {"system_id": isis_system_id}
-        return manufacturer.spitVRFPathWith(
-            manufacturer.getManagementVRFName(),
-            {"description": self._mgmt_vrf_description},
-        ) | {
+        return {
             **isis,
+            **manufacturer.spitVRFPathWith(
+                manufacturer.getManagementVRFName(),
+                {"description": self._mgmt_vrf_description},
+            ),
             self._pools_key: {
                 # this one should always exist
             },
