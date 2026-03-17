@@ -10,7 +10,9 @@ from cosmo.common import (
     L2VPNSerializationError,
     DeviceSerializationError,
 )
+from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.loopbacks import LoopbackHelper
+from cosmo.manufacturers import ManufacturerFactoryFromDevice
 from cosmo.vrfhelper import TVRFHelpers
 from cosmo.log import warn
 from cosmo.netbox_types import (
@@ -95,13 +97,14 @@ class AbstractL2VpnTypeTerminationVisitor(
         *args,
         associated_l2vpn: L2VPNType,
         loopbacks: LoopbackHelper,
-        asn: int,
+        cosmo_config: CosmoConfig,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.associated_l2vpn = associated_l2vpn
         self.loopbacks = loopbacks
-        self.asn = asn
+        self._cosmo_config = cosmo_config
+        self.asn = self._cosmo_config["asn"]
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.associated_l2vpn})"
@@ -370,6 +373,9 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
         parent_l2vpn = o.getParent(L2VPNType)
         parent_device = o.getParent(DeviceType)
+        manufacturer = ManufacturerFactoryFromDevice(
+            parent_device, self._cosmo_config
+        ).get()
         # find local end
         local = next(
             filter(
@@ -382,37 +388,32 @@ class AbstractVPWSEVPNVPWSVpnTypeCommon(
 
         loopback = self.loopbacks.getByDevice(parent_device.getName())
         router_id = loopback.deriveRouterId()
-        return {
-            self._vrf_key: {
-                parent_l2vpn.getName().replace("WAN: ", ""): {
-                    "interfaces": [o.getName()],
-                    "description": f"VPWS: {parent_l2vpn.getName().replace('WAN: VS_', '')}",
-                    "instance_type": "evpn-vpws",
-                    "route_distinguisher": f"{router_id}:{str(parent_l2vpn.getIdentifier())}",
-                    "vrf_target": self.assembleRT(parent_l2vpn.getIdentifier()),
-                    "protocols": {
-                        "evpn": {
-                            "interfaces": {
-                                o.getName(): {
-                                    "vpws_service_id": {
-                                        "local": int(
-                                            local.getParent(
-                                                L2VPNTerminationType
-                                            ).getID()
-                                        ),
-                                        "remote": int(
-                                            remote.getParent(
-                                                L2VPNTerminationType
-                                            ).getID()
-                                        ),
-                                    }
+        return manufacturer.spitVRFPathWith(
+            parent_l2vpn.getName().replace("WAN: ", ""),
+            {
+                "interfaces": [o.getName()],
+                "description": f"VPWS: {parent_l2vpn.getName().replace('WAN: VS_', '')}",
+                "instance_type": "evpn-vpws",
+                "route_distinguisher": f"{router_id}:{str(parent_l2vpn.getIdentifier())}",
+                "vrf_target": self.assembleRT(parent_l2vpn.getIdentifier()),
+                "protocols": {
+                    "evpn": {
+                        "interfaces": {
+                            o.getName(): {
+                                "vpws_service_id": {
+                                    "local": int(
+                                        local.getParent(L2VPNTerminationType).getID()
+                                    ),
+                                    "remote": int(
+                                        remote.getParent(L2VPNTerminationType).getID()
+                                    ),
                                 }
                             }
                         }
-                    },
-                }
-            }
-        } | self.spitInterfaceEncapFor(o)
+                    }
+                },
+            },
+        ) | self.spitInterfaceEncapFor(o)
 
 
 class VPWSL2VpnTypeTerminationVisitor(
@@ -459,6 +460,10 @@ class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVi
 
     def processTerminationCommon(self, o: InterfaceType | VLANType) -> dict | None:
         parent_l2vpn = o.getParent(L2VPNType)
+        parent_device = o.getParent(DeviceType)
+        manufacturer = ManufacturerFactoryFromDevice(
+            parent_device, self._cosmo_config
+        ).get()
         interface_names = None
         warn(
             f"{parent_l2vpn.getName()} is of type {self.getNetboxTypeName()} which is deprecated.",
@@ -483,20 +488,19 @@ class MPLSEVPNL2VpnTypeTerminationVisitor(AbstractAnyToAnyL2VpnTypeTerminationVi
                 )
             )
 
-        return {
-            self._vrf_key: {
-                parent_l2vpn.getName().replace("WAN: ", ""): {
-                    "interfaces": interface_names,
-                    "description": f"MPLS-EVPN: {parent_l2vpn.getName().replace('WAN: VS_', '')}",
-                    "instance_type": "evpn",
-                    "protocols": {
-                        "evpn": {},
-                    },
-                    "route_distinguisher": f"{self.asn}:{str(parent_l2vpn.getIdentifier())}",
-                    "vrf_target": f"target:1:{str(parent_l2vpn.getIdentifier())}",
-                }
-            }
-        } | self.spitInterfaceEncapFor(o)
+        return manufacturer.spitVRFPathWith(
+            parent_l2vpn.getName().replace("WAN: ", ""),
+            {
+                "interfaces": interface_names,
+                "description": f"MPLS-EVPN: {parent_l2vpn.getName().replace('WAN: VS_', '')}",
+                "instance_type": "evpn",
+                "protocols": {
+                    "evpn": {},
+                },
+                "route_distinguisher": f"{self.asn}:{str(parent_l2vpn.getIdentifier())}",
+                "vrf_target": f"target:1:{str(parent_l2vpn.getIdentifier())}",
+            },
+        ) | self.spitInterfaceEncapFor(o)
 
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
         return self.processTerminationCommon(o)

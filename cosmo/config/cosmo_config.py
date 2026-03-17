@@ -2,7 +2,7 @@ import json
 import os
 from os import PathLike
 from pathlib import Path
-from typing import Never
+from typing import Never, Final
 
 import yaml
 from jsonschema import validate
@@ -12,6 +12,7 @@ from cosmo.features import features
 
 class CosmoConfig:
     SCHEMA_PATH = Path(__file__).parent.joinpath(Path("cosmo_config.schema.json"))
+    GLOBAL_VRF_KEY = "global_vrf"
 
     @staticmethod
     def get_raw_config(config_file_path) -> str | Never:
@@ -43,3 +44,6 @@ class CosmoConfig:
 
     def toDict(self) -> dict:
         return self._store
+
+    def getGlobalVRFName(self) -> str:
+        return self.get(self.GLOBAL_VRF_KEY)

@@ -1,4 +1,5 @@
 output_format: "ansible"
+global_vrf: global
 asn: 65542
 devices:
   router:
