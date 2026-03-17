@@ -1,5 +1,6 @@
 # implementation guide
 # https://martinfowler.com/articles/feature-toggles.html
+import functools
 from argparse import Action, ArgumentParser
 from typing import Never, Self, Optional, TextIO, Sequence, Any, Callable
 
@@ -83,17 +84,28 @@ class FeatureToggle:
         return ", ".join(features_desc)
 
 
-def with_feature(instance: FeatureToggle, feature_name: str):
+def _feature_toggler_decorator_gen(
+    instance: FeatureToggle, feature_name: str, target_state: bool
+):
     def decorator_with_feature(func: Callable):
+        @functools.wraps(func)
         def exe_with_feature(*args, **kwargs):
             previous_state = instance.featureIsEnabled(feature_name)
-            instance.setFeature(feature_name, True)
+            instance.setFeature(feature_name, target_state)
             func(*args, **kwargs)
             instance.setFeature(feature_name, previous_state)
 
         return exe_with_feature
 
     return decorator_with_feature
+
+
+def with_feature(instance: FeatureToggle, feature_name: str):
+    return _feature_toggler_decorator_gen(instance, feature_name, True)
+
+
+def without_feature(instance: FeatureToggle, feature_name: str):
+    return _feature_toggler_decorator_gen(instance, feature_name, False)
 
 
 features = FeatureToggle(

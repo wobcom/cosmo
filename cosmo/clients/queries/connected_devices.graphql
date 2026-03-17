@@ -1,0 +1,33 @@
+query {
+  interface_list(filters: { $tag_filter }) {
+    __typename
+    id,
+    parent {
+      __typename
+      id,
+      connected_endpoints {
+        ... on InterfaceType {
+          __typename
+          name
+          device {
+            name
+            __typename
+            primary_ip4 {
+              __typename
+              address
+            }
+            interfaces {
+              id
+              name
+              __typename
+              ip_addresses {
+                __typename
+                address
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
