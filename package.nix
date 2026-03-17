@@ -7,6 +7,7 @@
   deepmerge,
   termcolor,
   multimethod,
+  jsonschema,
   cosmo-version,
   pytestCheckHook,
   pytest-mock,
@@ -46,6 +47,26 @@ buildPythonApplication rec {
           inherit pname version;
           hash = "sha256-gHEE/KSLe8TMQmDL8jXidpSBgerRX8ZTU4ldOioL7MA=";
         };
+      }
+    ) {})
+    (callPackage (
+      { buildPythonPackage, fetchPypi, setuptools, referencing }:
+      buildPythonPackage rec {
+        pname = "types-jsonschema";
+        version = "4.26.0.20260202";
+
+        src = fetchPypi {
+          inherit version;
+          pname = "types_jsonschema";
+          hash = "sha256-KYMbqkMIhlqa7FR6YXl6BvwVKw2sjd3VMeAC8yJlywc=";
+        };
+
+        format = "pyproject";
+        build-system = [ setuptools ];
+
+        dependencies = [
+          referencing
+        ];
       }
     ) {})
   ];
