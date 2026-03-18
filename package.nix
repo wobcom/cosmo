@@ -7,6 +7,7 @@
   deepmerge,
   termcolor,
   multimethod,
+  jsonschema,
   cosmo-version,
   pytestCheckHook,
   pytest-mock,

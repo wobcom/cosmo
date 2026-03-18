@@ -3,7 +3,7 @@ import re
 from sharedmock.mock import SharedMock  # type: ignore
 from unittest.mock import call, ANY
 
-import jsonschema.exceptions
+import jsonschema.exceptions  # type: ignore
 import yaml
 import pytest
 import os
