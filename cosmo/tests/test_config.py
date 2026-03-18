@@ -1,4 +1,4 @@
-import jsonschema.exceptions
+import jsonschema.exceptions  # type: ignore
 import pytest
 
 from cosmo.config.cosmo_config import CosmoConfig

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Never, Final
 
 import yaml
-from jsonschema import validate
+from jsonschema import validate  # type: ignore
 
 from cosmo.features import features
 
