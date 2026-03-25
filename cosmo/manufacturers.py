@@ -7,7 +7,13 @@ if TYPE_CHECKING:
 
 
 from cosmo.common import DeviceSerializationError
-from cosmo.netbox_types import DeviceType, InterfaceType, PlatformType, VRFType
+from cosmo.netbox_types import (
+    DeviceType,
+    InterfaceType,
+    PlatformType,
+    VRFType,
+    DeviceTypeType,
+)
 
 
 class AbstractManufacturer(ABC):
@@ -16,22 +22,39 @@ class AbstractManufacturer(ABC):
 
     @classmethod
     def isCompatibleWith(cls, device: DeviceType):
-        # Note: If the platform cannot be parsed, getPlatform will be a string.
+        if not isinstance(device.getDeviceType(), DeviceTypeType):
+            return False
+
         if not isinstance(device.getPlatform(), PlatformType):
             return False
 
+        device_platform_match = False
         if device.getPlatform().getManufacturer():
-            return (
+            device_platform_match = (
                 device.getPlatform().getManufacturer().getSlug()
-                == cls.myManufacturerSlug()
+                in cls.myManufacturerSlugs()
             )
         else:
-            # fallback in case no manufacturer is filled in for the platform
-            return re.match(cls.myPlatformRE(), device.getPlatform().getSlug())
+            device_platform_match = bool(
+                re.match(cls.myPlatformRE(), device.getPlatform().getSlug())
+            )
+
+        device_manufacturer_match = False
+        if device.getDeviceType().getManufacturer():
+            device_manufacturer_match = (
+                device.getDeviceType().getManufacturer().getSlug()
+                in cls.myManufacturerSlugs()
+            )
+        else:
+            device_manufacturer_match = bool(
+                re.match(cls.myPlatformRE(), device.getDeviceType().getSlug())
+            )
+
+        return device_platform_match or device_manufacturer_match
 
     @staticmethod
     @abstractmethod
-    def myManufacturerSlug():
+    def myManufacturerSlugs() -> list[str]:
         pass
 
     @classmethod
@@ -110,8 +133,8 @@ class JuniperManufacturer(AbstractJuniperRtBrickManufacturerCommon):
     _platform_re = re.compile(r"REPLACEME")
 
     @staticmethod
-    def myManufacturerSlug():
-        return "juniper"
+    def myManufacturerSlugs():
+        return ["juniper"]
 
     @classmethod
     def myPlatformRE(cls):
@@ -138,8 +161,8 @@ class RtBrickManufacturer(AbstractJuniperRtBrickManufacturerCommon):
     _platform_re = re.compile(r"REPLACEME")
 
     @staticmethod
-    def myManufacturerSlug():
-        return "rtbrick"
+    def myManufacturerSlugs():
+        return ["rtbrick", "ufispace", "edgecore"]
 
     @classmethod
     def myPlatformRE(cls):
@@ -167,8 +190,8 @@ class CumulusNetworksManufacturer(AbstractManufacturer):
     _platform_re = re.compile(r"^cumulus-linux[a-zA-Z0-9-]*")
 
     @staticmethod
-    def myManufacturerSlug():
-        return "cumulus-networks"
+    def myManufacturerSlugs():
+        return ["cumulus-networks"]
 
     @classmethod
     def myPlatformRE(cls):

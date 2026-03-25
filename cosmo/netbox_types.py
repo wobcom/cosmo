@@ -301,13 +301,16 @@ class DeviceTypeType(AbstractNetboxType):
     def getBasePath(self):
         return "/dcim/device-types/"
 
+    def getManufacturer(self):
+        return self.get("manufacturer")
+
 
 class PlatformType(AbstractNetboxType):
     def getBasePath(self):
         return "/dcim/platforms/"
 
     def getManufacturer(self):
-        return self["manufacturer"]
+        return self.get("manufacturer")
 
 
 class ManufacturerType(AbstractNetboxType):

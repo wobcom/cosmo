@@ -9,6 +9,10 @@ query {
 
         device_type {
             __typename
+            manufacturer {
+                __typename
+                slug
+            }
             slug
         }
         platform {
