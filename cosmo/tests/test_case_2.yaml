@@ -123,6 +123,28 @@ device_list:
       name: TEST-VLAN
       vid: 139
     vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    description: 'Missing subinterface VLAN'
+    __typename: InterfaceType
+    enabled: true
+    id: '183110'
+    ip_addresses: [ ]
+    lag: null
+    mac_address: null
+    mode: ACCESS
+    mtu: null
+    name: et-0/0/0.200
+    tagged_vlans: [ ]
+    tags: [ ]
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
   name: TEST0001
   platform:
     __typename: PlatformType

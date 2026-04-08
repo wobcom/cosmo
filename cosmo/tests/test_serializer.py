@@ -305,10 +305,11 @@ def test_router_physical_interface():
 def test_router_logical_interface(capsys):
     [sd] = get_router_sd_from_path("./test_case_2.yaml")
 
-    assert len(sd["interfaces"]["et-0/0/0"]["units"]) == 4
+    assert len(sd["interfaces"]["et-0/0/0"]["units"]) == 5
 
     assert 139 in sd["interfaces"]["et-0/0/0"]["units"]
     assert 150 in sd["interfaces"]["et-0/0/0"]["units"]
+    assert 200 in sd["interfaces"]["et-0/0/0"]["units"]
     assert 1 in sd["interfaces"]["et-0/0/0"]["units"]
     assert 2 in sd["interfaces"]["et-0/0/0"]["units"]
 
@@ -327,6 +328,9 @@ def test_router_logical_interface(capsys):
     )
     assert re.search(
         r"0.2] sub-interface number should be same as VLAN \(456\)", output.out
+    )
+    assert re.search(
+        r"0.200] sub interfaces should have an access VLAN configured!", output.out
     )
 
 
