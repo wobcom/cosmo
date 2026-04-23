@@ -520,6 +520,10 @@ class InterfaceType(
         return self.getParent(DeviceType).isCompositeRoot()
 
     def getUntaggedVLAN(self):
+        """
+        Retrieves untagged VLAN on interface, if any (None else). Compatible with Netbox native VLANType
+        and outer_tag CF. Will raise an error if native VLANType and outer_tag CF are used at the same time.
+        """
         cf = self.getCustomFields()
         if "untagged_vlan" in self.keys() and self["untagged_vlan"]:
             if cf.get("outer_tag"):
@@ -536,6 +540,7 @@ class InterfaceType(
             return VLANType(
                 {"vid": int(cf["outer_tag"]), "interfaces_as_untagged": [self]}
             )
+        return None
 
     def getTaggedVLANS(self) -> list:
         return self.get("tagged_vlans", [])

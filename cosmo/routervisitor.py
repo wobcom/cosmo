@@ -259,19 +259,11 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         # easy checks first, narrow down afterward
         if not o.getUntaggedVLAN() and not o.getUnitNumber() == 0:
             # costlier checks it is then
-            device = o.getParent(DeviceType)
             parent_interface = o.getPhysicalInterfaceByFilter()
             if parent_interface:
-                all_parent_sub_interfaces = list(
-                    filter(
-                        lambda i: i.getName().startswith(parent_interface.getName())
-                        and i.isSubInterface(),
-                        device.getInterfaces(),
-                    )
-                )
                 parent_interface_type = parent_interface.getAssociatedType()
-                # cases where no VLAN is authorized: we have only one sub interface, or it's a loopback or virtual
-                if len(all_parent_sub_interfaces) > 1 and parent_interface_type not in [
+                # cases where no VLAN is authorized: parent is a loopback or virtual
+                if parent_interface_type not in [
                     "loopback",
                     "virtual",
                 ]:
