@@ -23,6 +23,9 @@
     "global_vrf": {
       "type": "string"
     },
+    "verify_certs": {
+      "type": "boolean"
+    },
     "output_format": {
       "type": "string",
       "enum": ["nix", "ansible"]

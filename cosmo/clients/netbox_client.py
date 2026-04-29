@@ -8,10 +8,13 @@ from cosmo import log
 
 
 class NetboxAPIClient:
-    def __init__(self, url, token, interprocess_shared_cache: DictProxy):
+    def __init__(
+        self, url, token, interprocess_shared_cache: DictProxy, verify_certs=True
+    ):
         self.url = url
         self.token = token
         self.cache = interprocess_shared_cache
+        self.verify_certs = verify_certs
 
     def query(self, query, query_name=None):
 
@@ -25,6 +28,7 @@ class NetboxAPIClient:
                 "Content-Type": "application/json",
                 "Accept": "application/json",
             },
+            verify=self.verify_certs,
         )
         if r.status_code != 200:
             raise Exception("Error querying api: " + r.text)
@@ -44,8 +48,7 @@ class NetboxAPIClient:
     def _cached_get(self, url, headers):
         if url not in self.cache:
             self.cache[url] = requests.get(
-                url,
-                headers=headers,
+                url, headers=headers, verify=self.verify_certs
             )
         return self.cache.get(url)
 
