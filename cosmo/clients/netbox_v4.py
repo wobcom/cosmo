@@ -322,13 +322,20 @@ class NetboxV4Strategy:
     MAGIC_MAX_INFLIGHT = 15
 
     def __init__(
-        self, url, token, multiple_mac_addresses, netbox_43_query_syntax, feature_flags
+        self,
+        url,
+        token,
+        multiple_mac_addresses,
+        netbox_43_query_syntax,
+        feature_flags,
+        verify_certs=True,
     ):
         self.url = url
         self.token = token
         self.multiple_mac_addresses = multiple_mac_addresses
         self.netbox_43_query_syntax = netbox_43_query_syntax
         self.feature_flags = feature_flags
+        self.verify_certs = verify_certs
 
     def worker_amount(self, n_queries: int):
         return clip(n_queries, self.MAGIC_MIN_INFLIGHT, self.MAGIC_MAX_INFLIGHT)
@@ -345,7 +352,9 @@ class NetboxV4Strategy:
         # https://stackoverflow.com/questions/72411392/can-you-do-nested-parallelization-using-multiprocessing-in-python
         # this avoids having to re-architecture completely using worker/task/queue model.
         with get_client_mp_context().Manager() as manager:
-            client = NetboxAPIClient(self.url, self.token, manager.dict())
+            client = NetboxAPIClient(
+                self.url, self.token, manager.dict(), verify_certs=self.verify_certs
+            )
 
             for d in device_list:
                 queries.extend(

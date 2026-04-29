@@ -97,7 +97,11 @@ def main() -> int:
     if netbox_api_token is None:
         raise Exception("NETBOX_API_TOKEN is empty.")
 
-    nc = NetboxClient(url=netbox_url, token=netbox_api_token)
+    nc = NetboxClient(
+        url=netbox_url,
+        token=netbox_api_token,
+        verify_certs=cosmo_configuration.get("verify_certs", True),
+    )
     cosmo_data = nc.get_data(cosmo_configuration["devices"])
 
     def noop(*args, **kwargs):
