@@ -118,7 +118,9 @@ class JsonLoggingStrategy(AbstractLoggingStrategy):
 
 
 class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
-    def __init__(self, *args, show_debug: bool, netbox_instance_url: str, **kwargs):
+    def __init__(
+        self, *args, show_debug: bool, netbox_instance_url: str | None, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.nb_instance_url = netbox_instance_url
         self.show_debug = show_debug
@@ -143,7 +145,9 @@ class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
         match obj:
             case AbstractNetboxType():
                 meta_info = obj.getMetaInfo()
-                full_url = meta_info.getFullObjectURL(self.nb_instance_url)
+                full_url = meta_info.rel_path
+                if self.nb_instance_url:
+                    full_url = meta_info.getFullObjectURL(self.nb_instance_url)
                 return (
                     f"[{log_level_colored}]"
                     f" [{meta_info.device_display_name.lower()}]"
@@ -181,6 +185,16 @@ class HumanReadableLoggingStrategy(AbstractLoggingStrategy):
 
 class CosmoLogger:
     strategy: AbstractLoggingStrategy
+
+    def __init__(self):
+        # we're setting a default strategy at object init because when python interpreter
+        # is started in spawn mode (for multiprocessing), code from __main__ doesnt get called
+        # again and we're in a different context. as such, no strategy would be defined
+        # this doesnt happen when running in fork mode, so this fix is only for the few
+        # platforms using spawn as a default.
+        self.setLoggingStrategy(
+            HumanReadableLoggingStrategy(show_debug=False, netbox_instance_url=None)
+        )
 
     def setLoggingStrategy(self, strategy: AbstractLoggingStrategy) -> Self:
         self.strategy = strategy
