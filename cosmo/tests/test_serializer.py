@@ -824,24 +824,20 @@ def test_router_case_local_bgpcpe():
     assert "CPE_ifp-0-1-2-6_V4" in groups_L3VPN
     assert "CPE_ifp-0-1-2-6_V6" in groups_L3VPN
     assert (
-        groups_L3VPN["CPE_ifp-0-1-2-6_V4"]["family"]["ipv4_unicast"]["policy"][
-            "import_list"
-        ]
-        == []
+        "import_list"
+        not in groups_L3VPN["CPE_ifp-0-1-2-6_V4"]["family"]["ipv4_unicast"]["policy"]
     )
     assert (
         groups_L3VPN["CPE_ifp-0-1-2-6_V4"]["family"]["ipv4_unicast"]["max_prefixes"]
-        == "100"
+        == 100
     )
     assert (
-        groups_L3VPN["CPE_ifp-0-1-2-6_V6"]["family"]["ipv6_unicast"]["policy"][
-            "import_list"
-        ]
-        == []
+        "import_list"
+        not in groups_L3VPN["CPE_ifp-0-1-2-6_V6"]["family"]["ipv6_unicast"]["policy"]
     )
     assert (
         groups_L3VPN["CPE_ifp-0-1-2-6_V6"]["family"]["ipv6_unicast"]["max_prefixes"]
-        == "100"
+        == 100
     )
 
     assert "CPE_ifp-0-1-2-7" in groups_L3VPN
@@ -855,24 +851,18 @@ def test_router_case_local_bgpcpe():
         in groups_L3VPN["CPE_ifp-0-1-2-7"]["family"]["ipv6_unicast"]["policy"]
     )
     assert (
-        groups_L3VPN["CPE_ifp-0-1-2-7"]["family"]["ipv4_unicast"]["policy"][
-            "import_list"
-        ]
-        == []
+        "import_list"
+        not in groups_L3VPN["CPE_ifp-0-1-2-7"]["family"]["ipv4_unicast"]["policy"]
     )
     assert (
-        groups_L3VPN["CPE_ifp-0-1-2-7"]["family"]["ipv6_unicast"]["policy"][
-            "import_list"
-        ]
-        == []
+        "import_list"
+        not in groups_L3VPN["CPE_ifp-0-1-2-7"]["family"]["ipv6_unicast"]["policy"]
     )
     assert (
-        groups_L3VPN["CPE_ifp-0-1-2-7"]["family"]["ipv4_unicast"]["max_prefixes"]
-        == "100"
+        groups_L3VPN["CPE_ifp-0-1-2-7"]["family"]["ipv4_unicast"]["max_prefixes"] == 100
     )
     assert (
-        groups_L3VPN["CPE_ifp-0-1-2-7"]["family"]["ipv6_unicast"]["max_prefixes"]
-        == "100"
+        groups_L3VPN["CPE_ifp-0-1-2-7"]["family"]["ipv6_unicast"]["max_prefixes"] == 100
     )
 
 

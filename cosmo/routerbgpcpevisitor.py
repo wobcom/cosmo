@@ -117,7 +117,7 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
         self,
         v4_import: set,
         v6_import: set,
-    ) -> tuple[list[str], list[str]]:
+    ) -> tuple[list[str], list[str]] | None:
         pass
 
     @abstractmethod
@@ -183,8 +183,8 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
         vrf_name = self._cosmo_config.getGlobalVRFName()
         # make the type checker happy, since it cannot reliably infer
         # type from default values of policy_v4 and policy_v6
-        policy_v4: CosmoOutputType = {"import_list": []}
-        policy_v6: CosmoOutputType = {"import_list": []}
+        policy_v4: CosmoOutputType = {}
+        policy_v6: CosmoOutputType = {}
 
         ip_addresses = linked_interface.getIPAddresses()
 
@@ -213,9 +213,9 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
             elif af and af is IPv6Interface:
                 v6_import.add(prefix)
 
-        policy_v4["import_list"], policy_v6["import_list"] = self.processImportLists(
-            v4_import, v6_import
-        )
+        processed_import_lists = self.processImportLists(v4_import, v6_import)
+        if processed_import_lists:
+            policy_v4["import_list"], policy_v6["import_list"] = processed_import_lists
 
         if len(ip_addresses) > 0:
             groups = self.processNumberedBGP(
@@ -242,7 +242,7 @@ class MaxPrefixBgpCpeExporter(AbstractBgpCpeExporter):
             )
 
     def getOptionalMaxPrefixAttrs(self) -> CosmoOutputType:
-        return {"max_prefixes": str(self.max_prefix_n)}
+        return {"max_prefixes": self.max_prefix_n}
 
     def processImportLists(
         self,
@@ -250,7 +250,7 @@ class MaxPrefixBgpCpeExporter(AbstractBgpCpeExporter):
         v6_import: set,
     ):
         # we have max-prefix tag set, do not define import-list as it is variable
-        return [], []
+        return None
 
 
 class DefinedImportListBgpCpeExporter(AbstractBgpCpeExporter):

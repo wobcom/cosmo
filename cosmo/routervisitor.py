@@ -831,6 +831,8 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                 return self.processBgpUnnumberedTag(o)
             case "unnumbered0":
                 return self.processBgpUnnumberedTag(o, prefer_unit0=True)
+            case "max-prefixes":
+                pass  # ignore, as it is treated in bgp cpe visitor
             case "deprecated_naming":
                 pass  # ignore, as it is treated in bgp cpe visitor
             case "bgp":
