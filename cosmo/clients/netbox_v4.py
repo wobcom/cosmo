@@ -223,15 +223,13 @@ class TobagoLineMembersDataQuery(ParallelQuery):
             lambda device: device["name"] == query_device_name, data["device_list"]
         ):
             for i in d["interfaces"]:
-                attached_tobago_line = next(
-                    filter(
-                        # tobago is returning IDs as int so I have to do a little type casting
-                        lambda l: int(l["termination_a"]["id"]) == int(i["id"])
-                        or int(l["termination_b"]["id"]) == int(i["id"]),
-                        query_result,
-                    ),
-                    None,
-                )
+
+                attached_tobago_line = None
+                for lm in query_result:
+                    for termination in lm["terminations"]:
+                        if int(termination["termination"]["id"]) == int(i["id"]):
+                            attached_tobago_line = lm
+
                 i["attached_tobago_line"] = (
                     {
                         **attached_tobago_line,
@@ -358,7 +356,10 @@ class NetboxV4Strategy:
                         (
                             TobagoLineMembersDataQuery(client, device=d)
                             if self.feature_flags["tobago"]
-                            and features.featureIsEnabled("interface-auto-descriptions")
+                            and (
+                                features.featureIsEnabled("interface-auto-descriptions")
+                                or features.featureIsEnabled("new-bgp-cpe-group-naming")
+                            )
                             else TobagoLineMemberDataDummyQuery(client, device=d)
                         ),
                     ]
