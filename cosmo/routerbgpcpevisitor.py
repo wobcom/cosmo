@@ -117,7 +117,7 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
         self,
         v4_import: set,
         v6_import: set,
-    ) -> tuple[list[str], list[str]] | None:
+    ) -> tuple[list[str], list[str]]:
         pass
 
     @abstractmethod
@@ -213,9 +213,16 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
             elif af and af is IPv6Interface:
                 v6_import.add(prefix)
 
-        processed_import_lists = self.processImportLists(v4_import, v6_import)
-        if processed_import_lists:
-            policy_v4["import_list"], policy_v6["import_list"] = processed_import_lists
+        processed_import_lists_v4, processed_import_lists_v6 = self.processImportLists(
+            v4_import, v6_import
+        )
+        if len(processed_import_lists_v4) or len(
+            processed_import_lists_v6
+        ):  # export both if any
+            policy_v4["import_list"], policy_v6["import_list"] = (
+                processed_import_lists_v4,
+                processed_import_lists_v6,
+            )
 
         if len(ip_addresses) > 0:
             groups = self.processNumberedBGP(
@@ -250,7 +257,7 @@ class MaxPrefixBgpCpeExporter(AbstractBgpCpeExporter):
         v6_import: set,
     ):
         # we have max-prefix tag set, do not define import-list as it is variable
-        return None
+        return [], []
 
 
 class DefinedImportListBgpCpeExporter(AbstractBgpCpeExporter):
