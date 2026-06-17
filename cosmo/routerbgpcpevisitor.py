@@ -249,7 +249,9 @@ class MaxPrefixBgpCpeExporter(AbstractBgpCpeExporter):
             )
 
     def getOptionalMaxPrefixAttrs(self) -> CosmoOutputType:
-        return {"max_prefixes": self.max_prefix_n}
+        return {
+            "max_prefixes": int(self.max_prefix_n)
+        }  # cast ensures failure on incorrect type
 
     def processImportLists(
         self,
