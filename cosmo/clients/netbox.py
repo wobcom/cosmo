@@ -10,9 +10,10 @@ from cosmo.clients.netbox_v4 import NetboxV4Strategy
 
 
 class NetboxClient:
-    def __init__(self, url, token):
+    def __init__(self, url, token, verify_certs=True):
         self.url = url
         self.token = token
+        self.verify_certs = verify_certs
 
         version, feature_flags = self.query_version()
         base_version_match = re.search(r"[\d.]+", version)
@@ -26,6 +27,7 @@ class NetboxClient:
                 multiple_mac_addresses=True,
                 netbox_43_query_syntax=True,
                 feature_flags=feature_flags,
+                verify_certs=self.verify_certs,
             )
         elif self.base_version > Version("4.2.0"):
             log.info("Using version 4.2.x strategy...")
@@ -35,6 +37,7 @@ class NetboxClient:
                 multiple_mac_addresses=True,
                 netbox_43_query_syntax=False,
                 feature_flags=feature_flags,
+                verify_certs=self.verify_certs,
             )
         elif self.base_version > Version("4.0.0"):
             log.info("Using version 4.0.x strategy...")
@@ -44,6 +47,7 @@ class NetboxClient:
                 multiple_mac_addresses=False,
                 netbox_43_query_syntax=False,
                 feature_flags=feature_flags,
+                verify_certs=self.verify_certs,
             )
         else:
             raise Exception("Unknown Version")
@@ -59,6 +63,7 @@ class NetboxClient:
                 "Content-Type": "application/json",
                 "Accept": "application/json",
             },
+            verify=self.verify_certs,
         )
         if r.status_code != 200:
             raise Exception("Error querying api: " + r.text)
