@@ -183,8 +183,8 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
         vrf_name = self._cosmo_config.getGlobalVRFName()
         # make the type checker happy, since it cannot reliably infer
         # type from default values of policy_v4 and policy_v6
-        policy_v4: CosmoOutputType = {"import_list": []}
-        policy_v6: CosmoOutputType = {"import_list": []}
+        policy_v4: CosmoOutputType = {}
+        policy_v6: CosmoOutputType = {}
 
         ip_addresses = linked_interface.getIPAddresses()
 
@@ -213,9 +213,16 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
             elif af and af is IPv6Interface:
                 v6_import.add(prefix)
 
-        policy_v4["import_list"], policy_v6["import_list"] = self.processImportLists(
+        processed_import_lists_v4, processed_import_lists_v6 = self.processImportLists(
             v4_import, v6_import
         )
+        if len(processed_import_lists_v4) or len(
+            processed_import_lists_v6
+        ):  # export both if any
+            policy_v4["import_list"], policy_v6["import_list"] = (
+                processed_import_lists_v4,
+                processed_import_lists_v6,
+            )
 
         if len(ip_addresses) > 0:
             groups = self.processNumberedBGP(
@@ -242,7 +249,9 @@ class MaxPrefixBgpCpeExporter(AbstractBgpCpeExporter):
             )
 
     def getOptionalMaxPrefixAttrs(self) -> CosmoOutputType:
-        return {"max_prefixes": str(self.max_prefix_n)}
+        return {
+            "max_prefixes": int(self.max_prefix_n)
+        }  # cast ensures failure on incorrect type
 
     def processImportLists(
         self,

@@ -36,7 +36,7 @@ class AutoDescriptionError(AbstractRecoverableError):
 # recursive type for the shape of cosmo output. use it when specifying something that
 # the visitors will export.
 CosmoOutputType = dict[
-    str, str | dict[str, "CosmoOutputType"] | list[str] | list["CosmoOutputType"]
+    str, int | str | dict[str, "CosmoOutputType"] | list[str] | list["CosmoOutputType"]
 ]
 
 JsonOutputType = CosmoOutputType
