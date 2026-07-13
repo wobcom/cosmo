@@ -281,6 +281,17 @@ class DeviceType(AbstractNetboxType):
     def getInterfaces(self) -> list["InterfaceType"]:
         return self.get("interfaces", [])
 
+    def deriveRouterIdFromLoopbackInterface(self) -> str | None:
+        for interface in self.getInterfaces():
+            if interface.getVRF() is not None:
+                continue
+            if not interface.isLoopbackOrParentIsLoopback():
+                continue
+            for address in interface.getIPAddresses():
+                if address.getIPInterfaceObject().version == 4:
+                    return str(address.getIPInterfaceObject().ip)
+        return None
+
     def getISISIdentifier(self) -> str | None | Never:
         sys_id: Any | None = self.getCustomFields().get("isis_system_id")
         if sys_id and not re.match(r"\d{4}.\d{4}.\d{4}", str(sys_id)):
@@ -693,7 +704,7 @@ class InterfaceType(
                     on=self,
                 )
             return parent_interface.isLoopbackOrParentIsLoopback()
-        elif self.getName().startswith("lo"):
+        elif self.getName().lower().startswith("lo"):
             if self.getAssociatedType() != "loopback" and features.featureIsEnabled(
                 "netbox-loopback-interface-type"
             ):

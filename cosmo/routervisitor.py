@@ -146,7 +146,11 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         ).get()
         optional_attrs = {}
         parent_interface = o.getParent(InterfaceType)
-        if not parent_interface.isSubInterface():
+        is_management_interface = manufacturer.isManagementInterface(parent_interface)
+        if (
+            not parent_interface.isSubInterface()
+            and not manufacturer.supportsDirectInterfaceIP()
+        ):
             raise InterfaceSerializationError(
                 f"You seem to have configured an IP directly on interface {parent_interface.getName()}. "
                 f"This is forbidden. Please make a virtual interface, assign the IP(s) on it and retry!"
@@ -155,16 +159,13 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             o.isGlobal()
             or self.allow_private_ips
             or parent_interface.getVRF()
-            or manufacturer.isManagementInterface(parent_interface)
+            or is_management_interface
         ):
             raise InterfaceSerializationError(
                 f"Private IP {o.getIPAddress()} used on interface {parent_interface.getName()} "
                 f"in default VRF for device {o.getParent(DeviceType).getName()}. Did you forget to configure a VRF?"
             )
-        if (
-            manufacturer.isManagementInterface(parent_interface)
-            and parent_interface.isSubInterface()
-        ):
+        if is_management_interface:
             optional_attrs = self.processMgmtInterfaceIPAddress(o)
         if (
             parent_interface.isLoopbackOrParentIsLoopback()
@@ -202,7 +203,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         # are not mgmt or loopback interfaces
         if (
             parent_interface.getVRF() == None
-            and not manufacturer.isManagementInterface(parent_interface)
+            and not is_management_interface
             and not parent_interface.isLoopbackOrParentIsLoopback()
             and not any([t.getTagName() == "disable_sampling" for t in parent_interface.getTags()])
         ):
@@ -372,11 +373,31 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             parent_device, self._cosmo_config
         ).get()
 
-        if not parent_interface.isSubInterface():
+        if (
+            not parent_interface.isSubInterface()
+            and not manufacturer.supportsDirectInterfaceIP()
+        ):
             return  # guard: do not process root interface
 
-        loopback = self.loopbacks.getByDevice(parent_device.getName())
-        router_id = loopback.deriveRouterId()
+        if (
+            manufacturer.supportsDirectInterfaceIP()
+            and not parent_interface.isSubInterface()
+            and not o.isMgmtVRF()
+            and not manufacturer.isGlobalVRF(o)
+            and not parent_interface.getIPAddresses()
+            and not self.interfaceHasTag(parent_interface, "unnumbered")
+            and not self.interfaceHasTag(parent_interface, "unnumbered0")
+        ):
+            raise InterfaceSerializationError(
+                f"Interface {parent_interface.getName()} is assigned to VRF {o.getName()} "
+                "but has no IP address or unnumbered tag.",
+                on=parent_interface,
+            )
+
+        router_id = parent_device.deriveRouterIdFromLoopbackInterface()
+        if not router_id:
+            loopback = self.loopbacks.getByDevice(parent_device.getName())
+            router_id = loopback.deriveRouterId()
         if o.getRouteDistinguisher():
             rd = router_id + ":" + o.getRouteDistinguisher()
         elif not o.isMgmtVRF():
@@ -405,6 +426,10 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                 },
             },
         )
+
+    @staticmethod
+    def interfaceHasTag(o: InterfaceType, name: str) -> bool:
+        return any(tag.getTagName() == name for tag in o.getTags())
 
     @staticmethod
     def processStaticRouteCommon(o: CosmoStaticRouteType, m: AbstractManufacturer):
@@ -645,15 +670,18 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         ).get()
 
         interface = o.getParent(InterfaceType)
-        parent_interface = head(
-            list(
-                filter(  # as in, netbox parent
-                    lambda i: i.getName()
-                    == interface.getSubInterfaceParentInterfaceName(),
-                    interface.getParent(DeviceType).getInterfaces(),
+        if manufacturer.supportsDirectInterfaceIP() and not interface.isSubInterface():
+            parent_interface = interface
+        else:
+            parent_interface = head(
+                list(
+                    filter(  # as in, netbox parent
+                        lambda i: i.getName()
+                        == interface.getSubInterfaceParentInterfaceName(),
+                        interface.getParent(DeviceType).getInterfaces(),
+                    )
                 )
             )
-        )
 
         # Note:
         # The following code was developed by the pseudo code:
@@ -759,16 +787,22 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         # Therefore, there is a unnumbered0 Tag for backwards compat and a unnumbered tag.
         # This method handles both of them, for unnumbered0 prefer_unit0 is true.
 
+        manufacturer = ManufacturerFactoryFromDevice(
+            o.getParent(DeviceType), self._cosmo_config
+        ).get()
+
         def loopback_filter_function(i, parent_interface: InterfaceType):
 
-            if prefer_unit0:
+            if manufacturer.supportsDirectInterfaceIP() and not i.isSubInterface():
+                is_correct_unit = True
+            elif prefer_unit0:
                 is_correct_unit = i.getUnitNumber() == 0
             else:
                 is_correct_unit = i.getUnitNumber() != 0
 
             return (
-                i.getName().startswith("lo")
-                and i.isSubInterface()
+                i.getName().lower().startswith("lo")
+                and (i.isSubInterface() or manufacturer.supportsDirectInterfaceIP())
                 and i.getVRF() == parent_interface.getVRF()
                 and is_correct_unit
             )
@@ -782,6 +816,11 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                 )
             )
         )
+        if not loopback_interface:
+            raise InterfaceSerializationError(
+                f"Cannot find a suitable loopback interface for unnumbered interface {parent_interface.getName()}.",
+                on=parent_interface,
+            )
         opt_unnumbered_interface = {
             "unnumbered_interface": loopback_interface.getName()
         }

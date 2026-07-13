@@ -103,6 +103,10 @@ class AbstractManufacturer(ABC):
     def hasMTUInheritance():
         pass
 
+    @staticmethod
+    def supportsDirectInterfaceIP():
+        return False
+
 
 class AbstractJuniperRtBrickManufacturerCommon(AbstractManufacturer, ABC):
     VRF_KEY: Final[str] = "routing_instances"
@@ -186,6 +190,27 @@ class RtBrickManufacturer(AbstractJuniperRtBrickManufacturerCommon):
         return {cls.VRF_KEY: {cls.DEFAULT_VRF_KEY: {**d}}}
 
 
+class AristaManufacturer(RtBrickManufacturer):
+    _platform_re = re.compile(r"^(arista-)?eos(64)?(-[a-zA-Z0-9-]*)?$")
+
+    @staticmethod
+    def myManufacturerSlugs():
+        return ["arista", "arista-networks"]
+
+    @staticmethod
+    def getManagementVRFName():
+        return "MGMT"
+
+    def isManagementInterface(self, o: InterfaceType):
+        return len(o["ip_addresses"]) >= 1 and o.getName().lower().startswith(
+            "management"
+        )
+
+    @staticmethod
+    def supportsDirectInterfaceIP():
+        return True
+
+
 class CumulusNetworksManufacturer(AbstractManufacturer):
     _platform_re = re.compile(r"^cumulus-linux[a-zA-Z0-9-]*")
 
@@ -228,6 +253,7 @@ class CumulusNetworksManufacturer(AbstractManufacturer):
 class ManufacturerFactoryFromDevice:
     _all_manufacturers = (
         CumulusNetworksManufacturer,
+        AristaManufacturer,
         RtBrickManufacturer,
         JuniperManufacturer,
     )
@@ -237,8 +263,34 @@ class ManufacturerFactoryFromDevice:
         self._device = device
         self._cosmo_config = cosmo_config
 
+    @staticmethod
+    def _manufacturerSlug(o: DeviceTypeType | PlatformType):
+        if isinstance(o, dict):
+            manufacturer = o.get("manufacturer")
+            if isinstance(manufacturer, dict):
+                return manufacturer.get("slug")
+            return None
+        manufacturer = o.getManufacturer()
+        if manufacturer:
+            return manufacturer.get("slug")
+        return None
+
+    @staticmethod
+    def _slug(o: DeviceTypeType | PlatformType):
+        if isinstance(o, dict):
+            return o.get("slug")
+        return o.get("slug")
+
     def get(self) -> AbstractManufacturer | NoReturn:
         for c in self._all_manufacturers:
             if c.isCompatibleWith(self._device):
                 return c(self._cosmo_config)
-        raise Exception(f"Cannot find suitable manufacturer for device {self._device}")
+        device_type = self._device.getDeviceType()
+        platform = self._device.getPlatform()
+        raise Exception(
+            f"Cannot find suitable manufacturer for device {self._device}. "
+            f"device_type_slug={self._slug(device_type)}, "
+            f"device_type_manufacturer_slug={self._manufacturerSlug(device_type)}, "
+            f"platform_slug={self._slug(platform)}, "
+            f"platform_manufacturer_slug={self._manufacturerSlug(platform)}"
+        )
