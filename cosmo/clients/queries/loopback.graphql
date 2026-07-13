@@ -1,6 +1,6 @@
 query{
     interface_list(filters: {
-        name: {starts_with: "lo"}
+        name: {i_starts_with: "lo"}
     }) {
         __typename
         name,
