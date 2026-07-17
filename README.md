@@ -84,3 +84,7 @@ cosmo --limit=router2
 ## License
 
 See `LICENSE.md`
+
+## Contact
+
+You can contact the team behind this project by emailing: wan@wobcom.de
