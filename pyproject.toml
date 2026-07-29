@@ -15,7 +15,7 @@ omit = [
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-requests = ">2.26.0"
+requests = ">=2.33.0"
 PyYAML = ">5.1"
 packaging = "^25"
 deepmerge = "^2.0"
