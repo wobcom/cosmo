@@ -115,15 +115,11 @@ class LoopbackDataQuery(ParallelQuery):
                 candidate_ip_addresses = interface.get("ip_addresses", [])
 
             l_ipv4 = next(
-                filter(
-                    lambda l: l["family"]["value"] == 4, candidate_ip_addresses
-                ),
+                filter(lambda l: l["family"]["value"] == 4, candidate_ip_addresses),
                 None,
             )
             l_ipv6 = next(
-                filter(
-                    lambda l: l["family"]["value"] == 6, candidate_ip_addresses
-                ),
+                filter(lambda l: l["family"]["value"] == 6, candidate_ip_addresses),
                 None,
             )
             if not l_ipv4 and not l_ipv6:

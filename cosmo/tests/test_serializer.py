@@ -311,7 +311,9 @@ def _serialize_router_test_data(test_data, device, cosmo_config, loopbacks=None)
         RouterSerializer(
             device=device,
             l2vpn_list=test_data["l2vpn_list"],
-            loopbacks=test_data.get("loopbacks", {}) if loopbacks is None else loopbacks,
+            loopbacks=(
+                test_data.get("loopbacks", {}) if loopbacks is None else loopbacks
+            ),
             cosmo_config=cosmo_config,
         )
         .allowPrivateIPs()
