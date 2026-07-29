@@ -200,11 +200,17 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         # have an address
         # are not in a VRF
         # are not mgmt or loopback interfaces
+        # do not have the disable_sampling tag
         if (
             parent_interface.getVRF() == None
             and not manufacturer.isManagementInterface(parent_interface)
             and not parent_interface.isLoopbackOrParentIsLoopback()
-            and not any([t.getTagName() == "disable_sampling" for t in parent_interface.getTags()])
+            and not any(
+                [
+                    t.getTagName() == "disable_sampling"
+                    for t in parent_interface.getTags()
+                ]
+            )
         ):
             sampling = {"sampling": True}
         return {
