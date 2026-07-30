@@ -2,7 +2,7 @@ from multimethod import multimethod as singledispatchmethod
 from ipaddress import IPv6Network, IPv4Network
 
 from cosmo.netbox_types import IPAddressType, DeviceType
-from cosmo.visitors import AbstractNoopNetboxTypesVisitor
+from .abc import AbstractNoopNetboxTypesVisitor
 
 
 class CpeRouterIPVisitor(AbstractNoopNetboxTypesVisitor):

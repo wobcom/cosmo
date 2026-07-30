@@ -3,7 +3,7 @@ from typing import Never, Callable
 
 from deepmerge import Merger
 
-from cosmo.autodescvisitor import MutatingAutoDescVisitor
+from cosmo.visitors.autodesc import MutatingAutoDescVisitor
 from cosmo.common import (
     deepsort,
     DeviceSerializationError,
@@ -13,11 +13,11 @@ from cosmo.common import (
 )
 from cosmo.features import features
 from cosmo.log import error
-from cosmo.netbox_types import DeviceType, CosmoLoopbackType, AbstractNetboxType
-from cosmo.loopbacks import LoopbackHelper
+from cosmo.netbox_types import AbstractNetboxType
+from cosmo.visitors.helpers.loopbacks import LoopbackHelper
 from cosmo.netbox_types import DeviceType, CosmoLoopbackType
-from cosmo.switchvisitor import SwitchDeviceExporterVisitor
-from cosmo.routervisitor import RouterDeviceExporterVisitor
+from cosmo.visitors.switch import SwitchDeviceExporterVisitor
+from cosmo.visitors.router import RouterDeviceExporterVisitor
 
 
 class AbstractSerializer(metaclass=ABCMeta):

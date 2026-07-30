@@ -4,9 +4,8 @@ from multimethod import multimethod as singledispatchmethod
 
 from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.autodesc import AbstractComposableAutoDescription
-from cosmo.common import APP_NAME
 from cosmo.log import warn
-from cosmo.manufacturers import AbstractManufacturer, ManufacturerFactoryFromDevice
+from cosmo.manufacturers import ManufacturerFactoryFromDevice
 from cosmo.netbox_types import (
     IPAddressType,
     DeviceType,
@@ -14,7 +13,7 @@ from cosmo.netbox_types import (
     VLANType,
     TagType,
 )
-from cosmo.visitors import AbstractNoopNetboxTypesVisitor
+from .abc import AbstractNoopNetboxTypesVisitor
 
 
 class SwitchDeviceExporterVisitor(AbstractNoopNetboxTypesVisitor):

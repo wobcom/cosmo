@@ -5,7 +5,7 @@ from typing import Self, Optional
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .autodesc import AbstractComposableAutoDescription
+    from cosmo.autodesc import AbstractComposableAutoDescription
 
 
 class AutoDescribableMixin(MutableMapping, metaclass=ABCMeta):

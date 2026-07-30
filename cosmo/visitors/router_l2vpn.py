@@ -1,20 +1,17 @@
-import ipaddress
 from multimethod import multimethod as singledispatchmethod
 
-from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import head, L2VPNSerializationError
+from cosmo.visitors.abc import AbstractRouterExporterVisitor
+from cosmo.common import L2VPNSerializationError
 from cosmo.config.cosmo_config import CosmoConfig
-from cosmo.l2vpnhelpertypes import (
+from cosmo.visitors.l2vpnhelpertypes import (
     L2VpnVisitorClassFactoryFromL2VpnTypeObject,
     AbstractL2VpnTypeTerminationVisitor,
 )
-from cosmo.loopbacks import LoopbackHelper
+from cosmo.visitors.helpers.loopbacks import LoopbackHelper
 from cosmo.netbox_types import (
     L2VPNType,
     InterfaceType,
     VLANType,
-    CosmoLoopbackType,
-    L2VPNTerminationType,
     DeviceType,
 )
 

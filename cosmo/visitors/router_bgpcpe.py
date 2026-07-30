@@ -6,8 +6,8 @@ from ipaddress import IPv4Interface, IPv6Interface
 
 from cosmo.common import head, CosmoOutputType, InterfaceSerializationError
 from cosmo.config.cosmo_config import CosmoConfig
-from cosmo.cperoutervisitor import CpeRouterExporterVisitor, CpeRouterIPVisitor
-from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
+from cosmo.visitors.cpe_router import CpeRouterExporterVisitor, CpeRouterIPVisitor
+from cosmo.visitors.abc import AbstractRouterExporterVisitor
 from cosmo.features import features
 from cosmo.log import warn
 from cosmo.manufacturers import ManufacturerFactoryFromDevice

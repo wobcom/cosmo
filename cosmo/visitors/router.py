@@ -8,20 +8,19 @@ import deepmerge
 from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.autodesc import AbstractComposableAutoDescription
 from cosmo.log import warn
-from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
+from cosmo.visitors.abc import AbstractRouterExporterVisitor
 from cosmo.common import (
     InterfaceSerializationError,
     head,
     StaticRouteSerializationError,
     APP_NAME,
-    DeviceSerializationError,
 )
-from cosmo.loopbacks import LoopbackHelper
-from cosmo.vrfhelper import TVRFHelpers
+from cosmo.visitors.helpers.loopbacks import LoopbackHelper
+from cosmo.visitors.helpers.vrf import TVRFHelpers
 from cosmo.manufacturers import ManufacturerFactoryFromDevice, AbstractManufacturer
-from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
+from cosmo.visitors.router_bgpcpe import RouterBgpCpeExporterVisitor
 from cosmo.features import features
-from cosmo.routerl2vpnvisitor import (
+from cosmo.visitors.router_l2vpn import (
     RouterL2VPNValidatorVisitor,
     RouterL2VPNExporterVisitor,
 )
