@@ -18,7 +18,6 @@ from cosmo.common import (
 from cosmo.visitors.helpers.loopbacks import LoopbackHelper
 from cosmo.visitors.helpers.vrf import TVRFHelpers
 from cosmo.manufacturers import ManufacturerFactoryFromDevice, AbstractManufacturer
-from cosmo.visitors.router_bgpcpe import RouterBgpCpeExporterVisitor
 from cosmo.features import features
 from cosmo.visitors.router_l2vpn import (
     RouterL2VPNValidatorVisitor,
@@ -51,9 +50,6 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
         )
         self.l2vpn_validator = RouterL2VPNValidatorVisitor(
             loopbacks=loopbacks, cosmo_config=self._cosmo_config
-        )
-        self.bgpcpe_exporter = RouterBgpCpeExporterVisitor(
-            cosmo_config=self._cosmo_config
         )
         self.loopbacks = loopbacks
         self.allow_private_ips = features.featureIsEnabled(
@@ -848,8 +844,3 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                     warn(f"{APP_NAME} doesn't know this bgp tag.", o)
             case _:
                 warn(f"{APP_NAME} doesn't know this tag.", o)
-
-    @accept.register
-    def _(self, o: List[TagType]):
-        if "bgp:cpe" in o:
-            return self.bgpcpe_exporter.accept(o)

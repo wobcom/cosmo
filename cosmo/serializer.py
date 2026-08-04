@@ -16,16 +16,18 @@ from cosmo.log import error
 from cosmo.netbox_types import AbstractNetboxType
 from cosmo.visitors.helpers.loopbacks import LoopbackHelper
 from cosmo.netbox_types import DeviceType, CosmoLoopbackType
+from cosmo.visitors.router_bgpcpe import RouterBgpCpeExporterVisitor
 from cosmo.visitors.switch import SwitchDeviceExporterVisitor
 from cosmo.visitors.router import RouterDeviceExporterVisitor
+
+# serializer function type
+S = Callable[[CosmoOutputType, AbstractNetboxType], None]
 
 
 class AbstractSerializer(metaclass=ABCMeta):
     def __init__(self, device):
         self.device = DeviceType(device)
-        self.serializers: list[
-            Callable[[CosmoOutputType, AbstractNetboxType], None]
-        ] = []
+        self.serializers: list[S] = []
 
     @staticmethod
     def getMerger():
@@ -41,6 +43,16 @@ class AbstractSerializer(metaclass=ABCMeta):
             ["override"],
         )
         return merger
+
+    def exportTemplateMethod(
+        self, accept: Callable[[AbstractNetboxType], CosmoOutputType]
+    ) -> S:
+        def export(device_stub: CosmoOutputType, value: AbstractNetboxType):
+            new = accept(value)
+            if new:
+                device_stub = self.getMerger().merge(device_stub, new)
+
+        return export
 
     @staticmethod
     def autoDescPreprocess(_: CosmoOutputType, value: AbstractNetboxType):
@@ -103,11 +115,15 @@ class RouterSerializer(AbstractSerializer):
         )
         if self.allow_private_ips:
             self.router_device_export_visitor.allowPrivateIPs()
+        self.router_bgpcpe_export_visitor = RouterBgpCpeExporterVisitor(
+            cosmo_config=cosmo_config,
+        )
 
         self.serializers.extend(
             [
                 self.autoDescPreprocess,
-                self.routerExport,
+                self.exportTemplateMethod(self.router_device_export_visitor.accept),
+                self.exportTemplateMethod(self.router_bgpcpe_export_visitor.accept),
             ]
         )
 
@@ -115,24 +131,17 @@ class RouterSerializer(AbstractSerializer):
         self.router_device_export_visitor.allowPrivateIPs()
         return self
 
-    def routerExport(self, device_stub: CosmoOutputType, value: AbstractNetboxType):
-        new = self.router_device_export_visitor.accept(value)
-        if new:
-            device_stub = self.getMerger().merge(device_stub, new)
-
 
 class SwitchSerializer(AbstractSerializer):
     def __init__(self, device, cosmo_config):
         super().__init__(device)
         self._cosmo_config = cosmo_config
+        self.switch_device_export_visitor = SwitchDeviceExporterVisitor(
+            cosmo_config=cosmo_config
+        )
         self.serializers.extend(
             [
                 self.autoDescPreprocess,
-                self.switchExport,
+                self.exportTemplateMethod(self.switch_device_export_visitor.accept),
             ]
         )
-
-    def switchExport(self, device_stub: CosmoOutputType, value: AbstractNetboxType):
-        new = SwitchDeviceExporterVisitor(cosmo_config=self._cosmo_config).accept(value)
-        if new:
-            device_stub = self.getMerger().merge(device_stub, new)
