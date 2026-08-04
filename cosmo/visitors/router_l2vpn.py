@@ -13,6 +13,7 @@ from cosmo.netbox_types import (
     InterfaceType,
     VLANType,
     DeviceType,
+    L2VPNTerminationType,
 )
 
 
@@ -78,6 +79,8 @@ class RouterL2VPNExporterVisitor(AbstractL2VPNVisitor):
 
     @accept.register
     def _(self, o: InterfaceType):
+        if not o.hasParentAboveWithType(L2VPNTerminationType):
+            return None  # guard
         l2vpn_type = self.getL2VpnTypeTerminationObjectFrom(o.getParent(L2VPNType))
         # guard: processed l2vpn should have at least 1 termination belonging
         # to current device.
@@ -86,6 +89,8 @@ class RouterL2VPNExporterVisitor(AbstractL2VPNVisitor):
 
     @accept.register
     def _(self, o: VLANType):
+        if not o.hasParentAboveWithType(L2VPNTerminationType):
+            return None  # guard
         l2vpn_type = self.getL2VpnTypeTerminationObjectFrom(o.getParent(L2VPNType))
         # guard: processed l2vpn should have at least 1 termination belonging
         # to current device. if no termination passes the test, then l2vpn

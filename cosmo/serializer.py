@@ -17,6 +17,10 @@ from cosmo.netbox_types import AbstractNetboxType
 from cosmo.visitors.helpers.loopbacks import LoopbackHelper
 from cosmo.netbox_types import DeviceType, CosmoLoopbackType
 from cosmo.visitors.router_bgpcpe import RouterBgpCpeExporterVisitor
+from cosmo.visitors.router_l2vpn import (
+    RouterL2VPNValidatorVisitor,
+    RouterL2VPNExporterVisitor,
+)
 from cosmo.visitors.switch import SwitchDeviceExporterVisitor
 from cosmo.visitors.router import RouterDeviceExporterVisitor
 
@@ -110,19 +114,31 @@ class RouterSerializer(AbstractSerializer):
             for (key, loopback) in self.loopbacks.items()
         }
         loopback_helper = LoopbackHelper(loopbacks)
+        # main visitor
         self.router_device_export_visitor = RouterDeviceExporterVisitor(
             loopbacks=loopback_helper, cosmo_config=cosmo_config
         )
         if self.allow_private_ips:
             self.router_device_export_visitor.allowPrivateIPs()
+        # supplementary chainable visitors
         self.router_bgpcpe_export_visitor = RouterBgpCpeExporterVisitor(
             cosmo_config=cosmo_config,
+        )
+        self.l2vpn_validator = RouterL2VPNValidatorVisitor(
+            cosmo_config=cosmo_config,
+            loopbacks=loopback_helper,
+        )
+        self.l2vpn_exporter = RouterL2VPNExporterVisitor(
+            cosmo_config=cosmo_config,
+            loopbacks=loopback_helper,
         )
 
         self.serializers.extend(
             [
                 self.autoDescPreprocess,
+                self.exportTemplateMethod(self.l2vpn_validator.accept),
                 self.exportTemplateMethod(self.router_device_export_visitor.accept),
+                self.exportTemplateMethod(self.l2vpn_exporter.accept),
                 self.exportTemplateMethod(self.router_bgpcpe_export_visitor.accept),
             ]
         )
