@@ -23,6 +23,9 @@ from cosmo.visitors.router import RouterDeviceExporterVisitor
 class AbstractSerializer(metaclass=ABCMeta):
     def __init__(self, device):
         self.device = DeviceType(device)
+        self.serializers: list[
+            Callable[[CosmoOutputType, AbstractNetboxType], None]
+        ] = []
 
     @staticmethod
     def getMerger():
@@ -67,6 +70,14 @@ class AbstractSerializer(metaclass=ABCMeta):
                 str(first_error), on=self.device
             ) from first_error
 
+    def serialize(self) -> CosmoOutputType | Never:
+        device_stub: CosmoOutputType = {}
+        latest_errors: list[AbstractRecoverableError] = []
+        for s in self.serializers:
+            latest_errors.extend(self.walk(device_stub, s))
+        self.processErrors(latest_errors)
+        return deepsort(device_stub)
+
 
 class RouterSerializer(AbstractSerializer):
     def __init__(self, device, l2vpn_list, loopbacks, cosmo_config):
@@ -93,6 +104,13 @@ class RouterSerializer(AbstractSerializer):
         if self.allow_private_ips:
             self.router_device_export_visitor.allowPrivateIPs()
 
+        self.serializers.extend(
+            [
+                self.autoDescPreprocess,
+                self.routerExport,
+            ]
+        )
+
     def allowPrivateIPs(self):
         self.router_device_export_visitor.allowPrivateIPs()
         return self
@@ -102,29 +120,19 @@ class RouterSerializer(AbstractSerializer):
         if new:
             device_stub = self.getMerger().merge(device_stub, new)
 
-    def serialize(self) -> CosmoOutputType | Never:
-        device_stub: CosmoOutputType = {}
-        latest_errors: list[AbstractRecoverableError] = []
-        latest_errors.extend(self.walk(device_stub, self.autoDescPreprocess))
-        latest_errors.extend(self.walk(device_stub, self.routerExport))
-        self.processErrors(latest_errors)
-        return deepsort(device_stub)
-
 
 class SwitchSerializer(AbstractSerializer):
     def __init__(self, device, cosmo_config):
         super().__init__(device)
         self._cosmo_config = cosmo_config
+        self.serializers.extend(
+            [
+                self.autoDescPreprocess,
+                self.switchExport,
+            ]
+        )
 
     def switchExport(self, device_stub: CosmoOutputType, value: AbstractNetboxType):
         new = SwitchDeviceExporterVisitor(cosmo_config=self._cosmo_config).accept(value)
         if new:
             device_stub = self.getMerger().merge(device_stub, new)
-
-    def serialize(self) -> CosmoOutputType | Never:
-        device_stub: CosmoOutputType = {}
-        latest_errors: list[AbstractRecoverableError] = []
-        latest_errors.extend(self.walk(device_stub, self.autoDescPreprocess))
-        latest_errors.extend(self.walk(device_stub, self.switchExport))
-        self.processErrors(latest_errors)
-        return deepsort(device_stub)
