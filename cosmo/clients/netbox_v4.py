@@ -46,7 +46,7 @@ class ConnectedDevicesDataQuery(ParallelQuery):
 
     def _fetch_data(self, kwargs, pool):
         tag_filter = (
-            'tags: { name: { exact: "bgp_cpe" }}'
+            'tags: { name: { exact: "bgp:cpe" }}'
             if self.netbox_43_query_syntax
             else 'tag: "bgp_cpe"'
         )
