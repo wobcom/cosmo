@@ -10,7 +10,8 @@ cosmo = "cosmo.__main__:main"
 
 [tool.coverage.run]
 omit = [
-  "cosmo/tests/*"
+  "cosmo/tests/*",
+  "cosmo/_vendor/*",
 ]
 
 [tool.poetry.dependencies]
