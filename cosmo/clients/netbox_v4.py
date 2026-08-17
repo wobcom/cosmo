@@ -5,7 +5,7 @@ from multiprocessing import Manager
 from os import PathLike
 from pathlib import Path
 from packaging.version import Version
-from jinja2 import Environment, PackageLoader
+from jinja2 import Environment, PackageLoader, Template
 
 from cosmo._vendor.ansible.lib.ansible.plugins.test.core import version_compare
 from cosmo.clients import get_client_mp_context
@@ -35,6 +35,12 @@ class ParallelQuery(ABC):
     def j2_template(self, relpath: str):
         return self.j2env.get_template(relpath)
 
+    def render(self, template: Template):
+        return template.render(
+            netbox_version=str(self.netbox_version),
+            device=json.dumps(self.kwargs.get("device")),
+        )
+
     def fetch_data(self, pool):
         return pool.apply_async(self._fetch_data, args=(self.kwargs, pool))
 
@@ -60,7 +66,7 @@ class ConnectedDevicesDataQuery(ParallelQuery):
         query_template = self.j2_template("connected_devices.graphql.j2")
 
         return self.client.query(
-            query_template.render(netbox_version=str(self.netbox_version)),
+            self.render(query_template),
             "connected_devices_query",
         )["data"]
 
