@@ -1,5 +1,15 @@
 query {
-  interface_list(filters: { $tag_filter }) {
+  interface_list(filters: {
+  {% if netbox_version | version_compare("4.6.99999", "<=") and netbox_version | version_compare("4.3.0", ">") %}
+      tags: { name: { exact: "bgp:cpe" } }
+  {% elif netbox_version | version_compare("4.3.99999", "<=") and netbox_version | version_compare("4.2.0", ">") %}
+      tags: { name: { exact: "bgp_cpe" } }
+  {% elif netbox_version | version_compare("4.2.99999", "<=") and netbox_version | version_compare("4.0.0", ">=") %}
+      tag: "bgp_cpe"
+  {% else %}
+      COSMO_NETBOX_VERSION_FAILURE: YES
+  {% endif %}
+  }) {
     __typename
     id,
     parent {
