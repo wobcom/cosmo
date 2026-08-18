@@ -103,25 +103,27 @@ class LoopbackDataQuery(ParallelQuery):
         loopbacks: dict[str, dict] = dict()
 
         for interface in query_data["interface_list"]:
+            device_name = interface["device"]["name"]
+
             child_interface = next(
                 filter(lambda i: i["vrf"] is None, interface["child_interfaces"]), None
             )
-            if not child_interface:
-                continue
-            device_name = interface["device"]["name"]
+            candidate_ip_addresses = []
+            if child_interface:
+                candidate_ip_addresses = child_interface.get("ip_addresses", [])
+            elif interface.get("vrf") is None:
+                candidate_ip_addresses = interface.get("ip_addresses", [])
 
             l_ipv4 = next(
-                filter(
-                    lambda l: l["family"]["value"] == 4, child_interface["ip_addresses"]
-                ),
+                filter(lambda l: l["family"]["value"] == 4, candidate_ip_addresses),
                 None,
             )
             l_ipv6 = next(
-                filter(
-                    lambda l: l["family"]["value"] == 6, child_interface["ip_addresses"]
-                ),
+                filter(lambda l: l["family"]["value"] == 6, candidate_ip_addresses),
                 None,
             )
+            if not l_ipv4 and not l_ipv6:
+                continue
             loopbacks[device_name] = {
                 "ipv4": l_ipv4["address"] if l_ipv4 else None,
                 "ipv6": l_ipv6["address"] if l_ipv6 else None,

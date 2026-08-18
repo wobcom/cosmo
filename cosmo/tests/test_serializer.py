@@ -7,7 +7,7 @@ import copy
 from cosmo.common import DeviceSerializationError
 from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.features import with_feature, features, without_feature
-from cosmo.manufacturers import ManufacturerFactoryFromDevice
+from cosmo.manufacturers import AristaManufacturer, ManufacturerFactoryFromDevice
 from cosmo.netbox_types import DeviceType, VRFType
 
 from coverage.html import os
@@ -179,6 +179,258 @@ def test_router_platforms(mock_cosmo_config_fixture, mock_global_vrf, mock_l3vpn
     with pytest.raises(Exception):
         s = get_router_s_from_path("./test_case_no_manuf_slug.yaml")
         s.serialize()
+
+
+def test_arista_manufacturer(mock_cosmo_config_fixture):
+    test_data = _yaml_load("./test_case_l3vpn.yml")
+    device = test_data["device_list"][0]
+    device["platform"]["manufacturer"]["slug"] = "arista"
+    device["platform"]["slug"] = "arista-eos64-4-33-8m"
+    management_interface = copy.deepcopy(device["interfaces"][0])
+    management_interface.update(
+        {
+            "id": "management1",
+            "name": "Management1",
+            "ip_addresses": [
+                {
+                    "__typename": "IPAddressType",
+                    "address": "192.0.2.2/24",
+                }
+            ],
+        }
+    )
+    ethernet_interface = copy.deepcopy(device["interfaces"][0])
+    ethernet_interface.update(
+        {
+            "id": "ethernet1",
+            "name": "Ethernet1",
+            "mtu": 9216,
+            "ip_addresses": [
+                {
+                    "__typename": "IPAddressType",
+                    "address": "198.51.100.0/31",
+                }
+            ],
+            "tags": [
+                {
+                    "__typename": "TagType",
+                    "name": "core",
+                    "slug": "core",
+                }
+            ],
+        }
+    )
+    unnumbered_interface = copy.deepcopy(device["interfaces"][0])
+    unnumbered_interface.update(
+        {
+            "id": "ethernet2",
+            "name": "Ethernet2",
+            "ip_addresses": [],
+            "tags": [
+                {
+                    "__typename": "TagType",
+                    "name": "unnumbered",
+                    "slug": "unnumbered",
+                }
+            ],
+        }
+    )
+    loopback_interface = copy.deepcopy(device["interfaces"][0])
+    loopback_interface.update(
+        {
+            "id": "loopback0",
+            "name": "Loopback0",
+            "ip_addresses": [],
+            "tags": [],
+            "type": "LOOPBACK",
+        }
+    )
+    device["interfaces"] = [
+        interface
+        for interface in device["interfaces"]
+        if not interface["name"].startswith("lo-")
+    ]
+    device["interfaces"].extend(
+        [
+            management_interface,
+            ethernet_interface,
+            unnumbered_interface,
+            loopback_interface,
+        ]
+    )
+
+    manufacturer = ManufacturerFactoryFromDevice(
+        DeviceType(device), mock_cosmo_config_fixture
+    ).get()
+
+    assert isinstance(manufacturer, AristaManufacturer)
+
+    serialized = (
+        RouterSerializer(
+            device=device,
+            l2vpn_list=test_data["l2vpn_list"],
+            loopbacks=test_data.get("loopbacks", {}),
+            cosmo_config=mock_cosmo_config_fixture,
+        )
+        .allowPrivateIPs()
+        .serialize()
+    )
+    assert serialized["platform"] == "arista-eos64-4-33-8m"
+    assert serialized["routing_instances"]["MGMT"]["description"] == (
+        "MGMT-ROUTING-INSTANCE"
+    )
+    assert serialized["interfaces"]["Management1"]["families"]["inet"]["address"] == {
+        "192.0.2.2/24": {}
+    }
+    assert (
+        serialized["routing_instances"]["MGMT"]["routing_options"]["rib"][
+            "MGMT.inet.0"
+        ]["static"]["0.0.0.0/0"]["next_hop"]
+        == "192.0.2.1"
+    )
+    assert serialized["interfaces"]["Ethernet1"]["families"]["inet"]["address"] == {
+        "198.51.100.0/31": {}
+    }
+    assert serialized["interfaces"]["Ethernet1"]["families"]["iso"] == {}
+    assert serialized["interfaces"]["Ethernet1"]["families"]["mpls"] == {}
+    assert serialized["interfaces"]["Ethernet1"]["mtu"] == 9216
+    assert serialized["interfaces"]["Ethernet2"]["unnumbered"] is True
+    assert serialized["interfaces"]["Ethernet2"]["unnumbered_interface"] == "Loopback0"
+
+
+def _arista_l3vpn_test_data():
+    test_data = _yaml_load("./test_case_l3vpn.yml")
+    device = test_data["device_list"][0]
+    device["platform"]["manufacturer"]["slug"] = "arista"
+    device["platform"]["slug"] = "arista-eos64-4-33-8m"
+    return test_data, device
+
+
+def _serialize_router_test_data(test_data, device, cosmo_config, loopbacks=None):
+    return (
+        RouterSerializer(
+            device=device,
+            l2vpn_list=test_data["l2vpn_list"],
+            loopbacks=(
+                test_data.get("loopbacks", {}) if loopbacks is None else loopbacks
+            ),
+            cosmo_config=cosmo_config,
+        )
+        .allowPrivateIPs()
+        .serialize()
+    )
+
+
+def test_arista_direct_lag_l3vpn(mock_cosmo_config_fixture):
+    test_data, device = _arista_l3vpn_test_data()
+    physical = device["interfaces"][0]
+    l3vpn_subinterface = device["interfaces"][1]
+    lag_interface = copy.deepcopy(physical)
+
+    lag_interface["id"] = "424242"
+    lag_interface["name"] = "Port-Channel1"
+    lag_interface["type"] = "LAG"
+    lag_interface["ip_addresses"] = l3vpn_subinterface["ip_addresses"]
+    lag_interface["vrf"] = l3vpn_subinterface["vrf"]
+    lag_interface["lag"] = None
+
+    physical["name"] = "Ethernet1"
+    physical["lag"] = {
+        "__typename": "InterfaceType",
+        "id": lag_interface["id"],
+        "name": lag_interface["name"],
+    }
+    physical["ip_addresses"] = []
+    physical["vrf"] = None
+    device["interfaces"] = [physical, lag_interface]
+
+    serialized = _serialize_router_test_data(
+        test_data, device, mock_cosmo_config_fixture
+    )
+
+    assert "L3VPN" in serialized["routing_instances"]
+    ri = serialized["routing_instances"]["L3VPN"]
+    assert ri["interfaces"] == [lag_interface["name"]]
+    assert ri["instance_type"] == "vrf"
+    assert serialized["interfaces"][lag_interface["name"]]["type"] == "lag"
+    assert serialized["interfaces"][lag_interface["name"]]["families"]["inet"]
+
+
+def test_arista_lag_l3vpn_requires_addressing_intent(mock_cosmo_config_fixture):
+    test_data, device = _arista_l3vpn_test_data()
+    physical = device["interfaces"][0]
+    l3vpn_subinterface = device["interfaces"][1]
+    lag_interface = copy.deepcopy(physical)
+    lag_interface["id"] = "424242"
+    lag_interface["name"] = "Port-Channel1"
+    lag_interface["type"] = "LAG"
+    lag_interface["ip_addresses"] = []
+    lag_interface["vrf"] = l3vpn_subinterface["vrf"]
+    lag_interface["lag"] = None
+    lag_interface["tags"] = []
+
+    physical["name"] = "Ethernet1"
+    physical["lag"] = {
+        "__typename": "InterfaceType",
+        "id": lag_interface["id"],
+        "name": lag_interface["name"],
+    }
+    physical["ip_addresses"] = []
+    physical["vrf"] = None
+    device["interfaces"] = [physical, lag_interface]
+
+    with pytest.raises(
+        DeviceSerializationError,
+        match="Port-Channel1.*VRF L3VPN.*no IP address or unnumbered tag",
+    ):
+        _serialize_router_test_data(
+            test_data,
+            device,
+            mock_cosmo_config_fixture,
+            loopbacks=test_data.get("loopbacks", {}),
+        )
+
+
+def test_arista_direct_bgp_cpe(mock_cosmo_config_fixture):
+    test_data = _yaml_load("./test_case_bgpcpe.yml")
+    device = test_data["device_list"][0]
+    device["platform"]["manufacturer"]["slug"] = "arista"
+    device["platform"]["slug"] = "arista-eos64-4-33-8m"
+
+    physical_interface = next(
+        interface
+        for interface in device["interfaces"]
+        if interface["name"] == "ifp-0/1/3"
+    )
+    linked_interface = next(
+        interface
+        for interface in device["interfaces"]
+        if interface["name"] == "ifp-0/1/3.3"
+    )
+    physical_interface.update(
+        {
+            "name": "Ethernet3",
+            "ip_addresses": linked_interface["ip_addresses"],
+            "mode": linked_interface["mode"],
+            "tags": linked_interface["tags"],
+            "vrf": linked_interface["vrf"],
+        }
+    )
+    device["interfaces"] = [physical_interface]
+
+    serialized = (
+        RouterSerializer(
+            device=device,
+            l2vpn_list=[],
+            loopbacks={},
+            cosmo_config=mock_cosmo_config_fixture,
+        )
+        .allowPrivateIPs()
+        .serialize()
+    )
+    groups = serialized["routing_instances"]["default"]["protocols"]["bgp"]["groups"]
+    assert groups["CPE_Ethernet3_V4"]["peer_as"] == 65086
+    assert groups["CPE_Ethernet3_V4"]["neighbors"][0]["peer"] == "10.129.6.12"
 
 
 def test_l2vpn_errors(capsys, mock_cosmo_config_fixture):

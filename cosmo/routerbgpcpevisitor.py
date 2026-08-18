@@ -158,19 +158,22 @@ class AbstractBgpCpeExporter(metaclass=ABCMeta):
         manufacturer = ManufacturerFactoryFromDevice(
             o.getParent(DeviceType), self._cosmo_config
         ).get()
-        if not linked_interface.hasParentInterface():
+        if linked_interface.hasParentInterface():
+            parent_interface = next(
+                filter(
+                    lambda interface: interface == linked_interface["parent"],
+                    o.getParent(DeviceType).getInterfaces(),
+                )
+            )
+        elif manufacturer.supportsDirectInterfaceIP():
+            parent_interface = linked_interface
+        else:
             warn(
                 f"does not have a parent interface configured, skipping...",
                 linked_interface,
             )
             return
 
-        parent_interface = next(
-            filter(
-                lambda interface: interface == linked_interface["parent"],
-                o.getParent(DeviceType).getInterfaces(),
-            )
-        )
         cpe = head(parent_interface.getConnectedEndpoints())
         if not cpe:
             warn(
