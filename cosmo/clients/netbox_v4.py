@@ -4,7 +4,10 @@ from builtins import map
 from multiprocessing import Manager
 from os import PathLike
 from pathlib import Path
+from packaging.version import Version
+from jinja2 import Environment, PackageLoader, Template
 
+from cosmo._vendor.ansible.lib.ansible.plugins.test.core import version_compare
 from cosmo.clients import get_client_mp_context
 from cosmo.clients.netbox_client import NetboxAPIClient
 from cosmo.common import FileTemplate, clip
@@ -13,15 +16,30 @@ from cosmo.features import features
 
 class ParallelQuery(ABC):
 
-    def __init__(self, client: NetboxAPIClient, **kwargs):
+    def __init__(
+        self, client: NetboxAPIClient, *args, netbox_version: Version, **kwargs
+    ):
         self.client = client
+        self.netbox_version = netbox_version
 
         self.data_promise = None
         self.kwargs = kwargs
 
+        self.j2env = Environment(loader=PackageLoader("cosmo.clients", "queries"))
+        self.j2env.filters["version_compare"] = version_compare
+
     @staticmethod
     def file_template(relpath: str | PathLike):
         return FileTemplate(Path(__file__).parent.joinpath(Path(relpath)))
+
+    def j2_template(self, relpath: str):
+        return self.j2env.get_template(relpath)
+
+    def render(self, template: Template):
+        return template.render(
+            netbox_version=str(self.netbox_version),
+            device=json.dumps(self.kwargs.get("device")),
+        )
 
     def fetch_data(self, pool):
         return pool.apply_async(self._fetch_data, args=(self.kwargs, pool))
@@ -45,15 +63,11 @@ class ConnectedDevicesDataQuery(ParallelQuery):
         self.netbox_43_query_syntax = netbox_43_query_syntax
 
     def _fetch_data(self, kwargs, pool):
-        tag_filter = (
-            'tags: { name: { exact: "bgp:cpe" }}'
-            if self.netbox_43_query_syntax
-            else 'tag: "bgp_cpe"'
-        )
-        query_template = self.file_template("queries/connected_devices.graphql")
+        query_template = self.j2_template("connected_devices.graphql.j2")
 
         return self.client.query(
-            query_template.substitute(tag_filter=tag_filter), "connected_devices_query"
+            self.render(query_template),
+            "connected_devices_query",
         )["data"]
 
     def _merge_into(self, data: dict, query_data):
@@ -326,6 +340,7 @@ class NetboxV4Strategy:
         multiple_mac_addresses,
         netbox_43_query_syntax,
         feature_flags,
+        netbox_version,
         verify_certs=True,
     ):
         self.url = url
@@ -333,6 +348,7 @@ class NetboxV4Strategy:
         self.multiple_mac_addresses = multiple_mac_addresses
         self.netbox_43_query_syntax = netbox_43_query_syntax
         self.feature_flags = feature_flags
+        self.netbox_version = netbox_version
         self.verify_certs = verify_certs
 
     def worker_amount(self, n_queries: int):
@@ -361,38 +377,72 @@ class NetboxV4Strategy:
                             client,
                             device=d,
                             multiple_mac_addresses=self.multiple_mac_addresses,
+                            netbox_version=self.netbox_version,
                         ),
                         (
-                            TobagoLineMembersDataQuery(client, device=d)
+                            TobagoLineMembersDataQuery(
+                                client, device=d, netbox_version=self.netbox_version
+                            )
                             if self.feature_flags["tobago"]
                             and (
                                 features.featureIsEnabled("interface-auto-descriptions")
                                 or features.featureIsEnabled("new-bgp-cpe-group-naming")
                             )
-                            else TobagoLineMemberDataDummyQuery(client, device=d)
+                            else TobagoLineMemberDataDummyQuery(
+                                client, device=d, netbox_version=self.netbox_version
+                            )
                         ),
                     ]
                 )
 
             queries.extend(
                 [
-                    L2VPNDataQuery(client, device_list=device_list),
-                    (
-                        StaticRouteQuery(client, device_list=device_list)
-                        if self.feature_flags["routing"]
-                        else StaticRouteDummyQuery(client, device_list=device_list)
+                    L2VPNDataQuery(
+                        client,
+                        device_list=device_list,
+                        netbox_version=self.netbox_version,
                     ),
-                    DeviceMACQuery(client, device_list=device_list),
+                    (
+                        StaticRouteQuery(
+                            client,
+                            device_list=device_list,
+                            netbox_version=self.netbox_version,
+                        )
+                        if self.feature_flags["routing"]
+                        else StaticRouteDummyQuery(
+                            client,
+                            device_list=device_list,
+                            netbox_version=self.netbox_version,
+                        )
+                    ),
+                    DeviceMACQuery(
+                        client,
+                        device_list=device_list,
+                        netbox_version=self.netbox_version,
+                    ),
                     ConnectedDevicesDataQuery(
                         client,
                         device_list=device_list,
                         netbox_43_query_syntax=self.netbox_43_query_syntax,
+                        netbox_version=self.netbox_version,
                     ),
-                    LoopbackDataQuery(client, device_list=device_list),
+                    LoopbackDataQuery(
+                        client,
+                        device_list=device_list,
+                        netbox_version=self.netbox_version,
+                    ),
                     (
-                        IPPoolDataQuery(client, device_list=device_list)
+                        IPPoolDataQuery(
+                            client,
+                            device_list=device_list,
+                            netbox_version=self.netbox_version,
+                        )
                         if self.feature_flags["ippools"]
-                        else IPPoolDataDummyQuery(client, device_list=device_list)
+                        else IPPoolDataDummyQuery(
+                            client,
+                            device_list=device_list,
+                            netbox_version=self.netbox_version,
+                        )
                     ),
                 ]
             )

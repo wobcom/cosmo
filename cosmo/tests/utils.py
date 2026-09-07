@@ -1,5 +1,7 @@
 import json
 import multiprocessing
+import os
+import stat
 
 
 def override_get_client_mp_context(method=None):
@@ -148,6 +150,18 @@ class PatchIoFilePath:
         else:
             return open(file, *args, **kwargs)
 
+    def _isFileReplacement(self, file, *args, **kwargs):
+        if file == self.requestedPath:
+            return True
+        else:
+            # just cloning the small and unlikely to change isfile function from cpython's Lib/genericpath.py in order
+            # to avoid recursion / monkeypatching loop.
+            try:
+                st = os.stat(file)
+            except (OSError, ValueError):
+                return False
+            return stat.S_ISREG(st.st_mode)
+
     def _patch(self):
         self.patches.append(
             self.mocker.patch(self.namespace + ".open", self._openReplacement)
@@ -155,7 +169,7 @@ class PatchIoFilePath:
         self.patches.append(
             self.mocker.patch(
                 self.namespace + ".os.path.isfile",
-                lambda f: True if f == self.requestedPath else False,
+                self._isFileReplacement,
             )
         )
 

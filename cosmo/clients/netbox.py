@@ -27,6 +27,7 @@ class NetboxClient:
                 multiple_mac_addresses=True,
                 netbox_43_query_syntax=True,
                 feature_flags=feature_flags,
+                netbox_version=self.base_version,
                 verify_certs=self.verify_certs,
             )
         elif self.base_version > Version("4.2.0"):
@@ -37,6 +38,7 @@ class NetboxClient:
                 multiple_mac_addresses=True,
                 netbox_43_query_syntax=False,
                 feature_flags=feature_flags,
+                netbox_version=self.base_version,
                 verify_certs=self.verify_certs,
             )
         elif self.base_version > Version("4.0.0"):
@@ -47,6 +49,7 @@ class NetboxClient:
                 multiple_mac_addresses=False,
                 netbox_43_query_syntax=False,
                 feature_flags=feature_flags,
+                netbox_version=self.base_version,
                 verify_certs=self.verify_certs,
             )
         else:
