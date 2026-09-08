@@ -1,7 +1,13 @@
+import abc
 from abc import ABC
 
-from cosmo.netbox_types import CosmoLoopbackType
-from cosmo.visitors import AbstractNoopNetboxTypesVisitor
+
+class AbstractNoopNetboxTypesVisitor(abc.ABC):
+    def accept(self, o):
+        # use raise NotImplementedError(f"unsupported type {o}")
+        # when you're adding new types and you want to check your
+        # visitor gets everything
+        return
 
 
 class AbstractRouterExporterVisitor(AbstractNoopNetboxTypesVisitor, ABC):

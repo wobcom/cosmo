@@ -1,21 +1,19 @@
-import ipaddress
 from multimethod import multimethod as singledispatchmethod
 
-from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import head, L2VPNSerializationError
+from cosmo.visitors.abc import AbstractRouterExporterVisitor
+from cosmo.common import L2VPNSerializationError
 from cosmo.config.cosmo_config import CosmoConfig
-from cosmo.l2vpnhelpertypes import (
+from cosmo.visitors.l2vpnhelpertypes import (
     L2VpnVisitorClassFactoryFromL2VpnTypeObject,
     AbstractL2VpnTypeTerminationVisitor,
 )
-from cosmo.loopbacks import LoopbackHelper
+from cosmo.visitors.helpers.loopbacks import LoopbackHelper
 from cosmo.netbox_types import (
     L2VPNType,
     InterfaceType,
     VLANType,
-    CosmoLoopbackType,
-    L2VPNTerminationType,
     DeviceType,
+    L2VPNTerminationType,
 )
 
 
@@ -81,6 +79,8 @@ class RouterL2VPNExporterVisitor(AbstractL2VPNVisitor):
 
     @accept.register
     def _(self, o: InterfaceType):
+        if not o.hasParentAboveWithType(L2VPNTerminationType):
+            return None  # guard
         l2vpn_type = self.getL2VpnTypeTerminationObjectFrom(o.getParent(L2VPNType))
         # guard: processed l2vpn should have at least 1 termination belonging
         # to current device.
@@ -89,6 +89,8 @@ class RouterL2VPNExporterVisitor(AbstractL2VPNVisitor):
 
     @accept.register
     def _(self, o: VLANType):
+        if not o.hasParentAboveWithType(L2VPNTerminationType):
+            return None  # guard
         l2vpn_type = self.getL2VpnTypeTerminationObjectFrom(o.getParent(L2VPNType))
         # guard: processed l2vpn should have at least 1 termination belonging
         # to current device. if no termination passes the test, then l2vpn
