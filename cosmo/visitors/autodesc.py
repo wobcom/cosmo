@@ -8,7 +8,7 @@ from cosmo.autodesc import (
 )
 from cosmo.common import head, strictly_decreasing, AutoDescriptionError
 from cosmo.netbox_types import InterfaceType
-from cosmo.visitors import AbstractNoopNetboxTypesVisitor
+from cosmo.visitors.abc import AbstractNoopNetboxTypesVisitor
 
 
 class MutatingAutoDescVisitor(AbstractNoopNetboxTypesVisitor):

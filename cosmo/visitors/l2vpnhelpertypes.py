@@ -3,17 +3,16 @@ from abc import abstractmethod, ABCMeta
 from multimethod import multimethod as singledispatchmethod
 from typing import NoReturn
 
-from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
+from cosmo.visitors.abc import AbstractRouterExporterVisitor
 from cosmo.common import (
     head,
     CosmoOutputType,
     L2VPNSerializationError,
-    DeviceSerializationError,
 )
 from cosmo.config.cosmo_config import CosmoConfig
-from cosmo.loopbacks import LoopbackHelper
+from cosmo.visitors.helpers.loopbacks import LoopbackHelper
 from cosmo.manufacturers import ManufacturerFactoryFromDevice
-from cosmo.vrfhelper import TVRFHelpers
+from cosmo.visitors.helpers.vrf import TVRFHelpers
 from cosmo.log import warn
 from cosmo.netbox_types import (
     InterfaceType,
@@ -21,7 +20,6 @@ from cosmo.netbox_types import (
     AbstractNetboxType,
     DeviceType,
     L2VPNType,
-    CosmoLoopbackType,
     L2VPNTerminationType,
 )
 

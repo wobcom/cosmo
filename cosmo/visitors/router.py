@@ -1,5 +1,4 @@
 import re
-from typing import List
 
 from multimethod import multimethod as singledispatchmethod
 
@@ -8,25 +7,18 @@ import deepmerge
 from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.autodesc import AbstractComposableAutoDescription
 from cosmo.log import warn
-from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
+from cosmo.visitors.abc import AbstractRouterExporterVisitor
 from cosmo.common import (
     InterfaceSerializationError,
     head,
     StaticRouteSerializationError,
     APP_NAME,
-    DeviceSerializationError,
 )
-from cosmo.loopbacks import LoopbackHelper
-from cosmo.vrfhelper import TVRFHelpers
+from cosmo.visitors.helpers.loopbacks import LoopbackHelper
+from cosmo.visitors.helpers.vrf import TVRFHelpers
 from cosmo.manufacturers import ManufacturerFactoryFromDevice, AbstractManufacturer
-from cosmo.routerbgpcpevisitor import RouterBgpCpeExporterVisitor
 from cosmo.features import features
-from cosmo.routerl2vpnvisitor import (
-    RouterL2VPNValidatorVisitor,
-    RouterL2VPNExporterVisitor,
-)
 from cosmo.netbox_types import (
-    L2VPNType,
     VRFType,
     CosmoLoopbackType,
     InterfaceType,
@@ -46,16 +38,6 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
     def __init__(self, loopbacks: LoopbackHelper, cosmo_config: CosmoConfig):
         self._cosmo_config = cosmo_config
         self.asn = self._cosmo_config["asn"]
-        # Note: I have to use composition since singledispatchmethod does not work well with inheritance
-        self.l2vpn_exporter = RouterL2VPNExporterVisitor(
-            loopbacks=loopbacks, cosmo_config=self._cosmo_config
-        )
-        self.l2vpn_validator = RouterL2VPNValidatorVisitor(
-            loopbacks=loopbacks, cosmo_config=self._cosmo_config
-        )
-        self.bgpcpe_exporter = RouterBgpCpeExporterVisitor(
-            cosmo_config=self._cosmo_config
-        )
         self.loopbacks = loopbacks
         self.allow_private_ips = features.featureIsEnabled(
             "allow-private-ips-default-vrf"
@@ -75,10 +57,6 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
-
-    @accept.register
-    def _(self, o: L2VPNType):
-        return self.l2vpn_validator.accept(o)
 
     @accept.register
     def _(self, o: DeviceType):
@@ -346,7 +324,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             # guard: do not process VLAN interface info
             return
         if o.hasParentAboveWithType(L2VPNTerminationType):
-            return self.l2vpn_exporter.accept(o)
+            return None  # guard: will be processed by L2VPN exporter
         # interface in interface is lag info
         if o.hasParentAboveWithType(InterfaceType):
             if o.isUnderKeyNameForParentAboveWithType("lag", InterfaceType):
@@ -515,7 +493,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
     @accept.register
     def _(self, o: VLANType):
         if o.hasParentAboveWithType(L2VPNTerminationType):
-            return self.l2vpn_exporter.accept(o)
+            return None  # will be processed by L2VPN Exporter
         parent_interface = o.getParent(InterfaceType)
         if (
             parent_interface
@@ -849,8 +827,3 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
                     warn(f"{APP_NAME} doesn't know this bgp tag.", o)
             case _:
                 warn(f"{APP_NAME} doesn't know this tag.", o)
-
-    @accept.register
-    def _(self, o: List[TagType]):
-        if "bgp:cpe" in o:
-            return self.bgpcpe_exporter.accept(o)
