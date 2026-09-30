@@ -1,5 +1,4 @@
 import re
-from typing import List
 
 from multimethod import multimethod as singledispatchmethod
 
@@ -19,12 +18,7 @@ from cosmo.visitors.helpers.loopbacks import LoopbackHelper
 from cosmo.visitors.helpers.vrf import TVRFHelpers
 from cosmo.manufacturers import ManufacturerFactoryFromDevice, AbstractManufacturer
 from cosmo.features import features
-from cosmo.visitors.router_l2vpn import (
-    RouterL2VPNValidatorVisitor,
-    RouterL2VPNExporterVisitor,
-)
 from cosmo.netbox_types import (
-    L2VPNType,
     VRFType,
     CosmoLoopbackType,
     InterfaceType,
