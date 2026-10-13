@@ -2,7 +2,13 @@ import ipaddress
 from multimethod import multimethod as singledispatchmethod
 
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import head, L2VPNSerializationError
+from cosmo.common import (
+    head,
+    L2VPNSerializationError,
+    DeviceSerializationError,
+    DEFAULT_LOGICAL_MTU,
+    IEE80213_HDR_BYTES,
+)
 from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.l2vpnhelpertypes import (
     L2VpnVisitorClassFactoryFromL2VpnTypeObject,
@@ -43,6 +49,9 @@ class AbstractL2VPNVisitor(AbstractRouterExporterVisitor):
 
 
 class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
+    # 8021ad (vlan-bridge) and 8021q (vlan-ccc) encaps auto-sets phy MTU to correct MTU if logical MTU is not specified
+    MAX_DEFAULT_PHY_MTU = DEFAULT_LOGICAL_MTU + IEE80213_HDR_BYTES + IEE80213_HDR_BYTES
+
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
@@ -69,9 +78,43 @@ class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
                 f"Accepted types are: {l2vpn_type.getAcceptedTerminationTypes()}"
             )
 
+    def isCompliantInterface(self, o: InterfaceType):
+        if o.getAssociatedDevice() != o.getParent(
+            DeviceType
+        ):  # guard: reject interfaces associated to other devices
+            return
+        phy = o.getPhysicalInterfaceByFilter()
+        if not phy:
+            raise L2VPNSerializationError(
+                "cannot find physical interface attached to L2VPN termination", on=o
+            )
+        phy_mtu = int(phy.getMTU() or self.MAX_DEFAULT_PHY_MTU)
+        l2vpn_type = self.getL2VpnTypeTerminationObjectFrom(o.getParent(L2VPNType))
+        encap_type = l2vpn_type.getChosenEncapType(o)
+        encap_supplementary_bytes = encap_type.supplementaryHeaderBytes()
+        if phy != o:  # sub interface
+            logical_mtu = int(o.getMTU() or DEFAULT_LOGICAL_MTU)
+            target_phy_mtu = (
+                logical_mtu + encap_supplementary_bytes + IEE80213_HDR_BYTES
+            )
+            if phy_mtu < target_phy_mtu:
+                raise L2VPNSerializationError(
+                    "Mismatched L2VPN MTU configuration, check physical and logical interface MTU please. "
+                    f"Expected {target_phy_mtu}, got {phy_mtu} for encap type {encap_type}",
+                    on=o,
+                )
+
     @accept.register
     def _(self, o: L2VPNType):
         self.isCompliantWANL2VPN(o)
+
+    @accept.register
+    def _(self, o: InterfaceType):
+        self.isCompliantInterface(o)
+
+    @accept.register
+    def _(self, o: VLANType):
+        pass  # TODO
 
 
 class RouterL2VPNExporterVisitor(AbstractL2VPNVisitor):
