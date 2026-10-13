@@ -4,7 +4,97 @@ device_list:
     slug: S9510-28DC-BN0B
   __typename: DeviceType
   id: '17649'
-  interfaces: []
+  interfaces:
+    - custom_fields:
+        inner_tag: null
+        outer_tag: null
+      __typename: InterfaceType
+      description: ''
+      enabled: true
+      id: '30747'
+      ip_addresses: [ ]
+      lag:
+        __typename: InterfaceType
+        id: '30820'
+        name: ae0
+      mac_address: 94:BF:41:41:41:F3
+      mode: null
+      mtu: null
+      name: et-0/0/0
+      tagged_vlans: [ ]
+      tags: [ ]
+      type: A_100GBASE_X_QSFP28
+      untagged_vlan: null
+      vrf: null
+    - custom_fields:
+        inner_tag: null
+        outer_tag: null
+      __typename: InterfaceType
+      description: ''
+      enabled: true
+      id: '30748'
+      ip_addresses: [ ]
+      lag:
+        __typename: InterfaceType
+        id: '30820'
+        name: ae0
+      mac_address: 94:BF:41:41:41:F7
+      mode: null
+      mtu: null
+      name: et-0/0/1
+      tagged_vlans: [ ]
+      tags: [ ]
+      type: A_100GBASE_X_QSFP28
+      untagged_vlan: null
+      vrf: null
+    - custom_fields:
+        bpdufilter: null
+        inner_tag: null
+        outer_tag: null
+        storm_control__broadcast: null
+        storm_control__multicast: null
+        storm_control__unknown_unicast: null
+      __typename: InterfaceType
+      description: CBSC1101
+      enabled: true
+      id: '30820'
+      ip_addresses: [ ]
+      lag: null
+      mac_address: 94:BF:94:3E:88:D4
+      mode: TAGGED
+      mtu: null
+      name: ae0
+      tagged_vlans: [ ]
+      tags: [ ]
+      type: LAG
+      untagged_vlan: null
+      vrf: null
+    - custom_fields:
+        bpdufilter: false
+        inner_tag: null
+        outer_tag: null
+        storm_control__broadcast: null
+        storm_control__multicast: null
+        storm_control__unknown_unicast: null
+      description: 'Customer: Test-VLAN2'
+      __typename: InterfaceType
+      enabled: false
+      id: '30821'
+      ip_addresses: [ ]
+      lag: null
+      mac_address: null
+      mode: ACCESS
+      mtu: null
+      name: ae0.150
+      tagged_vlans: [ ]
+      tags: [ ]
+      type: VIRTUAL
+      untagged_vlan:
+        __typename: VLANType
+        id: '1159'
+        name: TEST-VLAN2
+        vid: 150
+      vrf: null
   name: TEST0001
   platform:
     __typename: PlatformType
