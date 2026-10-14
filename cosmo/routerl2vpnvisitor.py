@@ -89,10 +89,12 @@ class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
                 "cannot find physical interface attached to L2VPN termination", on=o
             )
         phy_mtu = int(phy.getMTU() or self.MAX_DEFAULT_PHY_MTU)
-        l2vpn_type = self.getL2VpnTypeTerminationObjectFrom(o.getParent(L2VPNType))
-        encap_type = l2vpn_type.getChosenEncapType(o)
-        encap_supplementary_bytes = encap_type.supplementaryHeaderBytes()
         if phy != o:  # sub interface
+            l2vpn_type = self.getL2VpnTypeTerminationObjectFrom(o.getParent(L2VPNType))
+            encap_type = l2vpn_type.getChosenEncapType(o)
+            encap_supplementary_bytes = (
+                encap_type.supplementaryHeaderBytes() if encap_type else 0
+            )
             logical_mtu = int(o.getMTU() or DEFAULT_LOGICAL_MTU)
             target_phy_mtu = (
                 logical_mtu + encap_supplementary_bytes + IEE80213_HDR_BYTES
