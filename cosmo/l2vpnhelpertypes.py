@@ -9,6 +9,8 @@ from cosmo.common import (
     CosmoOutputType,
     L2VPNSerializationError,
     DeviceSerializationError,
+    IEE8021Q_HDR_BYTES,
+    IEEE8021AD_HDR_BYTES,
 )
 from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.loopbacks import LoopbackHelper
@@ -32,6 +34,14 @@ class AbstractEncapCapability(metaclass=ABCMeta):
     def accept(self, o):
         warn(f"cannot find suitable encapsulation.", o)
 
+    @abstractmethod
+    def __str__(self) -> str:
+        pass
+
+    @abstractmethod
+    def supplementaryHeaderBytes(self) -> int:
+        pass
+
 
 class EthernetCccEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
     @singledispatchmethod
@@ -54,7 +64,13 @@ class EthernetCccEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
             )
         )
         if len(sub_units) == 1:
-            return "ethernet-ccc"
+            return self
+
+    def supplementaryHeaderBytes(self) -> int:
+        return 0  # ethernet-ccc has no overhead, as the whole interface is used for 1 service termination
+
+    def __str__(self) -> str:
+        return "ethernet-ccc"
 
 
 class VlanCccEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
@@ -64,13 +80,19 @@ class VlanCccEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
 
     @accept.register
     def _(self, o: VLANType):
-        return "vlan-ccc"
+        return self
 
     @accept.register
     def _(self, o: InterfaceType):
         # If there is at least one tagged VLAN on the interface or Untagged is not a "unit 0"...
         if len(o.getTaggedVLANS()) or o.getUntaggedVLAN():
-            return "vlan-ccc"
+            return self
+
+    def supplementaryHeaderBytes(self) -> int:
+        return IEE8021Q_HDR_BYTES
+
+    def __str__(self) -> str:
+        return "vlan-ccc"
 
 
 class VlanBridgeEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
@@ -80,6 +102,12 @@ class VlanBridgeEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
 
     @accept.register
     def _(self, o: InterfaceType | VLANType):
+        return self
+
+    def supplementaryHeaderBytes(self) -> int:
+        return IEEE8021AD_HDR_BYTES
+
+    def __str__(self):
         return "vlan-bridge"
 
 
@@ -142,8 +170,8 @@ class AbstractL2VpnTypeTerminationVisitor(
     def needsL2VPNIdentifierAsMandatory(self) -> bool:
         return False
 
-    def getChosenEncapType(self, o: AbstractNetboxType) -> str | None:
-        chosen_encap = head(
+    def getChosenEncapType(self, o: AbstractNetboxType) -> AbstractEncapCapability:
+        return head(
             list(
                 filter(
                     lambda encap: encap is not None,
@@ -151,7 +179,9 @@ class AbstractL2VpnTypeTerminationVisitor(
                 )
             )
         )
-        return chosen_encap
+
+    def getChosenEncapStr(self, o: AbstractNetboxType) -> str | None:
+        return str(self.getChosenEncapType(o))
 
     def processInterfaceTypeTermination(self, o: InterfaceType) -> dict | None:
         warn(
@@ -168,7 +198,7 @@ class AbstractL2VpnTypeTerminationVisitor(
         return None
 
     def spitInterfaceEncapFor(self, o: VLANType | InterfaceType):
-        encap_type = self.getChosenEncapType(o)
+        encap_type = self.getChosenEncapStr(o)
         inner_info = (
             {"encapsulation": encap_type} if encap_type else {}
         )  # encap type is optional!

@@ -6,6 +6,11 @@ from typing import Optional, Union, Protocol, TypeVar, Sequence
 
 APP_NAME = "cosmo"
 
+IEEE8021AD_HDR_BYTES = 8
+IEE8021Q_HDR_BYTES = 4
+IEE80213_HDR_BYTES = 14
+DEFAULT_LOGICAL_MTU = 1500
+
 
 class AbstractRecoverableError(Exception, ABC):
     def __init__(self, text: str, on: Optional[object] = None, *args):
