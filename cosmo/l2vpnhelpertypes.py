@@ -9,7 +9,7 @@ from cosmo.common import (
     CosmoOutputType,
     L2VPNSerializationError,
     DeviceSerializationError,
-    IEE8021Q_HDR_BYTES,
+    IEEE8021Q_HDR_BYTES,
     IEEE8021AD_HDR_BYTES,
 )
 from cosmo.config.cosmo_config import CosmoConfig
@@ -89,7 +89,7 @@ class VlanCccEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
             return self
 
     def supplementaryHeaderBytes(self) -> int:
-        return IEE8021Q_HDR_BYTES
+        return IEEE8021Q_HDR_BYTES
 
     def __str__(self) -> str:
         return "vlan-ccc"
