@@ -105,7 +105,7 @@ class VlanBridgeEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
         return self
 
     def supplementaryHeaderBytes(self) -> int:
-        return IEEE8021AD_HDR_BYTES
+        return IEEE8021Q_HDR_BYTES  # we do not use double tagging with logical interfaces atm.
 
     def __str__(self):
         return "vlan-bridge"
