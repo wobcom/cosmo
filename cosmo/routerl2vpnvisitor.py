@@ -8,6 +8,7 @@ from cosmo.common import (
     DeviceSerializationError,
     DEFAULT_LOGICAL_MTU,
     IEEE8023_HDR_BYTES,
+    IEEE8021Q_HDR_BYTES,
 )
 from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.l2vpnhelpertypes import (
@@ -50,7 +51,7 @@ class AbstractL2VPNVisitor(AbstractRouterExporterVisitor):
 
 class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
     # 8021ad (vlan-bridge) and 8021q (vlan-ccc) encaps auto-sets phy MTU to correct MTU if logical MTU is not specified
-    MAX_DEFAULT_PHY_MTU = DEFAULT_LOGICAL_MTU + IEEE8023_HDR_BYTES + IEEE8023_HDR_BYTES
+    MAX_DEFAULT_PHY_MTU = DEFAULT_LOGICAL_MTU + IEEE8021Q_HDR_BYTES
 
     @singledispatchmethod
     def accept(self, o):
