@@ -285,6 +285,90 @@ def test_l2vpn_errors(capsys, mock_cosmo_config_fixture):
     ):
         serialize(vpws_non_interface_term)
 
+    l2x_incoherent_explicit_logical_mtu = copy.deepcopy(template)
+    l2x_incoherent_explicit_logical_mtu["l2vpn_list"].append(
+        {
+            "__typename": "L2VPNType",
+            "id": "55",
+            "identifier": 123456,
+            "name": "WAN: explicit logical MTU higher than max computed implicit phy MTU",
+            "type": "VPWS",
+            "terminations": [
+                {
+                    "__typename": "L2VPNTerminationType",
+                    "assigned_object": {
+                        "__typename": "InterfaceType",
+                        "id": "30821",
+                        "name": "ae0.1",
+                        "mtu": "9000",
+                        "custom_fields": {},
+                        "untagged_vlan": None,
+                        "tagged_vlans": [],
+                        "device": {
+                            "__typename": "DeviceType",
+                            "id": "17649",
+                            "name": "TEST0001",
+                        },
+                    },
+                },
+                {
+                    "__typename": "L2VPNTerminationType",
+                    "assigned_object": {
+                        "__typename": "InterfaceType",
+                    },
+                },
+            ],
+        }
+    )
+
+    with pytest.raises(
+        DeviceSerializationError,
+        match=r"Mismatched L2VPN MTU configuration",
+    ):
+        serialize(l2x_incoherent_explicit_logical_mtu)
+
+    l2x_incoherent_explicit_logical_physical_mtu = copy.deepcopy(template)
+    l2x_incoherent_explicit_logical_physical_mtu["l2vpn_list"].append(
+        {
+            "__typename": "L2VPNType",
+            "id": "55",
+            "identifier": 123456,
+            "name": "WAN: explicit logical MTU higher than max computed explicit phy MTU",
+            "type": "VPWS",
+            "terminations": [
+                {
+                    "__typename": "L2VPNTerminationType",
+                    "assigned_object": {
+                        "__typename": "InterfaceType",
+                        "id": "30821",
+                        "name": "ae0.1",
+                        "mtu": "9000",
+                        "custom_fields": {},
+                        "untagged_vlan": None,
+                        "tagged_vlans": [],
+                        "device": {
+                            "__typename": "DeviceType",
+                            "id": "17649",
+                            "name": "TEST0001",
+                        },
+                    },
+                },
+                {
+                    "__typename": "L2VPNTerminationType",
+                    "assigned_object": {
+                        "__typename": "InterfaceType",
+                    },
+                },
+            ],
+        }
+    )
+
+    with pytest.raises(
+        DeviceSerializationError,
+        match=r"Mismatched L2VPN MTU configuration",
+    ):
+        serialize(l2x_incoherent_explicit_logical_physical_mtu)
+
 
 def test_router_physical_interface():
     [sd] = get_router_sd_from_path("./test_case_1.yaml")
