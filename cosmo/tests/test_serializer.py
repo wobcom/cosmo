@@ -296,6 +296,7 @@ def test_l2vpn_errors(capsys, mock_cosmo_config_fixture):
             "terminations": [
                 {
                     "__typename": "L2VPNTerminationType",
+                    "id": "483",
                     "assigned_object": {
                         "__typename": "InterfaceType",
                         "id": "30821",
@@ -313,6 +314,7 @@ def test_l2vpn_errors(capsys, mock_cosmo_config_fixture):
                 },
                 {
                     "__typename": "L2VPNTerminationType",
+                    "id": "485",
                     "assigned_object": {
                         "__typename": "InterfaceType",
                     },
@@ -320,14 +322,65 @@ def test_l2vpn_errors(capsys, mock_cosmo_config_fixture):
             ],
         }
     )
+    # should warn that clamping is active
+    serialize(l2x_incoherent_explicit_logical_mtu)
+    output = capsys.readouterr()
+    assert re.search(
+        r"logical MTU of 9000 will be clamped by media MTU of 1514, please check your configuration",
+        output.out,
+    )
 
-    with pytest.raises(
-        DeviceSerializationError,
-        match=r"Mismatched L2VPN MTU configuration",
-    ):
-        serialize(l2x_incoherent_explicit_logical_mtu)
+    l2x_insufficient_explicit_media_mtu = copy.deepcopy(template)
+    l2x_insufficient_explicit_media_mtu["device_list"][0]["interfaces"][2][
+        "mtu"
+    ] = "1514"
+    l2x_insufficient_explicit_media_mtu["l2vpn_list"].append(
+        {
+            "__typename": "L2VPNType",
+            "id": "55",
+            "identifier": 123456,
+            "name": "WAN: VS_234098",
+            "type": "MPLS-EVPN",
+            "terminations": [
+                {
+                    "__typename": "L2VPNTerminationType",
+                    "id": "483",
+                    "assigned_object": {
+                        "__typename": "InterfaceType",
+                        "id": "30821",
+                        "name": "ae0.1",
+                        "custom_fields": {},
+                        "untagged_vlan": None,
+                        "tagged_vlans": [],
+                        "device": {
+                            "__typename": "DeviceType",
+                            "id": "17649",
+                            "name": "TEST0001",
+                        },
+                    },
+                },
+                {
+                    "__typename": "L2VPNTerminationType",
+                    "id": "485",
+                    "assigned_object": {
+                        "__typename": "InterfaceType",
+                    },
+                },
+            ],
+        }
+    )
+    # should warn that media MTU is insufficient
+    serialize(l2x_insufficient_explicit_media_mtu)
+    output = capsys.readouterr()
+    assert re.search(
+        r"media MTU of 1514 is insufficient for mpls-evpn.",
+        output.out,
+    )
 
     l2x_incoherent_explicit_logical_physical_mtu = copy.deepcopy(template)
+    l2x_incoherent_explicit_logical_physical_mtu["device_list"][0]["interfaces"][2][
+        "mtu"
+    ] = "1514"
     l2x_incoherent_explicit_logical_physical_mtu["l2vpn_list"].append(
         {
             "__typename": "L2VPNType",

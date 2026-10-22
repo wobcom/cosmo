@@ -1,6 +1,7 @@
 import ipaddress
 from multimethod import multimethod as singledispatchmethod
 
+from cosmo import log
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
 from cosmo.common import (
     head,
@@ -9,6 +10,7 @@ from cosmo.common import (
     DEFAULT_LOGICAL_MTU,
     IEEE8023_HDR_BYTES,
     IEEE8021Q_HDR_BYTES,
+    DEFAULT_PHY_MTU,
 )
 from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.l2vpnhelpertypes import (
@@ -50,9 +52,6 @@ class AbstractL2VPNVisitor(AbstractRouterExporterVisitor):
 
 
 class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
-    # 8021ad (vlan-bridge) and 8021q (vlan-ccc) encaps auto-sets phy MTU to correct MTU if logical MTU is not specified
-    MAX_DEFAULT_PHY_MTU = DEFAULT_LOGICAL_MTU + IEEE8021Q_HDR_BYTES
-
     @singledispatchmethod
     def accept(self, o):
         return super().accept(o)
@@ -89,23 +88,52 @@ class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
             raise L2VPNSerializationError(
                 "cannot find physical interface attached to L2VPN termination", on=o
             )
-        phy_mtu = int(phy.getMTU() or self.MAX_DEFAULT_PHY_MTU)
+        current_media_mtu = int(phy.getMTU() or DEFAULT_PHY_MTU)
+        manual_media_mtu = phy.getMTU() is not None or False
         if phy != o:  # sub interface
             l2vpn_type = self.getL2VpnTypeTerminationObjectFrom(o.getParent(L2VPNType))
             encap_type = l2vpn_type.getChosenEncapType(o)
             encap_supplementary_bytes = (
                 encap_type.supplementaryHeaderBytes() if encap_type else 0
             )
-            logical_mtu = int(o.getMTU() or DEFAULT_LOGICAL_MTU)
-            target_phy_mtu = (
-                logical_mtu + encap_supplementary_bytes + IEEE8023_HDR_BYTES
-            )
-            if phy_mtu < target_phy_mtu:
-                raise L2VPNSerializationError(
-                    "Mismatched L2VPN MTU configuration, check physical and logical interface MTU please. "
-                    f"Expected {target_phy_mtu}, got {phy_mtu} for encap type {encap_type}",
-                    on=o,
+            current_logical_mtu = int(o.getMTU() or DEFAULT_LOGICAL_MTU)
+            manual_logical_mtu = o.getMTU() is not None or False
+            min_target_media_mtu = DEFAULT_PHY_MTU + encap_supplementary_bytes
+            # if the logical MTU is too high relatively to media MTU,
+            # it will automatically be capped to the appropriate value, taking into account
+            # protocol overhead. this may result in an effective logical MTU lower than the
+            # "standard" 1500 bytes, especially in cases where encapsulations such as
+            # vlan-bridge and vlan-ccc are used.
+            if (
+                current_media_mtu < min_target_media_mtu
+            ):  # logical mtu insufficient to avoid clamping
+                log.warn(
+                    f"media MTU of {current_media_mtu} is insufficient for {l2vpn_type.getNetboxTypeName()}. "
+                    f"customer traffic will be clamped below standard size.",
+                    o,
                 )
+            if (
+                current_logical_mtu + IEEE8023_HDR_BYTES > current_media_mtu
+            ):  # clamping active
+                if (
+                    manual_logical_mtu and manual_media_mtu
+                ):  # clamping active and both media MTU and logical MTU are configured by user
+                    # generation should be aborted if a configured physical MTU clamps a configured logical MTU
+                    # and is not effective.
+                    raise L2VPNSerializationError(
+                        f"Mismatched L2VPN MTU configuration, check physical and "
+                        f"logical interface MTU please. Expected {min_target_media_mtu}, got {current_media_mtu} "
+                        f"for encap type {encap_type}",
+                        on=o,
+                    )
+                else:  # clamping active without above specific case
+                    # user should be warned if a higher configured logical MTU is clamped and not effective,
+                    # as not to break existing configurations.
+                    log.warn(
+                        f"logical MTU of {current_logical_mtu} will be clamped by media "
+                        f"MTU of {current_media_mtu}, please check your configuration",
+                        on=o,
+                    )
 
     @accept.register
     def _(self, o: L2VPNType):
