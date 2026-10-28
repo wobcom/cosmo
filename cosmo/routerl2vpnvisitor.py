@@ -145,7 +145,15 @@ class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
 
     @accept.register
     def _(self, o: VLANType):
-        pass  # TODO
+        interface_list = filter(
+            lambda i: i.getAssociatedDevice() == o.getParent(DeviceType),
+            [
+                *o.getInterfacesAsUntagged(),
+                *o.getInterfacesAsTagged(),
+            ],
+        )
+        for interface in interface_list:
+            self.isCompliantInterface(interface)
 
 
 class RouterL2VPNExporterVisitor(AbstractL2VPNVisitor):
