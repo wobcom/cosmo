@@ -1,8 +1,17 @@
 import ipaddress
 from multimethod import multimethod as singledispatchmethod
 
+from cosmo import log
 from cosmo.abstractroutervisitor import AbstractRouterExporterVisitor
-from cosmo.common import head, L2VPNSerializationError
+from cosmo.common import (
+    head,
+    L2VPNSerializationError,
+    DeviceSerializationError,
+    DEFAULT_LOGICAL_MTU,
+    IEEE8023_HDR_BYTES,
+    IEEE8021Q_HDR_BYTES,
+    DEFAULT_PHY_MTU,
+)
 from cosmo.config.cosmo_config import CosmoConfig
 from cosmo.l2vpnhelpertypes import (
     L2VpnVisitorClassFactoryFromL2VpnTypeObject,
@@ -69,9 +78,82 @@ class RouterL2VPNValidatorVisitor(AbstractL2VPNVisitor):
                 f"Accepted types are: {l2vpn_type.getAcceptedTerminationTypes()}"
             )
 
+    def isCompliantInterface(self, o: InterfaceType):
+        if o.getAssociatedDevice() != o.getParent(
+            DeviceType
+        ):  # guard: reject interfaces associated to other devices
+            return
+        phy = o.getPhysicalInterfaceByFilter()
+        if not phy:
+            raise L2VPNSerializationError(
+                "cannot find physical interface attached to L2VPN termination", on=o
+            )
+        current_media_mtu = int(phy.getMTU() or DEFAULT_PHY_MTU)
+        manual_media_mtu = phy.getMTU() is not None or False
+        if phy != o:  # sub interface
+            l2vpn_type = self.getL2VpnTypeTerminationObjectFrom(o.getParent(L2VPNType))
+            encap_type = l2vpn_type.getChosenEncapType(o)
+            encap_supplementary_bytes = (
+                encap_type.supplementaryHeaderBytes() if encap_type else 0
+            )
+            current_logical_mtu = int(o.getMTU() or DEFAULT_LOGICAL_MTU)
+            manual_logical_mtu = o.getMTU() is not None or False
+            min_target_media_mtu = DEFAULT_PHY_MTU + encap_supplementary_bytes
+            # if the logical MTU is too high relatively to media MTU,
+            # it will automatically be capped to the appropriate value, taking into account
+            # protocol overhead. this may result in an effective logical MTU lower than the
+            # "standard" 1500 bytes, especially in cases where encapsulations such as
+            # vlan-bridge and vlan-ccc are used.
+            if (
+                current_media_mtu < min_target_media_mtu
+            ):  # logical mtu insufficient to avoid clamping
+                log.warn(
+                    f"media MTU of {current_media_mtu} is insufficient for {l2vpn_type.getNetboxTypeName()}. "
+                    f"customer traffic will be clamped below standard size.",
+                    o,
+                )
+            if (
+                current_logical_mtu + IEEE8023_HDR_BYTES > current_media_mtu
+            ):  # clamping active
+                if (
+                    manual_logical_mtu and manual_media_mtu
+                ):  # clamping active and both media MTU and logical MTU are configured by user
+                    # generation should be aborted if a configured physical MTU clamps a configured logical MTU
+                    # and is not effective.
+                    raise L2VPNSerializationError(
+                        f"Mismatched L2VPN MTU configuration, check physical and "
+                        f"logical interface MTU please. Expected {min_target_media_mtu}, got {current_media_mtu} "
+                        f"for encap type {encap_type}",
+                        on=o,
+                    )
+                else:  # clamping active without above specific case
+                    # user should be warned if a higher configured logical MTU is clamped and not effective,
+                    # as not to break existing configurations.
+                    log.warn(
+                        f"logical MTU of {current_logical_mtu} will be clamped by media "
+                        f"MTU of {current_media_mtu}, please check your configuration",
+                        on=o,
+                    )
+
     @accept.register
     def _(self, o: L2VPNType):
         self.isCompliantWANL2VPN(o)
+
+    @accept.register
+    def _(self, o: InterfaceType):
+        self.isCompliantInterface(o)
+
+    @accept.register
+    def _(self, o: VLANType):
+        interface_list = filter(
+            lambda i: i.getAssociatedDevice() == o.getParent(DeviceType),
+            [
+                *o.getInterfacesAsUntagged(),
+                *o.getInterfacesAsTagged(),
+            ],
+        )
+        for interface in interface_list:
+            self.isCompliantInterface(interface)
 
 
 class RouterL2VPNExporterVisitor(AbstractL2VPNVisitor):
