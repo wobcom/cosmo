@@ -1,0 +1,185 @@
+device_list:
+- device_type:
+    __typename: DeviceTypeType
+    slug: mx204_te_3
+  id: '2548'
+  interfaces:
+  - custom_fields:
+      bpdufilter: null
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    __typename: InterfaceType
+    description: ''
+    enabled: true
+    id: '38384'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: 9000
+    name: et-0/0/0
+    tagged_vlans: []
+    tags: []
+    type: A_100GBASE_X_QSFP28
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    __typename: InterfaceType
+    description: ''
+    enabled: true
+    id: '184384'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: et-0/0/0.0
+    tagged_vlans: []
+    tags: []
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+  name: TEST0001
+  platform:
+    __typename: PlatformType
+    manufacturer:
+      __typename: ManufacturerType
+      slug: juniper
+    slug: junos-21-4r3-s5-4
+  primary_ip4:
+    __typename: IPAddressType
+    address: 45.139.136.11/24
+  staticroute_set: []
+- device_type:
+    __typename: DeviceTypeType
+    slug: mx204_te
+  __typename: DeviceType
+  id: '2549'
+  interfaces:
+  - custom_fields:
+      bpdufilter: null
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    __typename: InterfaceType
+    description: ''
+    enabled: true
+    id: '38398'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: 9000
+    name: lt-0/0/0
+    tagged_vlans: []
+    tags: []
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    __typename: InterfaceType
+    description: ''
+    enabled: true
+    id: '184383'
+    ip_addresses: []
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: lt-0/0/0.0
+    tagged_vlans: []
+    tags: []
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+  - custom_fields:
+      bpdufilter: false
+      inner_tag: null
+      outer_tag: null
+      storm_control__broadcast: null
+      storm_control__multicast: null
+      storm_control__unknown_unicast: null
+    __typename: InterfaceType
+    description: ''
+    enabled: true
+    id: '184385'
+    ip_addresses:
+    - address: 192.168.1.23/24
+      role: null
+      __typename: IPAddressType
+    lag: null
+    mac_address: null
+    mode: null
+    mtu: null
+    name: lt-0/0/0.1
+    tagged_vlans: []
+    tags: []
+    type: VIRTUAL
+    untagged_vlan: null
+    vrf: null
+  name: TEST0002
+  platform:
+    __typename: PlatformType
+    manufacturer:
+      __typename: ManufacturerType
+      slug: juniper
+    slug: junos-21-4r3-s5-4
+  primary_ip4:
+    __typename: IPAddressType
+    address: 45.139.136.10/32
+  staticroute_set: []
+l2vpn_list:
+- id: '39'
+  __typename: L2VPNType
+  identifier: 2708
+  name: 'WAN: VS_VPWS'
+  terminations:
+  - assigned_object:
+      __typename: InterfaceType
+      device:
+        __typename: DeviceType
+        interfaces: []
+        id: '2548'
+        name: TEST0001
+      id: '184384'
+      name: et-0/0/0.0
+      tagged_vlans: []
+      untagged_vlan: null
+    id: '865'
+    __typename: L2VPNTerminationType
+  - assigned_object:
+      __typename: InterfaceType
+      device:
+        __typename: DeviceType
+        interfaces: []
+        id: '2549'
+        name: TEST0002
+      id: '184383'
+      name: lt-0/0/0.0
+      tagged_vlans: []
+      untagged_vlan: null
+    id: '866'
+    __typename: L2VPNTerminationType
+  type: VPWS
+loopbacks:
+  TEST0001:
+    ipv4: 45.139.136.10/32
+  TEST0002:
+    ipv4: 45.139.136.11/32

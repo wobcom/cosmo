@@ -772,6 +772,37 @@ def test_router_case_vpws():
         assert ri["vrf_target"] == "target:65542L:2708"
 
 
+def test_router_case_vpws_lt_termination():
+    sd = get_router_sd_from_path("./test_case_vpws_lt_termination.yaml")
+
+    d = sd[1]
+    assert "lt-0/0/0" in d["interfaces"]
+    assert not "encapsulation" in d["interfaces"]["lt-0/0/0"]
+    assert 0 in d["interfaces"]["lt-0/0/0"]["units"]
+    assert 1 in d["interfaces"]["lt-0/0/0"]["units"]
+
+    unit = d["interfaces"]["lt-0/0/0"]["units"][0]
+
+    assert unit == {"encapsulation": "ethernet-ccc"}
+
+    # mgmt Routing Instance and Routing Instance for L2VPN
+    assert len(d["routing_instances"]) == 2
+
+    assert len(d["l2circuits"]) == 0
+
+    ri = d["routing_instances"]["VS_VPWS"]
+    # We need one interface in our routing instance
+    assert len(ri["interfaces"]) == 1
+    assert ri["interfaces"][0] == "lt-0/0/0.0"
+
+    assert ri["description"] == "VPWS: VPWS"
+    assert ri["instance_type"] == "evpn-vpws"
+    assert ri["vrf_target"] == "target:65542L:2708"
+
+    unit_r = d["interfaces"]["lt-0/0/0"]["units"][1]
+    assert unit_r["families"]["inet"]["address"] == {"192.168.1.23/24": {}}
+
+
 def test_router_case_local_l2x():
     [d] = get_router_sd_from_path("./test_case_local_l2x.yaml")
 

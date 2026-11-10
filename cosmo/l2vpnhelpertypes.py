@@ -63,7 +63,7 @@ class EthernetCccEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
                 o.getParent(DeviceType).getInterfaces(),
             )
         )
-        if len(sub_units) == 1:
+        if len(sub_units) == 1 or o.isLogicalTunnel():
             return self
 
     def supplementaryHeaderBytes(self) -> int:
@@ -206,6 +206,7 @@ class AbstractL2VpnTypeTerminationVisitor(
             encap_type == "ethernet-ccc"
             and isinstance(o, InterfaceType)
             and o.isSubInterface()
+            and not o.isLogicalTunnel()
         ):
             return {  # ethernet-ccc is on physical interface
                 self._interfaces_key: {
