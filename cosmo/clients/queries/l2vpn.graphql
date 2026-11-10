@@ -39,6 +39,7 @@ query {
                     __typename
                     id
                     name
+                    mtu
                     custom_fields
                     untagged_vlan {
                         __typename

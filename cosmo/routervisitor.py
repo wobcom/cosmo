@@ -346,6 +346,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
             # guard: do not process VLAN interface info
             return
         if o.hasParentAboveWithType(L2VPNTerminationType):
+            self.l2vpn_validator.accept(o)
             return self.l2vpn_exporter.accept(o)
         # interface in interface is lag info
         if o.hasParentAboveWithType(InterfaceType):
@@ -515,6 +516,7 @@ class RouterDeviceExporterVisitor(AbstractRouterExporterVisitor, TVRFHelpers):
     @accept.register
     def _(self, o: VLANType):
         if o.hasParentAboveWithType(L2VPNTerminationType):
+            self.l2vpn_validator.accept(o)
             return self.l2vpn_exporter.accept(o)
         parent_interface = o.getParent(InterfaceType)
         if (
