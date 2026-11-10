@@ -59,7 +59,7 @@ class EthernetCccEncapCapability(AbstractEncapCapability, metaclass=ABCMeta):
         )
         sub_units = list(
             filter(  # costlier check it is then
-                lambda i: i.getName().startswith(root_name) and i.isSubInterface(),
+                lambda i: i.getName().split(".")[0] == root_name and i.isSubInterface(),
                 o.getParent(DeviceType).getInterfaces(),
             )
         )
