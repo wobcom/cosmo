@@ -584,6 +584,9 @@ class InterfaceType(
     def isSubInterface(self):
         return "." in self.getName()
 
+    def isLogicalTunnel(self):
+        return self.getName().startswith("lt-")
+
     def getUnitNumber(self) -> int | None:
         ret = None
         if self.isSubInterface():
